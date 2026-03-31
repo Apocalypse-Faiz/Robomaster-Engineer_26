@@ -1,0 +1,117 @@
+// ActionGroupController.h
+#ifndef __ACTIONGROUPCONTROLLER_H__
+#define __ACTIONGROUPCONTROLLER_H__
+
+#ifdef __cplusplus
+#include "internal.h"
+#include "SRML.h"
+#include "Joint.h"
+#include "Trajectory.h"
+#include "ActionGroup.h"
+#include "Claw.h"
+
+/* 取能量单元状态枚举 */
+enum class TakeOre_enum {
+    Zero = 0,
+    TakeOre1_prepare, TakeOre2_prepare, TakeOre3_prepare,
+    TakeOre4_prepare, TakeOre5_prepare, TakeOre6_prepare,
+    TakeOre1_ing, TakeOre2_ing, TakeOre3_ing,
+    TakeOre4_ing, TakeOre5_ing, TakeOre6_ing,
+    TakeOre1_end, TakeOre2_end, TakeOre3_end,
+    TakeOre4_end, TakeOre5_end, TakeOre6_end,
+    StoreOre_L, StoreOre_R,
+    ExitStoreOre_L, ExitStoreOre_R,
+    TakeInOre_L, TakeInOre_R,
+    TakeinOreRight_end, TakeinOreLeft_end
+};
+
+/* 动作组控制器类 - 专门处理动作组逻辑 */
+class ActionGroupController {
+private:
+    // 状态变量
+    TakeOre_enum take_ore_state;
+    uint8_t ore_ing[2];
+    uint8_t get_ore_num[6];
+    uint8_t ore_index;
+    
+    // 临时变量
+    ActionGroup_enum action_enum;
+    uint8_t add_once_flag;
+    uint8_t last_action_done;
+    
+public:
+    ActionGroupController();
+    
+    /**
+     * @brief 初始化控制器
+     */
+    void init();
+    
+    /**
+     * @brief 更新动作组控制
+     * @param joints 关节数组
+     * @param trajectory_arrays 轨迹数组
+     * @param gripper 夹爪对象
+     * @param toBottomdata 底盘数据
+     * @param reBottomdata 接收的底盘数据
+     */
+    void update(Joint joints[], TrajectoryPointArray trajectory_arrays[], Gripper& gripper, ToBottomDataStructdef& toBottomdata, ReBottomDataStructdef& reBottomdata);
+    
+    /**
+     * @brief 重置控制器状态
+     */
+    void reset();
+    
+    /**
+     * @brief 获取当前状态
+     */
+    TakeOre_enum getState() const { return take_ore_state; }
+    
+    /**
+     * @brief 获取当前选择的矿石编号
+     */
+    uint8_t getSelectedOre() const { return ore_index; }
+    
+    /**
+     * @brief 设置UI模式
+     */
+    void setUIMode(uint8_t mode) { UI_Mode = mode; }
+
+     /**
+     * @brief 动作组是否执行完毕
+     */
+    int isActionGroupCompleted();
+    
+private:
+    /**
+     * @brief 处理储矿逻辑
+     */
+    void handleStoreOre(Joint joints[], Gripper& gripper, ToBottomDataStructdef& toBottomdata, ReBottomDataStructdef& reBottomdata);
+    
+    /**
+     * @brief 处理取矿逻辑
+     */
+    void handleTakeOre(Joint joints[], Gripper& gripper, ToBottomDataStructdef& toBottomdata);
+    
+    /**
+     * @brief 处理取肚矿逻辑
+     */
+    void handleTakeBellyOre(Joint joints[], Gripper& gripper, ToBottomDataStructdef& toBottomdata);
+
+    /**
+     * @brief 处理选矿逻辑
+     */
+    void handleOreIndex();
+    
+    /**
+     * @brief 执行动作组
+     */
+    void executeActionGroup(Joint joints[], TrajectoryPointArray trajectory_arrays[]);
+};
+
+extern "C" {
+    extern ActionGroupController action_group_controller;
+}
+
+#endif
+#endif

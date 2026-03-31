@@ -1,0 +1,7 @@
+
+[submodule "SRML"]
+	path = SRML
+	url = https://git.scutbot.cn/Embedded/SRML.git
+[submodule "USP/Drivers/Cybergear"]
+	path = USP/Drivers/Cybergear
+	url = https://git.scutbot.cn/wbzjt/Cybergear
