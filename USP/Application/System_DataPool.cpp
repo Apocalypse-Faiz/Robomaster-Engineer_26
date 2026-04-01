@@ -73,46 +73,43 @@ int debug_can_over2 = 0;
 int debug_uart_over = 0;
 
 Motor_DM_classdef DM8009(1); // 达妙电机类，ID为1
-Motor_DM_classdef DM4310(5); // 达妙电机类，ID为5
+Motor_DM_classdef DM10010(2); // 达妙电机类，ID为2
+Motor_DM_classdef DM4340(3); // 达妙电机类，ID为3
+Motor_DM_classdef DM4310(4); // 达妙电机类，ID为4
 
-Motor_C620 Dji3508_1(2); // 大疆3508电机，ID为2
-Motor_C620 Dji3508_2(2); // 大疆3508电机，ID为2
-Motor_C610 Dji2006_1(3); // 大疆2006电机，ID为3
-Motor_C610 Dji2006_2(4); // 大疆2006电机，ID为4
+Motor_C610 Dji2006_1(1); // 大疆2006电机，ID为1
+Motor_C610 Dji2006_2(2); // 大疆2006电机，ID为2
 Motor_C610 Dji2006_gripper(1); // 大疆2006电机，ID为1，夹爪电机
 
-DM_Motor drive_dm_motor[2] = {DM_Motor(&DM8009), DM_Motor(&DM4310)}; // 达妙电机对象数组
-DJI_Motor_3508 drive_dji_motor_3508[2] = {DJI_Motor_3508(&Dji3508_1), DJI_Motor_3508(&Dji3508_2)}; // 大疆3508电机对象数组
+DM_Motor drive_dm_motor[4] = {DM_Motor(&DM8009), DM_Motor(&DM10010), DM_Motor(&DM4340), DM_Motor(&DM4310)}; // 达妙电机对象数组
 DJI_Motor_2006 drive_dji_motor_2006[2] = {DJI_Motor_2006(&Dji2006_1), DJI_Motor_2006(&Dji2006_2)}; // 大疆2006电机对象数组
 DJI_Motor_2006 drive_dji_motor_gripper(&Dji2006_gripper); // 大疆2006夹爪电机对象
 
 Motor motor[6] = {
     Motor(&drive_dm_motor[0]),
-    Motor(&drive_dji_motor_3508[0]),
-    Motor(&drive_dji_motor_3508[1]),
     Motor(&drive_dm_motor[1]),
+    Motor(&drive_dm_motor[2]),
+    Motor(&drive_dm_motor[3]),
     Motor(&drive_dji_motor_2006[0]),
     Motor(&drive_dji_motor_2006[1])}; // 电机对象数组
 
 Motor motor_gripper(&drive_dji_motor_gripper); // 夹爪电机对象
 Gripper gripper(&motor_gripper); // 夹爪对象
 
-Special_Actuator1 special_actuator1[2] = {
-    Special_Actuator1(&motor[1]),
-    Special_Actuator1(&motor[2])}; // 特殊执行器对象数组
-
 Special_Actuator2 special_actuator2(&motor[4], &motor[5]); // 双电机特殊执行器对象
 
-Special_Actuator3 special_actuator3[2] = {
+Special_Actuator3 special_actuator3[4] = {
     Special_Actuator3(&motor[0]),
+    Special_Actuator3(&motor[1]),
+    Special_Actuator3(&motor[2]),
     Special_Actuator3(&motor[3])
 };
 
 JointActuator joint_actuator[5] = {
     JointActuator(&special_actuator3[0]),
-    JointActuator(&special_actuator1[0]),
-    JointActuator(&special_actuator1[1]),
     JointActuator(&special_actuator3[1]),
+    JointActuator(&special_actuator3[2]),
+    JointActuator(&special_actuator3[3]),
     JointActuator(&special_actuator2)}; // 关节执行器对象数组
 
 TrajectoryPlanning joint_trajectory[6] = {
@@ -166,8 +163,7 @@ ReVisionDataStruct reVisiondata;
 float speed_kp, speed_Out_Max, angle_kp, angle_ki, angle_kd, angle_Out_Max, angle_I_Max, debug_target_angle = 0.000f;
 float speed_kp1, speed_Out_Max1, angle_kp1, angle_ki1, angle_kd1, angle_Out_Max1, angle_I_Max1, debug_target_angle1 = 0.000f;
 
-MeanFilter<10> mfsL1, mfsL2, mfsL3, mfsL4;
-MeanFilter<10> f_speed2, f_torque2, f_speed3, f_torque3; 
+MeanFilter<10> mfsL1, mfsL2;
 MeanFilter<50> f_torque1;
 float j5_reset_target, j6_reset_target = 0.0f;
 

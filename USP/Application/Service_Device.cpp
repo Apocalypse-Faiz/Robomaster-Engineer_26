@@ -202,26 +202,10 @@ void CheckMotorStatus()
 {
 		for (uint8_t i = 0; i < 6; i++)
 		{
-			if (i != 0 && i != 3)  // 非0、3号电机处理逻辑
+			if (motor[i].getStatus() == MotorStatus::ready)
 			{
-				// 每次检测到电机状态为ready时，确保模式设置为angle
-				if (motor[i].getStatus() == MotorStatus::ready)
-				{
-					motor[i].setMode(MotorMode::angle);
-				}
-			}
-			else if (i == 0 || i == 3)  // 0、3号电机处理逻辑
-			{
-				if (motor[i].getStatus() == MotorStatus::ready)
-				{
-					// 状态正常时设置为angle模式
-					motor[i].setMode(MotorMode::angle);
-				}
-				// else
-				// {
-				// 	// 状态异常时尝试重新启用电机（支持断线后重新连接）
-				// 	drive_dm_motor[i/3].enableMotor();
-				// }
+				// 状态正常时设置为angle模式
+				motor[i].setMode(MotorMode::angle);
 			}
 		}
 	
@@ -254,23 +238,21 @@ void Joint_limitSet()
 			joint[i].updateJointData();
 		}
 
-		// 上电调试初始设置，参数先都给0
-		// if (joint[1].getCurrentAngle() < 55)
-		// {
-		// 	motor[0].setPidParameters({1.5, -6, 6, 1.8, 0.1, 0, -3, 3, 0, 1});
-		// }
-		// else
-		// {
-		// 	motor[0].setPidParameters({1.5, -6, 6, 0.4, 0.1, 0, -3, 3, 0, 1});
-		// }
-
-		// J4的动态限位
+		// J3的动态限位
+		if (joint[1].getCurrentAngle() <= 90)
+		{
+			joint[2].setJointParam(-80, 60, -10, 10);
+		}
+		else if (joint[1].getCurrentAngle() > 90 && joint[1].getCurrentAngle() <= 180)
+		{
+			joint[2].setJointParam(-(180 - joint[1].getCurrentAngle() + 50 -90), 60, -10, 10);
+		}
 
 		return;
 	}
 
 	float Reduction_ratio1 = 0.0667 * 0.0526; // 1/15 DJI3508的减速比
-	float Reduction_ratio2 = 0.0278; // 1/36 DJI2006的减速比
+	float Reduction_ratio2 = 0.0278 * 0.5; // 1/36 DJI2006的减速比
 
 	if (motor[2].getStatus() == MotorStatus::ready && motor[3].getStatus() == MotorStatus::ready && motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready)
 	{
@@ -281,20 +263,22 @@ void Joint_limitSet()
 		// 对于DM电机初次上电时在这里就已经设置好了，DJI电机需要在复位状态机中设置
 		/*标定和极性设置*/
 		joint[0].setJointMapping(-1, 0);
-		joint[1].setJointMapping(-Reduction_ratio1, 0);
-		joint[2].setJointMapping(-Reduction_ratio1, 0);
+		joint[1].setJointMapping(-1, 0);
+		joint[2].setJointMapping(-1, 0);
 		joint[3].setJointMapping(-1, 0);
 		joint[4].setJointMapping(Reduction_ratio2, 0);
 		joint[5].setJointMapping(-Reduction_ratio2, 0);
 
 		special_actuator3[0].calibrate();
 		special_actuator3[1].calibrate();
+		special_actuator3[2].calibrate();
+		special_actuator3[3].calibrate();
 
 		/*关节软限位*/
 		joint[0].setJointParam(-170, 170, 10, -10);
-		joint[1].setJointParam(-180, 180, -10, 10);
+		joint[1].setJointParam(10, 164, -10, 10);
 		joint[2].setJointParam(-180, 180, -10, 10);
-		joint[3].setJointParam(-175, 175, -10, 10);
+		joint[3].setJointParam(-180, 180, -10, 10);
 		joint[4].setJointParam(-360, 360, -10, 10); // J5关节在力矩复位后还要重新再限位一下
 		joint[5].setJointParam(-360, 360, -10, 10);
 
@@ -310,41 +294,29 @@ void Joint_limitSet()
 void tskMotor(void *arg)
 {
 	/*	pre load for task	*/
-	Motor_CAN_COB Tx_Buff_DJI_Can1 = {};
 	Motor_CAN_COB Tx_Buff_DJI_Can2 = {};
 
 	drive_dm_motor[0].bindTxQueueHandle(CAN1_TxPort);
 	drive_dm_motor[1].bindTxQueueHandle(CAN1_TxPort);
-	// drive_dji_motor_3508[0].bindRxTxQueueHandle(Tx_Buff_DJI_Can1, CAN1_TxPort);
-	// drive_dji_motor_3508[1].bindRxTxQueueHandle(Tx_Buff_DJI_Can2, CAN2_TxPort);
-	// drive_dji_motor_2006[0].bindRxTxQueueHandle(Tx_Buff_DJI_Can2, CAN2_TxPort);
-	// drive_dji_motor_2006[1].bindRxTxQueueHandle(Tx_Buff_DJI_Can2, CAN2_TxPort);
-	// drive_dji_motor_gripper.bindRxTxQueueHandle(Tx_Buff_DJI_Can2, CAN2_TxPort);
+	drive_dm_motor[2].bindTxQueueHandle(CAN1_TxPort);
+	drive_dm_motor[3].bindTxQueueHandle(CAN1_TxPort);
 
-	// 上电调试初始设置
-	// motor[0].setPidParameters({.v_Kp = 5, .v_Min = -6, .v_Max = 6, .a_Kp = 0.15, .a_Ki = 0.1, .a_Kd = 0, .a_Min = -3, .a_Max = 3, .a_IntSep = 0, .a_IntMax = 1});
-	// motor[1].setPidParameters({.v_Kp = 1.15, .v_Min = -10, .v_Max = 10, .a_Kp = 0.5, .a_Ki = 0.15, .a_Kd = 0, .a_Min = -3.5, .a_Max = 3.5, .a_IntSep = 0, .a_IntMax = 1});
-	// motor[2].setPidParameters({.v_Kp = 1.85, .v_Min = -19, .v_Max = 19, .a_Kp = 0.92, .a_Ki = 0.5, .a_Kd = 0, .a_Min = -13, .a_Max = 13, .a_IntSep = 0, .a_IntMax = 3.2});
-	// motor[3].setPidParameters({.v_Kp = 0.9, .v_Min = -10, .v_Max = 10, .a_Kp = 0.6, .a_Ki = 0.3, .a_Kd = 0, .a_Min = -10, .a_Max = 10, .a_IntSep = 0, .a_IntMax = 4});
-	// motor[4].setPidParameters({.v_Kp = 3, .v_Min = -10000, .v_Max = 10000, .a_Kp = 2, .a_Ki = 0.95, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 3000});
-	// motor[5].setPidParameters({.v_Kp = 3, .v_Min = -10000, .v_Max = 10000, .a_Kp = 2, .a_Ki = 0.95, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 3000});
-
-	motor[0].setPidParameters({.v_Kp = 4.2, .v_Min = -10, .v_Max = 10, .a_Kp = 0.11, .a_Ki = 0.01, .a_Kd = 0, .a_Min = -10, .a_Max = 10, .a_IntSep = 0, .a_IntMax = 2});
-	motor[1].setPidParameters({.v_Kp = 20, .v_Min = -15000, .v_Max = 15000, .a_Kp = 7, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 10});
-	motor[2].setPidParameters({.v_Kp = 20, .v_Min = -15000, .v_Max = 15000, .a_Kp = 7, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 10});
-	motor[3].setPidParameters({.v_Kp = 1, .v_Min = -10, .v_Max = 10, .a_Kp = 0.93, .a_Ki = 0.08, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
-	motor[4].setPidParameters({.v_Kp = 10.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 7.5, .a_Ki = 1, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
-	motor[5].setPidParameters({.v_Kp = 10.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 7.5, .a_Ki = 1, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
+	motor[0].setPidParameters({.v_Kp = 0, .v_Min = -10, .v_Max = 10, .a_Kp = 0, .a_Ki = 0, .a_Kd = 0, .a_Min = -10, .a_Max = 10, .a_IntSep = 0, .a_IntMax = 2});
+	motor[1].setPidParameters({.v_Kp = 0, .v_Min = -15000, .v_Max = 15000, .a_Kp = 0, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 10});
+	motor[2].setPidParameters({.v_Kp = 0, .v_Min = -15000, .v_Max = 15000, .a_Kp = 0, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 10});
+	motor[3].setPidParameters({.v_Kp = 0, .v_Min = -10, .v_Max = 10, .a_Kp = 0, .a_Ki = 0, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
+	motor[4].setPidParameters({.v_Kp = 0.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 0, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
+	motor[5].setPidParameters({.v_Kp = 0.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 0, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
 	motor_gripper.setPidParameters({.v_Kp = 10.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 7.5, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
 
 	vTaskDelay(1000);
-	for(int i = 0; i < 2; i++)
+	for(int i = 0; i < 4; i++)
 	{
 		drive_dm_motor[i].enableMotor();
 	}
 
-	DM8009.setEncoderOffset(0x6D6A);
-	DM4310.setEncoderOffset(0x7C25);
+	// DM8009.setEncoderOffset(0x6D6A);
+	// DM4310.setEncoderOffset(0x7C25);
 
 	angle_kp = 0.11f;
     angle_ki = 0.01f;
@@ -381,39 +353,6 @@ void tskMotor(void *arg)
 		// CheckMotorConnect();
 
 		Joint_limitSet();
-
-		// debug_target_angle1 = debug_target_angle;
-
-		// DR16_Grip();
-
-		// DR16_Debug_Ctrl();
-
-		// // 加上全补偿
-		// if (motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready && motor[3].getStatus() == MotorStatus::ready && motor[4].getStatus() == MotorStatus::ready && motor[5].getStatus() == MotorStatus::ready)
-		// {
-		// 	for(int i = 0; i < 6; i++)
-		// 	{
-		// 		joint[i].updateJointData();
-		// 	}
-
-		// 	GravityCompension_Calculate(joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), &Gravity_feedforward[1], &Gravity_feedforward[2]);
-		// 	motor[1].setGravity_feedforward(Gravity_feedforward[1] * gravity_J2);
-		// 	motor[2].setGravity_feedforward(Gravity_feedforward[2] * gravity_J3);
-
-		// 	BackEMFCompension_Calculate(joint[0].getCurrentSpeed(), joint[1].getCurrentSpeed(), joint[2].getCurrentSpeed(), joint[3].getCurrentSpeed(), joint[4].getCurrentSpeed(), joint[5].getCurrentSpeed(), &BackEMF_feedforward[0], &BackEMF_feedforward[1], &BackEMF_feedforward[2], &BackEMF_feedforward[3], &BackEMF_feedforward[4], &BackEMF_feedforward[5]);
-
-		// 	CoulombCompension_Calculate(joint[0].getCurrentSpeed(), joint[1].getCurrentSpeed(), joint[2].getCurrentSpeed(), joint[3].getCurrentSpeed(), joint[4].getCurrentSpeed(), joint[5].getCurrentSpeed(), &Coulomb_feedforward[0], &Coulomb_feedforward[1], &Coulomb_feedforward[2], &Coulomb_feedforward[3], &Coulomb_feedforward[4], &Coulomb_feedforward[5]);
-
-		// 	ViscousCompension_Calculate(joint[0].getCurrentSpeed(), joint[1].getCurrentSpeed(), joint[2].getCurrentSpeed(), joint[3].getCurrentSpeed(), joint[4].getCurrentSpeed(), joint[5].getCurrentSpeed(), &Viscous_feedforward[0], &Viscous_feedforward[1], &Viscous_feedforward[2], &Viscous_feedforward[3], &Viscous_feedforward[4], &Viscous_feedforward[5]);
-			
-		// 	for(int i = 0; i < 6; i++)
-		// 	{
-		// 		motor[i].setBackEMF_feedforward(BackEMF_feedforward[i]);
-		// 		motor[i].setCoulomb_feedforward(Coulomb_feedforward[i]);
-		// 		motor[i].setViscous_feedforward(Viscous_feedforward[i]);
-		// 	}
-		// }
-
 		
 		if(all_motor_connected)
 		{
@@ -452,20 +391,17 @@ void tskMotor(void *arg)
 				motor[i].setViscous_feedforward(Viscous_feedforward[i]);
 			}
 
-			// CheckMotorStatus();
 
 		}
 		else
 		{
-			// for(int i = 0; i < 6; i++)
-			// {
-			// 	motor[i].setMode(MotorMode::unset);
-			// }
 			
 			for (int i = 0; i < 2; i++)
 			{
 				drive_dji_motor_2006[i].setTorque(0.0f);
-				drive_dji_motor_3508[i].setTorque(0.0f);
+			}
+			for (int i = 0; i < 4; i++)
+			{
 				drive_dm_motor[i].setTorque(0.0f);
 			}
 
@@ -490,9 +426,7 @@ void tskMotor(void *arg)
 		// Dji2006_2.Out = 0.0f;
 		// Dji2006_gripper.Out = 0.0f;
 
-		motor_dji::MotorMsgPack(Tx_Buff_DJI_Can1, Dji3508_1);
-		xQueueSend(CAN1_TxPort, &Tx_Buff_DJI_Can1.Id200, 0);
-		motor_dji::MotorMsgPack(Tx_Buff_DJI_Can2, Dji3508_2, Dji2006_1, Dji2006_2, Dji2006_gripper);
+		motor_dji::MotorMsgPack(Tx_Buff_DJI_Can2, Dji2006_1, Dji2006_2, Dji2006_gripper);
 		xQueueSend(CAN2_TxPort, &Tx_Buff_DJI_Can2.Id200, 0);
 	}
 }

@@ -17,6 +17,8 @@ void Emergency_enterAction()
     }
     gripper.emergencyStop();
 
+    j5_reset_target = joint[4].getCurrentAngle();
+    j6_reset_target = joint[5].getCurrentAngle();
     Manipulator_TorqueReset_Params_Reset();
 }
 
@@ -114,91 +116,8 @@ void Emergency_action(Event_t **pEvent)
     // 力矩复位完成后的状态转移
     if (emergencyTorqueResetDone)
     {
-        static uint8_t joints_reset_done = 0;
-        static uint8_t j4_reset_done, j5_reset_done, j6_reset_done = 0;
-
-        if (joints_reset_done)
-        {
-            Robot_Prepared = 1;
-            Emergency_exitAction();
-        }
-
-        if (motor[3].getStatus() == MotorStatus::ready && motor[4].getStatus() == MotorStatus::ready && motor[5].getStatus() == MotorStatus::ready)
-        {
-            float j5_current_angle = joint[4].getCurrentAngle();
-            float j5_angle_diff = j5_current_angle - 0.0f;    
-
-            float j6_current_angle = joint[5].getCurrentAngle();
-            float j6_angle_diff = j6_current_angle - 0.0f;    
-
-            float j4_current_angle = joint[3].getCurrentAngle();
-            float j4_angle_diff = j4_current_angle - 0.0f;    
-
-            if (j4_reset_done == 0)
-            {
-                float j4_current_angle = joint[3].getCurrentAngle();
-                float angle_diff = j4_current_angle - 0.0f;    
-
-                if (abs(angle_diff) > 1.0f)
-                {
-                    if (angle_diff > 0)
-                    {
-                        joint[3].ajustJointTarget(0.1f);
-                    }
-                    else
-                    {
-                        joint[3].ajustJointTarget(-0.1f);
-                    }
-                }
-                else
-                {
-                    j4_reset_done = 1;
-                }
-            }
-
-            if (j5_reset_done == 0 && j4_reset_done == 1)
-            {
-                if (abs(j5_angle_diff) > 1.0f)
-                {
-                    if (j5_angle_diff > 0)
-                    {
-                        joint[4].ajustJointTarget(-5.0f);
-                    }
-                    else
-                    {
-                        joint[4].ajustJointTarget(5.0f);
-                    }
-                }
-                else                
-                {
-                    j5_reset_done = 1;
-                }
-            }
-
-            // if (j6_reset_done == 0 && j5_reset_done == 1 && j4_reset_done == 1)
-            // {
-            //     if (abs(j6_angle_diff) > 1.0f)
-            //     {
-            //         if (j6_angle_diff > 0)
-            //         {
-            //             joint[5].ajustJointTarget(-5.0f);
-            //         }
-            //         else
-            //         {
-            //             joint[5].ajustJointTarget(5.0f);
-            //         }
-            //     }
-            //     else                
-            //     {
-            //         j6_reset_done = 1;
-            //     }
-            // }
-
-            if (j4_reset_done == 1 && j5_reset_done == 1 /*&& j6_reset_done == 1*/)
-            {
-                joints_reset_done = 1;
-            }
-        }
+        Robot_Prepared = 1;
+        Emergency_exitAction();
     }
 }
 

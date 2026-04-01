@@ -141,24 +141,22 @@ extern float gravity_J3;
 extern float gravity_J5;
 extern float inertia_J1;
 
-extern Motor_DM_classdef DM8009;
-extern Motor_DM_classdef DM4310;
-extern Motor_C620 Dji3508_1;
-extern Motor_C620 Dji3508_2;
+extern Motor_DM_classdef DM8009; // 达妙电机类，ID为1
+extern Motor_DM_classdef DM10010; // 达妙电机类，ID为2
+extern Motor_DM_classdef DM4340; // 达妙电机类，ID为3
+extern Motor_DM_classdef DM4310; // 达妙电机类，ID为4
 extern Motor_C610 Dji2006_1;
 extern Motor_C610 Dji2006_2;
 extern Motor_C610 Dji2006_gripper;
 
-extern DM_Motor drive_dm_motor[2]; // 达妙电机对象数组
-extern DJI_Motor_3508 drive_dji_motor_3508[2]; // 大疆3508电机对象数组
+extern DM_Motor drive_dm_motor[4]; // 达妙电机对象数组
 extern DJI_Motor_2006 drive_dji_motor_2006[2]; // 大疆2006电机对象数组
 extern DJI_Motor_2006 drive_dji_motor_gripper; // 大疆2006夹爪电机对象
 
 extern Motor motor[6]; // 电机对象数组
 extern Motor motor_gripper;
-extern Special_Actuator1 special_actuator1[2]; // 特殊执行器1对象数组
 extern Special_Actuator2 special_actuator2; // 特殊执行器2对象对象
-extern Special_Actuator3 special_actuator3[2]; // 特殊执行器3对象数组
+extern Special_Actuator3 special_actuator3[4]; // 特殊执行器3对象数组
 extern JointActuator joint_actuator[5]; // 关节执行器对象数组
 extern TrajectoryPlanning joint_trajectory[6]; // 关节轨迹规划对象数组
 extern TrajectoryPointArray joint_trajectory_point_array[6]; // 关节轨迹点对象数组
@@ -186,8 +184,7 @@ extern Indicator_Classdef Indicator;     // 指示灯
 extern float speed_kp, speed_Out_Max, angle_kp, angle_ki, angle_kd, angle_Out_Max, angle_I_Max, debug_target_angle;
 extern float speed_kp1, speed_Out_Max1, angle_kp1, angle_ki1, angle_kd1, angle_Out_Max1, angle_I_Max1, debug_target_angle1;
 
-extern MeanFilter<10> mfsL1, mfsL2, mfsL3, mfsL4;
-extern MeanFilter<10> f_speed2, f_torque2, f_speed3, f_torque3; 
+extern MeanFilter<10> mfsL1, mfsL2;
 extern MeanFilter<50> f_torque1;
 extern float j5_reset_target, j6_reset_target;
 

@@ -44,8 +44,8 @@ void BackEMFCompension_Calculate(float speed0, float speed1, float speed2, float
 void CoulombCompension_Calculate(float speed0, float speed1, float speed2, float speed3, float speed4, float speed5, float *coulomb0, float *coulomb1, float *coulomb2, float *coulomb3, float *coulomb4, float *coulomb5)
 {
     float _coulomb0;
-    float _coulomb1 = 61.92f;
-    float _coulomb2 = 237.55;
+    float _coulomb1;
+    float _coulomb2;
     float _coulomb3;
     float _coulomb4;
     float _coulomb5;
@@ -97,8 +97,8 @@ void CoulombCompension_Calculate(float speed0, float speed1, float speed2, float
 void ViscousCompension_Calculate(float speed0, float speed1, float speed2, float speed3, float speed4, float speed5, float *viscous0, float *viscous1, float *viscous2, float *viscous3, float *viscous4, float *viscous5)
 {
     float _viscous0;
-    float _viscous1 = 0.3302f;
-    float _viscous2 = 0.3075;
+    float _viscous1;
+    float _viscous2;
     float _viscous3;
     float _viscous4;
     float _viscous5;
