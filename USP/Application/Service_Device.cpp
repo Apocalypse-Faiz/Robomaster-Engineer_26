@@ -462,9 +462,9 @@ void tskBoardCom(void *arg)
 			.z = toBottomdata.chassis_control_struct.z};
 
 		bottom_period_tick++;
-		if ((bottom_period_tick >= 15U) || (bottom_pending_valid != 0U))
+		if ((bottom_period_tick >= 3U) || (bottom_pending_valid != 0U))
 		{
-			if (bottom_period_tick >= 15U)
+			if (bottom_period_tick >= 3U)
 			{
 				bottom_period_tick = 0U;
 			}
