@@ -441,6 +441,12 @@ void tskBoardCom(void *arg)
 
 	uint8_t debug_computerCOm = 100;
 	uint16_t seq_num = 0;
+	ToVisionDataStruct vision_latest_frame;
+	uint8_t vision_pending_valid = 0;
+	Vec3 bottom_latest_speed = {0.0f, 0.0f, 0.0f};
+	Vec3 bottom_pending_speed = {0.0f, 0.0f, 0.0f};
+	uint8_t bottom_pending_valid = 0U;
+	uint8_t bottom_period_tick = 0U;
 	xLastWakeTime_t = xTaskGetTickCount();
 	vTaskDelay(1000);
 	for (;;)
@@ -450,47 +456,80 @@ void tskBoardCom(void *arg)
 		// 与底盘通信测试
 		// DR16_MoveCtrl(toBottomdata);
 		// DR16_Store(toBottomdata);
-		Vec3 target_speed = {
+		bottom_latest_speed = {
 			.x = toBottomdata.chassis_control_struct.x,
 			.y = toBottomdata.chassis_control_struct.y,
 			.z = toBottomdata.chassis_control_struct.z};
 
-		static int temp_count1 = 0;
-		temp_count1++;
-		if (temp_count1 % 5 == 0)
+		bottom_period_tick++;
+		if ((bottom_period_tick >= 15U) || (bottom_pending_valid != 0U))
 		{
-			temp_count1 = 0;
-			Bottomdata_Transmit(target_speed.x, target_speed.y, target_speed.z); // 发送底盘控制信息
+			if (bottom_period_tick >= 15U)
+			{
+				bottom_period_tick = 0U;
+			}
+
+			bottom_pending_speed = bottom_latest_speed;
+			bottom_pending_valid = 1U;
+
+			if (Bottomdata_Transmit(bottom_pending_speed.x, bottom_pending_speed.y, bottom_pending_speed.z) != 0U)
+			{
+				bottom_pending_valid = 0U;
+			}
 		}
 
 		/*接受底层信息*/
 
 		/*发送给小电脑*/
-		static int temp_count2 = 0;
-		temp_count2++;
 		if (Robot_Prepared)
 		{
 			for (int i = 0; i < 6; i++)
 			{
-				// joint[i].updateJointData();
-				toVisiondata.joint_current[i] = joint[i].getCurrentAngle();
+				vision_latest_frame.joint_current[i] = joint[i].getCurrentAngle();
 			}
-			toVisiondata.seq_num = seq_num++;
-			toVisiondata.timestamp = HAL_GetTick();
-			if (temp_count2 % 3 == 0)
+			vision_latest_frame.seq_num = seq_num++;
+			vision_latest_frame.timestamp = HAL_GetTick();
+
+			if (vision_pending_valid == 0U)
 			{
-				temp_count2 = 0;
-				Visiondata_Transmist();	
+				memcpy(&toVisiondata, &vision_latest_frame, sizeof(toVisiondata));
+				vision_pending_valid = 1U;
+			}
+
+			if (vision_pending_valid != 0U)
+			{
+				// 返回USBD_BUSY则重复发送
+				uint8_t tx_result = Visiondata_Transmist();
+				if (tx_result == USBD_OK)
+				{
+					if (toVisiondata.seq_num != vision_latest_frame.seq_num)
+					{
+						memcpy(&toVisiondata, &vision_latest_frame, sizeof(toVisiondata));
+						vision_pending_valid = 1U;
+					}
+					else
+					{
+						vision_pending_valid = 0U;
+					}
+				}
+				else if (tx_result != USBD_BUSY)
+				{
+					memcpy(&toVisiondata, &vision_latest_frame, sizeof(toVisiondata));
+					vision_pending_valid = 1U;
+				}
 			}
 					
 		}
+		else
+		{
+			vision_pending_valid = 0U;
+		}
 		
-		// toVisiondata.seq_num = temp_count2;
 		// toVisiondata.timestamp = HAL_GetTick();
 		// Visiondata_Transmist();	
 	
 		/*接受小电脑信息*/
-		vTaskDelayUntil(&xLastWakeTime_t, 3);
+		vTaskDelayUntil(&xLastWakeTime_t, 1);
 	}
 }
 

@@ -341,7 +341,7 @@ void Task_UsartReceive(void *arg)
       switch (Usart_RxCOB.port_num)
       {
       case 1:
-        Visiondata_Receive(Usart_RxCOB);
+        // 视觉通信已迁移到VirtualCom，UART1不再作为视觉入口。
         break;
       case 2:
         break;
@@ -465,6 +465,14 @@ uint32_t Referee_recv_Callback(uint8_t *Recv_Data, uint16_t ReceiveLen)
 #if USE_SRML_VIRTUAL_COM
 void User_VirtualComRecCpltCallback(uint8_t *Recv_Data, uint16_t ReceiveLen)
 {
+  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+  if ((StateMachine_Handle != NULL) && (Visiondata_Receive(Recv_Data, ReceiveLen) != 0U))
+  {
+    xTaskNotifyFromISR(StateMachine_Handle, 55, eSetValueWithOverwrite, &xHigherPriorityTaskWoken);
+  }
+
+  portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 #endif
 

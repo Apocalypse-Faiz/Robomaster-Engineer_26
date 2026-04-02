@@ -43,5 +43,5 @@ struct Vec3
     float x, y, z;
 };
 
-void Bottomdata_Transmit(float _x, float _y, float _z);
+uint8_t Bottomdata_Transmit(float _x, float _y, float _z);
 void Bottomdata_Receive(USART_COB _Usart_RxCOB);

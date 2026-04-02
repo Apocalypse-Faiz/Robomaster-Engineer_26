@@ -3,7 +3,7 @@
 /**
  * @brief 底盘信息发送执行
  */
-void Bottomdata_Transmit(float _x, float _y, float _z)
+uint8_t Bottomdata_Transmit(float _x, float _y, float _z)
 {
 
     static ToBottomDataStructdef ToBottomData_temp; // 缓冲
@@ -30,7 +30,7 @@ void Bottomdata_Transmit(float _x, float _y, float _z)
     BottomBoard_COB.len = sizeof(ToBottomData_temp);
     BottomBoard_COB.address = (uint8_t *)&ToBottomData_temp;
 
-    xQueueSend(USART_TxPort, &BottomBoard_COB, 0);
+    return (xQueueSend(USART_TxPort, &BottomBoard_COB, 0) == pdPASS) ? 1U : 0U;
 }
 
 /**

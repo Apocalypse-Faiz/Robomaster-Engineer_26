@@ -245,7 +245,7 @@ void Reset_action(Event_t **pEvent)
 
         VT13_Grip();
 
-        VT_13_Store(toBottomdata);
+        VT13_Store(toBottomdata);
     }
     if(DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
     {
