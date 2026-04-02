@@ -209,7 +209,7 @@ void CheckMotorStatus()
 			}
 		}
 	
-	if(motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready && motor[3].getStatus() == MotorStatus::ready && motor[4].getStatus() == MotorStatus::ready && motor[5].getStatus() == MotorStatus::ready && motor[6].getStatus() == MotorStatus::ready)
+	if(motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready && motor[3].getStatus() == MotorStatus::ready && motor[4].getStatus() == MotorStatus::ready && motor[5].getStatus() == MotorStatus::ready)
 	{
 		all_motor_connected = true;
 	}
@@ -251,8 +251,7 @@ void Joint_limitSet()
 		return;
 	}
 
-	float Reduction_ratio1 = 0.0667 * 0.0526; // 1/15 DJI3508的减速比
-	float Reduction_ratio2 = 0.0278 * 0.5; // 1/36 DJI2006的减速比
+	float Reduction_ratio = 0.0278 * 0.5; // 1/36 DJI2006的减速比
 
 	if (motor[2].getStatus() == MotorStatus::ready && motor[3].getStatus() == MotorStatus::ready && motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready)
 	{
@@ -266,8 +265,8 @@ void Joint_limitSet()
 		joint[1].setJointMapping(-1, 0);
 		joint[2].setJointMapping(-1, 0);
 		joint[3].setJointMapping(-1, 0);
-		joint[4].setJointMapping(Reduction_ratio2, 0);
-		joint[5].setJointMapping(-Reduction_ratio2, 0);
+		joint[4].setJointMapping(Reduction_ratio, 0);
+		joint[5].setJointMapping(-Reduction_ratio, 0);
 
 		special_actuator3[0].calibrate();
 		special_actuator3[1].calibrate();
@@ -282,7 +281,7 @@ void Joint_limitSet()
 		joint[4].setJointParam(-360, 360, -10, 10); // J5关节在力矩复位后还要重新再限位一下
 		joint[5].setJointParam(-360, 360, -10, 10);
 
-		gripper.init(5000.0f, 4500.0f, 1800.0f, Reduction_ratio2, 0, 90.0f, -90.0f);
+		// gripper.init(5000.0f, 4500.0f, 1800.0f, Reduction_ratio2, 0, 90.0f, -90.0f);
 
 		Set_ok = 1;
 	}

@@ -110,5 +110,7 @@ void Total_init()
     EmergencyState.regisAction(Emergency_action);
     EmergencyState.regisExitAction(Emergency_exitAction);
 
+    ResetState.regisEnterAction(Reset_enterAction);
     ResetState.regisAction(Reset_action);
+    ResetState.regisExitAction(Reset_exitAction);
 }
