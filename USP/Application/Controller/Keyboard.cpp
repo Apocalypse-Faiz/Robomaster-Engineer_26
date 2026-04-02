@@ -3,7 +3,7 @@
 
 bool VT13_ButtonStates[3] = {false, false, false}; // 存储每个按钮的触发状态
 static bool lastButtonState[3] = {false, false, false};
-bool GripperStates[3] = {false, false, false}; // 存储每个夹爪的触发状态
+bool GripperStates[3] = {false, false, false}; // 存储每个夹爪的触发状态 （二代车的储矿换成了电磁铁，但本质没变，继续用这个标志位）
 static bool lastGripperState[3] = {false, false, false};
 // 单按钮处理函数
 bool handleButtonToggle(ButtonType buttonType, bool isPressed) 
@@ -510,7 +510,7 @@ void VT13_Grip()
     }
 }
 
-void VT13_StoreGrippers(ToBottomDataStructdef &_ToBottomData)
+void VT13_Store(ToBottomDataStructdef &_ToBottomData)
 {
     if(VT13.GetModeSwitch() == MS_Status_Typedef::MS_S)
     {
@@ -518,15 +518,15 @@ void VT13_StoreGrippers(ToBottomDataStructdef &_ToBottomData)
         {
            if(VT13.GetDial() > 1324)
            {
-                _ToBottomData.L_gripper = 1;
+                _ToBottomData.L_Store = 1;
            }
            else if(VT13.GetDial() < 724)
            {
-                _ToBottomData.L_gripper = 2;
+                _ToBottomData.L_Store = 2;
            }
            else
            {
-                _ToBottomData.L_gripper = 0;
+                _ToBottomData.L_Store = 0;
            }
           
         }
@@ -534,15 +534,15 @@ void VT13_StoreGrippers(ToBottomDataStructdef &_ToBottomData)
         {
             if(VT13.GetDial() > 1324)
            {
-                _ToBottomData.R_gripper = 1;
+                _ToBottomData.R_Store = 1;
            }
            else if(VT13.GetDial() < 724)
            {
-                _ToBottomData.R_gripper = 2;
+                _ToBottomData.R_Store = 2;
            }
            else
            {
-                _ToBottomData.R_gripper = 0;
+                _ToBottomData.R_Store = 0;
            }
           
         }
@@ -598,13 +598,13 @@ void VT13_KeyboardStoreGrippers(ToBottomDataStructdef &_ToBottomData)
         
         if (rightgripperchanged)
         {
-            if (reBottomdata.R_gripper == 2 || reBottomdata.R_gripper == 0)
+            if (reBottomdata.R_Store == 2 || reBottomdata.R_Store == 0)
             {
-                _ToBottomData.R_gripper = 1; // 打开
+                _ToBottomData.R_Store = 1; // 打开
             }
-            else if (reBottomdata.R_gripper == 1)
+            else if (reBottomdata.R_Store == 1)
             {
-                _ToBottomData.R_gripper = 2; // 夹紧
+                _ToBottomData.R_Store = 2; // 夹紧
             }
         }
 
@@ -618,20 +618,20 @@ void VT13_KeyboardStoreGrippers(ToBottomDataStructdef &_ToBottomData)
 
         if (leftgripperchanged)
         {
-            if (reBottomdata.L_gripper == 2 || reBottomdata.L_gripper == 0)
+            if (reBottomdata.L_Store == 2 || reBottomdata.L_Store == 0)
             {
-                _ToBottomData.L_gripper = 1; // 打开
+                _ToBottomData.L_Store = 1; // 打开
             }
-            else if (reBottomdata.L_gripper == 1)
+            else if (reBottomdata.L_Store == 1)
             {
-                _ToBottomData.L_gripper = 2; // 夹紧
+                _ToBottomData.L_Store = 2; // 夹紧
             }
         }
     }
     else if(VT13.GetModeSwitch() == MS_Status_Typedef::MS_C)
     {
-        _ToBottomData.L_gripper = 0;
-        _ToBottomData.R_gripper = 0;
+        _ToBottomData.L_Store = 0;
+        _ToBottomData.R_Store = 0;
     }
 }
 
@@ -1332,7 +1332,7 @@ void Keyboard_Grippers()
 /**
  * @brief DR16储存能量单元
  */
-void DR16_StoreGrippers(ToBottomDataStructdef &_ToBottomData)
+void DR16_Store(ToBottomDataStructdef &_ToBottomData)
 {
     if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
     {
@@ -1340,45 +1340,45 @@ void DR16_StoreGrippers(ToBottomDataStructdef &_ToBottomData)
         {
             if (DR16.GetCh3() > 1324)
             {
-                _ToBottomData.L_gripper = 2; // 左夹爪抓紧
+                _ToBottomData.L_Store = 2; // 左夹爪抓紧
             }
             else if (DR16.GetCh3() < 724)
             {
-                _ToBottomData.L_gripper = 1; // 左夹爪松开
+                _ToBottomData.L_Store = 1; // 左夹爪松开
             }
             else
             {
-                _ToBottomData.L_gripper = 0;
+                _ToBottomData.L_Store = 0;
             }
 
             if (DR16.GetCh1() > 1324)
             {
-                _ToBottomData.R_gripper = 2;
+                _ToBottomData.R_Store = 2;
             }
             else if (DR16.GetCh1() < 724)
             {
-                _ToBottomData.R_gripper = 1;
+                _ToBottomData.R_Store = 1;
             }
             else
             {
-                _ToBottomData.R_gripper = 0;
+                _ToBottomData.R_Store = 0;
             }
 
         }
         else
         {
-            // _ToBottomData.L_gripper = 0;
-            // _ToBottomData.R_gripper = 0;
+            // _ToBottomData.L_Store = 0;
+            // _ToBottomData.R_Store = 0;
         }
     }
     else
     {
-        _ToBottomData.L_gripper = 0;
-        _ToBottomData.R_gripper = 0;
+        _ToBottomData.L_Store = 0;
+        _ToBottomData.R_Store = 0;
     }
 }
 
-void Keyboard_StoreGrippers(ToBottomDataStructdef &_ToBottomData)
+void Keyboard_Store(ToBottomDataStructdef &_ToBottomData)
 {
     if(DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
     {
@@ -1394,13 +1394,13 @@ void Keyboard_StoreGrippers(ToBottomDataStructdef &_ToBottomData)
         
         if (rightgripperchanged)
         {
-            if (reBottomdata.R_gripper == 2 || reBottomdata.R_gripper == 0)
+            if (reBottomdata.R_Store == 2 || reBottomdata.R_Store == 0)
             {
-                _ToBottomData.R_gripper = 1; // 打开
+                _ToBottomData.R_Store = 1; // 打开
             }
-            else if (reBottomdata.R_gripper == 1)
+            else if (reBottomdata.R_Store == 1)
             {
-                _ToBottomData.R_gripper = 2; // 夹紧
+                _ToBottomData.R_Store = 2; // 夹紧
             }
         }
 
@@ -1414,20 +1414,20 @@ void Keyboard_StoreGrippers(ToBottomDataStructdef &_ToBottomData)
 
         if (leftgripperchanged)
         {
-            if (reBottomdata.L_gripper == 2 || reBottomdata.L_gripper == 0)
+            if (reBottomdata.L_Store == 2 || reBottomdata.L_Store == 0)
             {
-                _ToBottomData.L_gripper = 1; // 打开
+                _ToBottomData.L_Store = 1; // 打开
             }
-            else if (reBottomdata.L_gripper == 1)
+            else if (reBottomdata.L_Store == 1)
             {
-                _ToBottomData.L_gripper = 2; // 夹紧
+                _ToBottomData.L_Store = 2; // 夹紧
             }
         }
         
     }
     else
     {
-        _ToBottomData.L_gripper = 0;
-        _ToBottomData.R_gripper = 0;
+        _ToBottomData.L_Store = 0;
+        _ToBottomData.R_Store = 0;
     }
 }

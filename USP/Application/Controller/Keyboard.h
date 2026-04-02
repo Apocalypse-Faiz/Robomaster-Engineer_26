@@ -64,8 +64,8 @@ void DR16_MoveCtrl(ToBottomDataStructdef &_ToBottomData);
 void DR16_MoveCtrl_Ore(ToBottomDataStructdef &_ToBottomData);
 void DR16_Grip();
 void Keyboard_Grippers();
-void DR16_StoreGrippers(ToBottomDataStructdef &_ToBottomData);
-void Keyboard_StoreGrippers(ToBottomDataStructdef &_ToBottomData);
+void DR16_Store(ToBottomDataStructdef &_ToBottomData);
+void Keyboard_Store(ToBottomDataStructdef &_ToBottomData);
 
 void VT13_ProcessButtons();
 bool VT13_IsButtonActive(ButtonType buttonType); 
@@ -78,7 +78,7 @@ void VT13_KeyBoard_MoveCtrl(ToBottomDataStructdef &_ToBottomData);
 void VT13_KeyBoard_MoveCtrl_Custom(ToBottomDataStructdef &_ToBottomData);
 void VT13_Grip();
 void VT13_KeyBoard_Grip();
-void VT13_StoreGrippers(ToBottomDataStructdef &_ToBottomData);
+void VT13_Store(ToBottomDataStructdef &_ToBottomData);
 void VT13_KeyboardStoreGrippers(ToBottomDataStructdef &_ToBottomData);
 void VT13_Manipulater_JointCtrl();
 

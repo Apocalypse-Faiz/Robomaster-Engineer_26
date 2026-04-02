@@ -244,6 +244,8 @@ void Reset_action(Event_t **pEvent)
         VT13_Manipulater_JointCtrl();
 
         VT13_Grip();
+
+        VT_13_Store(toBottomdata);
     }
     if(DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
     {
@@ -259,7 +261,7 @@ void Reset_action(Event_t **pEvent)
 
         DR16_Grip();
 
-        DR16_StoreGrippers(toBottomdata);
+        DR16_Store(toBottomdata);
     }
 
 

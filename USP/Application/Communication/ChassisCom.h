@@ -8,8 +8,8 @@ struct ReBottomDataStructdef
 {
     uint8_t is_ctrl : 1; // 底盘控制状态 0：无控，1：在控
     uint8_t is_rst : 1;  // 底盘复位状态 0：非复位，1：复位
-    uint8_t L_gripper : 4; // 左夹爪 0：未知；1：闭合；2：打开；3：正在关闭；4：正在打开
-    uint8_t R_gripper : 4; // 左夹爪 0：未知；1：闭合；2：打开；3：正在关闭；4：正在打开
+    uint8_t L_Store : 4; // 左储矿 0：未知；1：闭合；2：打开；3：正在关闭；4：正在打开
+    uint8_t R_Store : 4; // 右储矿 0：未知；1：闭合；2：打开；3：正在关闭；4：正在打开
     uint8_t L_Ore : 1;     // 左边是否有矿石 0：无，1：有
     uint8_t R_Ore : 1;     // 右边是否有矿石 0：无，1：有
     uint8_t HP;          // 机器人血量
@@ -33,8 +33,8 @@ struct ToBottomDataStructdef
     uint8_t is_rst : 1; // 底盘控制状态 0：无控，1：在控；复位状态 0：非复位，1：复位
     uint8_t UI_mode : 7; // 暂时用做UI_mode
     ChassisControlStruct chassis_control_struct;
-    uint8_t L_gripper : 2;        // 左夹爪 0：待命，1：开，2：合
-    uint8_t R_gripper : 2;        // 右夹爪 0：待命，1：开，2：合
+    uint8_t L_Store : 2;        // 左储矿 0：待命，1：开，2：合
+    uint8_t R_Store : 2;        // 右储矿 0：待命，1：开，2：合
     uint16_t crc_code;
 } __attribute__((packed));
 

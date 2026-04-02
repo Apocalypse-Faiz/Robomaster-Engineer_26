@@ -87,7 +87,7 @@ void Mobile_action(Event_t **pEvent)
         // 使用动作组开启轨迹规划器后手动控制关节会被覆盖
         DR16_Manipulater_JointCtrl();
         Keyboard_Grippers();
-        Keyboard_StoreGrippers(toBottomdata);
+        Keyboard_Store(toBottomdata);
 
     }
 }

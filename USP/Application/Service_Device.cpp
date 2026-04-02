@@ -449,7 +449,7 @@ void tskBoardCom(void *arg)
 		// 底盘发送信息处理
 		// 与底盘通信测试
 		// DR16_MoveCtrl(toBottomdata);
-		// DR16_StoreGrippers(toBottomdata);
+		// DR16_Store(toBottomdata);
 		Vec3 target_speed = {
 			.x = toBottomdata.chassis_control_struct.x,
 			.y = toBottomdata.chassis_control_struct.y,
