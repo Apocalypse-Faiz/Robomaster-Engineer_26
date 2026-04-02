@@ -79,11 +79,9 @@ Motor_DM_classdef DM4310(4); // 达妙电机类，ID为4
 
 Motor_C610 Dji2006_1(1); // 大疆2006电机，ID为1
 Motor_C610 Dji2006_2(2); // 大疆2006电机，ID为2
-Motor_C610 Dji2006_gripper(1); // 大疆2006电机，ID为1，夹爪电机
 
 DM_Motor drive_dm_motor[4] = {DM_Motor(&DM8009), DM_Motor(&DM10010), DM_Motor(&DM4340), DM_Motor(&DM4310)}; // 达妙电机对象数组
 DJI_Motor_2006 drive_dji_motor_2006[2] = {DJI_Motor_2006(&Dji2006_1), DJI_Motor_2006(&Dji2006_2)}; // 大疆2006电机对象数组
-DJI_Motor_2006 drive_dji_motor_gripper(&Dji2006_gripper); // 大疆2006夹爪电机对象
 
 Motor motor[6] = {
     Motor(&drive_dm_motor[0]),
@@ -93,8 +91,8 @@ Motor motor[6] = {
     Motor(&drive_dji_motor_2006[0]),
     Motor(&drive_dji_motor_2006[1])}; // 电机对象数组
 
-Motor motor_gripper(&drive_dji_motor_gripper); // 夹爪电机对象
-Gripper gripper(&motor_gripper); // 夹爪对象
+Servo_Classdef servo_gripper(&htim2, TIM_CHANNEL_2, 20000, 0.025f, 0.125f, 360); // 夹爪舵机对象
+Gripper gripper(&servo_gripper); // 夹爪对象
 
 Special_Actuator2 special_actuator2(&motor[4], &motor[5]); // 双电机特殊执行器对象
 

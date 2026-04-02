@@ -1,90 +1,55 @@
 #ifndef __GRIPPER_H__
 #define __GRIPPER_H__
 
-#include "Motor.h"
-#include <cmath>
+#include "Servo.h"
 
 enum class GripperState 
 {
     IDLE,           // 空闲状态
     OPENING,        // 正在打开
     CLOSING,        // 正在关闭
-    GRIPPED,        // 已夹住物体
-    RESETTING,      // 力矩复位中
     ERROR           // 错误状态
 };
 
 class Gripper 
 {
 private:
-    Motor* motor;                           // 电机对象
+    Servo_Classdef* servo;                  // 舵机对象
     GripperState state;                     // 夹爪状态
-    
-    // 配置参数
-    float reduction_ratio;                  // 减速比
-    float bias;                             // 夹爪偏置
+
+    // 舵机角度参数
     float min_position;                     // 最小机械限位
     float max_position;                     // 最大机械限位
-    float grip_current_threshold;           // 夹持电流阈值
-    float reset_torque;                     // 复位力矩阈值
-    float max_grip_torque;                  // 最大夹持力矩
-    
+    float angle_step;                       // 每周期步进角度
+
     // 状态变量
-    float target_torque;                    // 目标力矩
     float current_position;                 // 当前位置
-    bool object_detected;                   // 物体检测标志
-    bool reseted;
-    uint32_t grip_confirmation_count;       // 夹持确认计数器
-    
-    // 控制变量
-    float calculated_torque;                // 计算出的力矩值
-    bool new_torque_available;              // 新力矩值可用标志
-    float reset_start_angle_offset;         // 力矩复位开始时的电机角度 
-    
+    float target_position;                  // 目标位置
+    bool pwm_started;                       // PWM是否已启动
+
     // 内部方法
     bool checkMechanicalLimit();
-    bool checkObjectGripped();
     void updateCurrentPosition();
-    float calculateControlTorque();
-    float calculateControlTorqueUncalibrated();  // 未校准状态下的力矩计算
+    void moveTowardsTarget();
 
 public:
     /**
      * @brief 夹爪构造函数
-     * @param motor 电机对象
+     * @param servo 舵机对象
      * @param reduction_ratio 减速比
      * @param min_limit 最小机械限位
      * @param max_limit 最大机械限位
      */
-    Gripper(Motor* motor): motor(motor)
+    Gripper(Servo_Classdef* servo): servo(servo)
     {
-        
         state = GripperState::IDLE;
-        target_torque = 0.0f;
-        reset_torque = 0.0f;
-        reduction_ratio = 0.0f;
         min_position = 0.0f;
-        max_position = 0.0f;
-        calculated_torque = 0.0f;
+        max_position = 76.0f;
+        angle_step = 3.0f;
         current_position = 0.0f;
-        object_detected = false;
-        grip_confirmation_count = 0;
-        new_torque_available = false;
-        
-        // 设置电机为力矩模式
-        if(motor) 
-        {
-            motor->setMode(MotorMode::torque);
-        }
+        target_position = 0.0f;
+        pwm_started = false;
     }
-    
-    /**
-     * @brief 初始化夹爪
-     * @param grip_current_threshold 夹持电流阈值
-     * @param reset_torque 复位力矩
-     * @param max_grip_torque 最大夹持力矩
-     */
-    void init(float grip_current_threshold, float max_grip_torque, float reset_torque, float reduction_ratio, float bias, float max_position, float mini_position);
     
     /**
      * @brief 更新夹爪传感器数据（高速循环中调用）
@@ -106,31 +71,18 @@ public:
     
     /**
      * @brief 打开夹爪
-     * @param torque 打开力矩
      */
-    void open(float torque = 0.5f);
+    void open();
     
     /**
-     * @brief 关闭夹爪（力控）
-     * @param torque 夹持力矩
+     * @brief 关闭夹爪（位控）
      */
-    void close(float torque = 1.0f);
-    
-    /**
-     * @brief 力矩复位（回到初始位置）
-     */
-    void torqueReset();
+    void close();
     
     /**
      * @brief 紧急停止
      */
     void emergencyStop();
-    
-    /**
-     * @brief 设置夹持电流阈值
-     * @param threshold 新的阈值
-     */
-    void setGripCurrentThreshold(float threshold);
     
     /**
      * @brief 获取夹爪状态
@@ -139,38 +91,15 @@ public:
     GripperState getState() const;
     
     /**
-     * @brief 是否检测到物体
-     * @return true: 已夹住物体, false: 未夹住
-     */
-    bool isObjectGripped() const;
-    
-    /**
      * @brief 获取当前位置
      * @return 当前位置 (rad)
      */
     float getCurrentPosition() const;
     
     /**
-     * @brief 获取当前电机电流
-     * @return 电流值
-     */
-    float getCurrentCurrent() const;
-    
-   /**
-     * @brief 是否已复位
-     * @return true: 已复位, false: 未复位
-     */
-    bool isReseted() const { return reseted; }
-    
-    /**
      * @brief 清除错误状态
      */
     void clearError();
-
-    /**
-     * @brief 校准夹爪
-     */
-    void calibrate();
 
     void setState(GripperState state);
 

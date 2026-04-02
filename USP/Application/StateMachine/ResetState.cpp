@@ -49,7 +49,7 @@ bool Manipulator_TorqueReset()
         motor1_torque = mfsL1.f(abs(motor[4].getTorque()));
         motor2_torque = mfsL2.f(abs(motor[5].getTorque()));
 
-        // gripper.torqueReset(); // 夹爪内部相关标志位复位
+        // 舵机夹爪为纯位控，无复位流程
 
 	    float Reduction_ratio = 0.0278 * 0.5; // 1/36 DJI2006的减速比
 

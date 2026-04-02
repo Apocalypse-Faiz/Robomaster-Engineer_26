@@ -124,8 +124,8 @@ void tskBackpackdrive(void *arg)
 
 		// 杂项机构运行代码放在这里
 		/* 指示灯控制 */
-		// 末端夹爪状态观察
-		if (gripper.isObjectGripped())
+		// 末端夹爪状态观察（闭合指令态点亮）
+		if (gripper.getState() == GripperState::CLOSING)
 		{
 			WS_indicator[1] = WS_White;
 		}
@@ -281,8 +281,6 @@ void Joint_limitSet()
 		joint[4].setJointParam(-360, 360, -10, 10); // J5关节在力矩复位后还要重新再限位一下
 		joint[5].setJointParam(-360, 360, -10, 10);
 
-		// gripper.init(5000.0f, 4500.0f, 1800.0f, Reduction_ratio2, 0, 90.0f, -90.0f);
-
 		Set_ok = 1;
 	}
 }
@@ -306,7 +304,6 @@ void tskMotor(void *arg)
 	motor[3].setPidParameters({.v_Kp = 0, .v_Min = -10, .v_Max = 10, .a_Kp = 0, .a_Ki = 0, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
 	motor[4].setPidParameters({.v_Kp = 0.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 0, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
 	motor[5].setPidParameters({.v_Kp = 0.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 0, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
-	motor_gripper.setPidParameters({.v_Kp = 10.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 7.5, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
 
 	vTaskDelay(1000);
 	for(int i = 0; i < 4; i++)
@@ -425,7 +422,7 @@ void tskMotor(void *arg)
 		// Dji2006_2.Out = 0.0f;
 		// Dji2006_gripper.Out = 0.0f;
 
-		motor_dji::MotorMsgPack(Tx_Buff_DJI_Can2, Dji2006_1, Dji2006_2, Dji2006_gripper);
+		motor_dji::MotorMsgPack(Tx_Buff_DJI_Can2, Dji2006_1, Dji2006_2);
 		xQueueSend(CAN2_TxPort, &Tx_Buff_DJI_Can2.Id200, 0);
 	}
 }

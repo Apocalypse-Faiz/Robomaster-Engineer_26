@@ -147,14 +147,12 @@ extern Motor_DM_classdef DM4340; // 达妙电机类，ID为3
 extern Motor_DM_classdef DM4310; // 达妙电机类，ID为4
 extern Motor_C610 Dji2006_1;
 extern Motor_C610 Dji2006_2;
-extern Motor_C610 Dji2006_gripper;
 
 extern DM_Motor drive_dm_motor[4]; // 达妙电机对象数组
 extern DJI_Motor_2006 drive_dji_motor_2006[2]; // 大疆2006电机对象数组
-extern DJI_Motor_2006 drive_dji_motor_gripper; // 大疆2006夹爪电机对象
+extern Servo_Classdef servo_gripper; // 夹爪舵机对象
 
 extern Motor motor[6]; // 电机对象数组
-extern Motor motor_gripper;
 extern Special_Actuator2 special_actuator2; // 特殊执行器2对象对象
 extern Special_Actuator3 special_actuator3[4]; // 特殊执行器3对象数组
 extern JointActuator joint_actuator[5]; // 关节执行器对象数组

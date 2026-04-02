@@ -1,4 +1,4 @@
-#include "ActionGroupController.h"
+﻿#include "ActionGroupController.h"
 #include "ActionGroup.h"
 #include "Keyboard.h"
 
@@ -79,7 +79,7 @@ void ActionGroupController::handleStoreOre(Joint joints[], Gripper& gripper, ToB
                 // OreBit[0] = 1;
             // } else 
             // {
-            //     gripper.close(4500.0f);
+            //     gripper.close();
             // }
         } 
         else if (ore_ing[1] == 1) 
@@ -89,13 +89,13 @@ void ActionGroupController::handleStoreOre(Joint joints[], Gripper& gripper, ToB
             // if (reBottomdata.R_Ore == 1) 
             // { 
             //     // 右储存位检测到矿石
-            //     gripper.open(4500.0f);
+            //     gripper.open();
                 ore_ing[1] = 2;
                 // OreBit[1] = 1;
             // } 
             // else 
             // {
-            //     gripper.close(4500.0f);
+            //     gripper.close();
             // }
         }
     }
@@ -111,7 +111,7 @@ void ActionGroupController::handleTakeOre(Joint joints[], Gripper& gripper, ToBo
     {
         // if ((DR16.IsKeyPress(DR16_KEY_E)) || VT13.IsKeyPress(VT13_KEY_E)) 
         // {
-        //     gripper.close(4500.0f);
+        //     gripper.close();
         // }
         if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
         {
@@ -296,7 +296,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 action_enum = ActionGroup_enum::TakeOre1_prepare;
                 if (gripper.getState() != GripperState::OPENING)
                 {
-                    gripper.open(4500.0f);
+                    gripper.open();
                 }
                 add_once_flag = 1;
                 take_ore_state = TakeOre_enum::TakeOre1_prepare;
@@ -321,7 +321,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 action_enum = ActionGroup_enum::TakeOre2_prepare;
                 if (gripper.getState() != GripperState::OPENING)
                 {
-                    gripper.open(4500.0f);
+                    gripper.open();
                 }
                 add_once_flag = 1;
                 take_ore_state = TakeOre_enum::TakeOre2_prepare;
@@ -346,7 +346,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 action_enum = ActionGroup_enum::TakeOre3_prepare;
                 if (gripper.getState() != GripperState::OPENING)
                 {
-                    gripper.open(4500.0f);
+                    gripper.open();
                 }
                 add_once_flag = 1;
                 take_ore_state = TakeOre_enum::TakeOre3_prepare;
@@ -371,7 +371,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 action_enum = ActionGroup_enum::TakeOre4_prepare;
                 if (gripper.getState() != GripperState::OPENING)
                 {
-                    gripper.open(4500.0f);
+                    gripper.open();
                 }
                 add_once_flag = 1;
                 take_ore_state = TakeOre_enum::TakeOre4_prepare;
@@ -396,7 +396,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 action_enum = ActionGroup_enum::TakeOre5_prepare;
                 if (gripper.getState() != GripperState::OPENING)
                 {
-                    gripper.open(4500.0f);
+                    gripper.open();
                 }
                 add_once_flag = 1;
                 take_ore_state = TakeOre_enum::TakeOre5_prepare;
@@ -421,7 +421,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 action_enum = ActionGroup_enum::TakeOre6_prepare;
                 if (gripper.getState() != GripperState::OPENING)
                 {
-                    gripper.open(4500.0f);
+                    gripper.open();
                 }
                 add_once_flag = 1;
                 take_ore_state = TakeOre_enum::TakeOre6_prepare;
@@ -448,7 +448,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
         {
             if (gripper.getState() != GripperState::OPENING)
             {
-                gripper.open(4500.0f);
+                gripper.open();
             }
             action_enum = ActionGroup_enum::TakeInOre_L;
             add_once_flag = 1;
@@ -459,7 +459,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
         {
             if (gripper.getState() != GripperState::OPENING)
             {
-                gripper.open(4500.0f);
+                gripper.open();
             }
             action_enum = ActionGroup_enum::TakeInOre_R;
             add_once_flag = 1;
@@ -470,7 +470,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
         // {
         //     if (gripper.getState() != GripperState::OPENING)
         //     {
-        //         gripper.open(4500.0f);
+        //         gripper.open();
         //     }
         //     action_enum = ActionGroup_enum::TakeInOre_L;
         //     add_once_flag = 1;

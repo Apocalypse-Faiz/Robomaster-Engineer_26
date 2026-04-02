@@ -1,4 +1,4 @@
-#include "srml_std_lib.h"
+﻿#include "srml_std_lib.h"
 #include "Keyboard.h"
 
 bool VT13_ButtonStates[3] = {false, false, false}; // 存储每个按钮的触发状态
@@ -430,11 +430,11 @@ void VT13_Manipulater_JointCtrl()
 
             if(VT13.GetCh0() > 1324)
             {
-                gripper.open(4500.0f);
+                gripper.open();
             }
             else if(VT13.GetCh0() < 724)
             {
-                gripper.close(4500.0f);
+                gripper.close();
             }
             else
             {
@@ -472,11 +472,11 @@ void VT13_Manipulater_JointCtrl()
 
             if(VT13.GetCh0() > 1324)
             {
-                gripper.open(4500.0f);
+                gripper.open();
             }
             else if(VT13.GetCh0() < 724)
             {
-                gripper.close(4500.0f);
+                gripper.close();
             }
             else
             {
@@ -495,11 +495,11 @@ void VT13_Grip()
         {
             if(VT13.GetCh0() > 1324)
             {
-                gripper.open(4500.0f);
+                gripper.open();
             }
             else if(VT13.GetCh0() < 724)
             {
-                gripper.close(4500.0f);
+                gripper.close();
             }
             else
             {
@@ -567,17 +567,17 @@ void VT13_KeyBoard_Grip()
         {
             if (gripper.getState() == GripperState::CLOSING || gripper.getState() == GripperState::IDLE)
             {
-                gripper.open(4500.0f); // 打开
+                gripper.open(); // 打开
             }
             else if (gripper.getState() == GripperState::OPENING)
             {
-                gripper.close(4500.0f); // 夹紧
+                gripper.close(); // 夹紧
             }
         }
     }
     else if(VT13.GetModeSwitch() == MS_Status_Typedef::MS_C)
     {
-        gripper.emergencyStop(); // 停止
+        gripper.emergencyStop(); // 紧急停止
     }
 }
 
@@ -1001,11 +1001,11 @@ void DR16_Manipulater_JointCtrl()
 
             if (DR16.GetCh0() > 1324)
             {
-                gripper.open(5000);
+                gripper.open();
             }
             if (DR16.GetCh0() < 724)
             {
-                gripper.close(5000);
+                gripper.close();
             }
         }
         if (DR16.GetS1() == 1 && DR16.GetS2() == 3)
@@ -1039,11 +1039,11 @@ void DR16_Manipulater_JointCtrl()
 
             if (DR16.GetCh0() > 1324)
             {
-                gripper.open(5000);
+                gripper.open();
             }
             if (DR16.GetCh0() < 724)
             {
-                gripper.close(5000);
+                gripper.close();
             }
         }
     }
@@ -1059,7 +1059,7 @@ void DR16_Manipulater_JointCtrl()
 }
 
 /**
- * @brief 用于调试电机pid
+ * @brief 用于测试电机pid
  */
 void DR16_Debug_Ctrl()
 {
@@ -1089,7 +1089,7 @@ void DR16_Debug_Ctrl()
             }
         }
 
-        if (DR16.GetS1() == 1 && DR16.GetS2() == 2) // 全为上
+        if (DR16.GetS1() == 1 && DR16.GetS2() == 2) // 左上右下
         {
             if (DR16.GetCh2() > 1324)
             {
@@ -1281,15 +1281,15 @@ void DR16_Grip()
     {
         if ((DR16.GetS1() == 3 && DR16.GetS2() == 1)) // 开夹爪 S1中，S2上
         {
-            gripper.open(4500.0f);
+            gripper.open();
         }
         else if ((DR16.GetS1() == 3 && DR16.GetS2() == 3)) // 停止夹爪 S1中，S2中
         {
-            gripper.close(0.0f);
+            gripper.close();
         }
         else if(DR16.GetS1() == 3 && DR16.GetS2() == 2) // 关夹爪 S1中，S2下
         {
-            gripper.close(5000.0f);
+            gripper.close();
         }
     }
     else
@@ -1315,11 +1315,11 @@ void Keyboard_Grippers()
         {
             if (gripper.getState() == GripperState::CLOSING || gripper.getState() == GripperState::IDLE)
             {
-                gripper.open(4500.0f); // 打开
+                gripper.open(); // 打开
             }
             else if (gripper.getState() == GripperState::OPENING)
             {
-                gripper.close(4500.0f); // 夹紧
+                gripper.close(); // 关闭
             }
         }
     }

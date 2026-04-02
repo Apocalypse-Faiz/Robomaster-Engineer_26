@@ -256,10 +256,6 @@ void Task_CAN2Receive(void *arg)
       {
         Dji2006_2.update(CAN_RxCOB.ID, CAN_RxCOB.Data);
       }
-      else if(CAN_RxCOB.ID == Dji2006_gripper.getRecID())
-      {
-        Dji2006_gripper.update(CAN_RxCOB.ID, CAN_RxCOB.Data);
-      }
     }
   }
 }
