@@ -51,8 +51,7 @@ bool Manipulator_TorqueReset()
 
         // gripper.torqueReset(); // 夹爪内部相关标志位复位
 
-        float Reduction_ratio1 = 0.0667 * 0.0526; // 1/15 DJI3508的减速比
-	    float Reduction_ratio2 = 0.0278 * 0.5; // 1/36 DJI2006的减速比
+	    float Reduction_ratio = 0.0278 * 0.5; // 1/36 DJI2006的减速比
 
         if (reset_ok == 0)
         {
@@ -72,7 +71,7 @@ bool Manipulator_TorqueReset()
  
                      joint[5].calibrate();
  
-                     joint[5].setJointMapping(-Reduction_ratio2, 170);
+                     joint[5].setJointMapping(-Reduction_ratio, 170);
                      joint[5].setJointParam(-170, 170, -10, 10);
  
                      joint[4].setMode(JointMode::angle);
@@ -108,8 +107,7 @@ bool Manipulator_TorqueReset()
             {
                  if (motor1_torque < 5700 || motor2_torque < 5700)
                  {
-                    //  joint[4].ajustJointTarget(-15.0f);
-                    joint[4].setTargetAngle(j5_reset_target -= 0.1f);
+                     joint[4].ajustJointTarget(-15.0f);
                  }
                  else
                  {
@@ -119,9 +117,9 @@ bool Manipulator_TorqueReset()
                      // J5与J6只要一个进行了标定，那么motor5与motor6都会进行标定，之后相关的映射与限位J5、J6都要重新设
                      joint[4].calibrate();
  
-                     joint[4].setJointMapping(Reduction_ratio2, -120);
+                     joint[4].setJointMapping(Reduction_ratio, -120);
                      joint[4].setJointParam(-120, 65, -10, 10);
-                     joint[5].setJointMapping(-Reduction_ratio2, 0);
+                     joint[5].setJointMapping(-Reduction_ratio, 0);
                      joint[5].setJointParam(-170, 170, -10, 10);
  
                      joint[4].setMode(JointMode::angle);
