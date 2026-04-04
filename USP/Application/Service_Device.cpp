@@ -446,8 +446,6 @@ void tskMotor(void *arg)
 				InertiaCompension_Calculate(joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), f_torque1.f(motor[0].v_pid.Out), &Inertia_feedforward[0]);
 				motor[0].setInertia_feedforward(Inertia_feedforward[0] * inertia_J1);
 
-				GripperGravityCompension_Calculate(joint[4].getCurrentAngle(), &Gravity_feedforward[4]);
-				motor[4].setGravity_feedforward(Gravity_feedforward[4] * gravity_J5);
 			}
 
 			BackEMFCompension_Calculate(motor[0].getSpeed(), motor[1].getSpeed(), motor[2].getSpeed(), motor[3].getSpeed(), motor[4].getSpeed(), motor[5].getSpeed(), &BackEMF_feedforward[0], &BackEMF_feedforward[1], &BackEMF_feedforward[2], &BackEMF_feedforward[3], &BackEMF_feedforward[4], &BackEMF_feedforward[5]);
@@ -472,13 +470,32 @@ void tskMotor(void *arg)
 		}
 		else
 		{
-			for (int i = 0; i < 6; i++)
+			if (Robot_Prepared)
 			{
-				motor[i].setGravity_feedforward(0.0f);
-				motor[i].setBackEMF_feedforward(0.0f);
-				motor[i].setCoulomb_feedforward(0.0f);
-				motor[i].setViscous_feedforward(0.0f);
-				motor[i].setInertia_feedforward(0.0f);
+				if (motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready)
+				{
+					joint[1].updateJointData();
+					joint[2].updateJointData();
+					GravityCompension_Calculate(joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), &Gravity_feedforward[1], &Gravity_feedforward[2]);
+					motor[1].setGravity_feedforward(Gravity_feedforward[1] * gravity_J2);
+					motor[2].setGravity_feedforward(Gravity_feedforward[2] * gravity_J3);
+				}
+				else
+				{
+					motor[1].setGravity_feedforward(0.0f);
+					motor[2].setGravity_feedforward(0.0f);
+				}
+
+				if (motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready)
+				{
+					InertiaCompension_Calculate(joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), f_torque1.f(motor[0].v_pid.Out), &Inertia_feedforward[0]);
+					motor[0].setInertia_feedforward(Inertia_feedforward[0] * inertia_J1);
+				}
+				else
+				{
+					motor[0].setInertia_feedforward(0.0f);
+				}
+
 			}
 
 			for (int i = 0; i < 6; i++)
