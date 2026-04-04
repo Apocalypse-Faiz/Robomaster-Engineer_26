@@ -200,26 +200,103 @@ void tskBackpackdrive(void *arg)
 
 void CheckMotorStatus()
 {
-		for (uint8_t i = 0; i < 6; i++)
+	static TickType_t last_dm_reconnect_tick = 0U;
+	static uint8_t dm_reconnect_rr_idx = 0U;
+	static uint8_t all_ready_stable_cnt = 0U;
+	static uint8_t dm_offline_latched[4] = {0U, 0U, 0U, 0U};
+	static uint8_t mode_init_done = 0U;
+	static uint8_t dm_recover_pending = 0U;
+	static const uint8_t DM_MOTOR_COUNT = 4U;
+	static const uint8_t ALL_READY_STABLE_TICKS = 20U;
+	const TickType_t DM_RECONNECT_PERIOD_TICK = pdMS_TO_TICKS(100);
+
+	bool all_ready = true;
+	bool dm_has_disconnect = false;
+
+	for (uint8_t i = 0; i < 6; i++)
+	{
+		if (motor[i].getStatus() != MotorStatus::ready)
 		{
-			if (motor[i].getStatus() == MotorStatus::ready)
+			all_ready = false;
+			if (i < DM_MOTOR_COUNT)
 			{
-				// 状态正常时设置为angle模式
-				motor[i].setMode(MotorMode::angle);
+				dm_has_disconnect = true;
+				if (dm_offline_latched[i] == 0U)
+				{
+					motor[i].forceSetMode(MotorMode::disabled);
+					dm_offline_latched[i] = 1U;
+				}
 			}
 		}
-	
-	if(motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready && motor[3].getStatus() == MotorStatus::ready && motor[4].getStatus() == MotorStatus::ready && motor[5].getStatus() == MotorStatus::ready)
+		else if (i < DM_MOTOR_COUNT)
+		{
+			dm_offline_latched[i] = 0U;
+		}
+	}
+
+	if (all_ready)
 	{
+		if (all_ready_stable_cnt < ALL_READY_STABLE_TICKS)
+		{
+			all_ready_stable_cnt++;
+		}
+
+		if (all_ready_stable_cnt < ALL_READY_STABLE_TICKS)
+		{
+			all_motor_connected = false;
+			return;
+		}
+
+		if (all_motor_connected == false)
+		{
+			if (mode_init_done == 0U)
+			{
+				for (uint8_t i = 0; i < 6; i++)
+				{
+					motor[i].setMode(MotorMode::angle);
+				}
+				mode_init_done = 1U;
+			}
+			else if (dm_recover_pending != 0U)
+			{
+				for (uint8_t i = 0; i < DM_MOTOR_COUNT; i++)
+				{
+					motor[i].setMode(MotorMode::angle);
+				}
+				dm_recover_pending = 0U;
+			}
+		}
 		all_motor_connected = true;
+		return;
 	}
-	else
+
+	all_ready_stable_cnt = 0U;
+	all_motor_connected = false;
+	if (dm_has_disconnect == false)
 	{
-		all_motor_connected = false;
+		return;
 	}
 
-	// return all_motor_connected;
+	dm_recover_pending = 1U;
 
+	TickType_t now_tick = xTaskGetTickCount();
+	if ((now_tick - last_dm_reconnect_tick) < DM_RECONNECT_PERIOD_TICK)
+	{
+		return;
+	}
+
+	for (uint8_t offset = 0; offset < DM_MOTOR_COUNT; offset++)
+	{
+		uint8_t idx = (dm_reconnect_rr_idx + offset) % DM_MOTOR_COUNT;
+		if (motor[idx].getStatus() != MotorStatus::ready)
+		{
+			drive_dm_motor[idx].enableMotor();
+			dm_reconnect_rr_idx = (idx + 1U) % DM_MOTOR_COUNT;
+			break;
+		}
+	}
+
+	last_dm_reconnect_tick = now_tick;
 }
 
 /**
@@ -233,19 +310,19 @@ void Joint_limitSet()
 	static uint8_t Set_ok = 0;
 	if (Set_ok == 1)
 	{
-		for (uint8_t i = 0; i < 6; i++)
+		// J3的动态限位仅依赖J2角度，且只在J2对应电机ready时更新
+		if (motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready)
 		{
-			joint[i].updateJointData();
-		}
-
-		// J3的动态限位
-		if (joint[1].getCurrentAngle() <= 90)
-		{
-			joint[2].setJointParam(-80, 60, -10, 10);
-		}
-		else if (joint[1].getCurrentAngle() > 90 && joint[1].getCurrentAngle() <= 180)
-		{
-			joint[2].setJointParam(-(180 - joint[1].getCurrentAngle() + 50 -90), 60, -10, 10);
+			joint[1].updateJointData();
+			float j2_angle = joint[1].getCurrentAngle();
+			if (j2_angle <= 90)
+			{
+				joint[2].setJointParam(-80, 60, -10, 10);
+			}
+			else if (j2_angle <= 180)
+			{
+				joint[2].setJointParam(-(180 - j2_angle + 50 - 90), 60, -10, 10);
+			}
 		}
 
 		return;
@@ -253,7 +330,7 @@ void Joint_limitSet()
 
 	float Reduction_ratio = 0.0278 * 0.5; // 1/36 DJI2006的减速比
 
-	if (motor[2].getStatus() == MotorStatus::ready && motor[3].getStatus() == MotorStatus::ready && motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready)
+	if (motor[2].getStatus() == MotorStatus::ready && motor[3].getStatus() == MotorStatus::ready && motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[4].getStatus() == MotorStatus::ready && motor[5].getStatus() == MotorStatus::ready)
 	{
 
 		// 以下设置映射中的偏置b是通过DM电机返回的多圈角度进行各种判断设置对应偏置（单圈内不同地方上电，同一地方反馈角度不同），实际正确方法应该是通过单圈角度来设置偏置，希望新赛季队员能够进行优化。
@@ -343,11 +420,11 @@ void tskMotor(void *arg)
 			motor[i].update(); // 更新电机数据
 		}
 
+		CheckMotorStatus();
+
 		gripper.update(); // 更新夹爪数据
 		gripper.updateControl(); // 更新夹爪控制逻辑
 		
-		// CheckMotorConnect();
-
 		Joint_limitSet();
 		
 		if(all_motor_connected)
@@ -387,6 +464,13 @@ void tskMotor(void *arg)
 				motor[i].setViscous_feedforward(Viscous_feedforward[i]);
 			}
 
+			motor[0].execute();
+			motor[1].execute();
+			motor[2].execute();
+			motor[3].execute();
+			motor[4].execute();
+			motor[5].execute();
+
 
 		}
 		else
@@ -400,27 +484,9 @@ void tskMotor(void *arg)
 			{
 				drive_dm_motor[i].setTorque(0.0f);
 			}
-
-			CheckMotorStatus();
 		}
-  
-		motor[0].execute();
-		motor[1].execute();
-		motor[2].execute();
-		motor[3].execute();
-		motor[4].execute();
-		motor[5].execute();
+
 		gripper.executeOutput(); // 夹爪执行输出
-
-		//can test
-		// DM8009.setTorque(0.0f);
-		// DM4310.setTorque(0.0f);
-		// Dji3508_1.Out = 0.0f;
-
-		// Dji3508_2.Out = 0.0f;
-		// Dji2006_1.Out = 0.0f;
-		// Dji2006_2.Out = 0.0f;
-		// Dji2006_gripper.Out = 0.0f;
 
 		motor_dji::MotorMsgPack(Tx_Buff_DJI_Can2, Dji2006_1, Dji2006_2);
 		xQueueSend(CAN2_TxPort, &Tx_Buff_DJI_Can2.Id200, 0);

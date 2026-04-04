@@ -119,7 +119,33 @@ void Motor::setMode(MotorMode mode)
     // 从其他模式更改为angle时，保持目标角度与当前角度一致
     case MotorMode::angle:
         target_angle = getAngle();
-        a_pid.clean_intergral(); // 重置a_pid、v_pid
+        a_pid.clean_intergral();
+        v_pid.clean_intergral(); // 重置a_pid、v_pid
+        break;
+    case MotorMode::disabled:
+        break;
+    default:
+        for (;;)
+            ;
+        break;
+    }
+    this->mode = mode;
+}
+
+void Motor::forceSetMode(MotorMode mode)
+{
+    switch (mode)
+    {
+    case MotorMode::unset:
+        return;
+        break;
+    case MotorMode::torque:
+        target_torque = 0.0f;
+        break;
+    case MotorMode::angle:
+        target_angle = (current_angle - calibration);
+        a_pid.clean_intergral();
+        v_pid.clean_intergral();
         break;
     case MotorMode::disabled:
         break;
@@ -168,9 +194,12 @@ void Motor::setTarget(float target_value)
  */
 void Motor::execute()
 {
-    // 当电机状态为error的时候不会执行目标值的计算，可能会持续发送上一个目标值，危险！！！
+    // 非ready时仍下发0力矩，避免断联/重连阶段保留旧目标导致风险
     if (getStatus() != MotorStatus::ready)
+    {
+        specific_motor->setTorque(0.0f);
         return;
+    }
     // static LPF_SecondOrder_Classdef lpf_speed(50, 1000); // 尝试使用滤波对速度进行
     // float temp_speed = 0;
     float True_Out;

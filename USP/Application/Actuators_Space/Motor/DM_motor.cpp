@@ -23,7 +23,8 @@ void DM_Motor::update(Motor &motor)
     switch (status)
     {
     case MotorStatus::error:
-        if (dm_motor->getRecData().angle != 0)
+        // if (dm_motor->getRecData().angle != 0)
+        if (dm_motor->GetMotorState() == 1)
         {
             status = MotorStatus::ready;
             motor.current_angle = dm_motor->getRecData().angle;
@@ -32,11 +33,12 @@ void DM_Motor::update(Motor &motor)
         }
         break;
     case MotorStatus::ready:
-        // if(dm_motor->GetMotorState() != 1)
-        // {
-        //     status = MotorStatus::error;
-        //     break;
-        // }
+        if(dm_motor->GetMotorState() != 1)
+        {
+            motor.forceSetMode(MotorMode::disabled);
+            status = MotorStatus::error;
+            break;
+        }
         motor.current_angle = dm_motor->getRecData().angle;
         motor.current_speed = dm_motor->getRecData().velocity;
         motor.current_torque = dm_motor->getRecData().torque;

@@ -104,6 +104,8 @@ public:
 
     void setMode(MotorMode mode); // 设置电机模式
 
+    void forceSetMode(MotorMode mode); // 强制设置模式（用于掉线保护）
+
     void setTarget(float target_value); // 设置目标值
 
     void execute(); // 执行PID计算
