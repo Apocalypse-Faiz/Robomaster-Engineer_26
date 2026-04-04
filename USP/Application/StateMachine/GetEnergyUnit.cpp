@@ -254,30 +254,72 @@ void GetEnergyUnit_action(Event_t **pEvent)
         case ControlMode::ACTION_GROUP :
             if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
             {
-                KeyBoard_MoveCtrl_Ore(toBottomdata);
+                if (DR16.GetS1() == 2)
+                {
+                    DR16_MoveCtrl(toBottomdata);
+                }
+                else
+                {
+                    KeyBoard_MoveCtrl(toBottomdata);
+                }
             }
             if (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C && VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
             {
-                VT13_KeyBoard_MoveCtrl(toBottomdata);
+                if(VT13_IsButtonActive(ButtonType::FN1))
+                {
+                    VT13_MoveCtrl(toBottomdata);
+                }
+                else if(!VT13_IsButtonActive(ButtonType::FN1))
+                {
+                    VT13_KeyBoard_MoveCtrl(toBottomdata);
+                }
             }
             break;
         case ControlMode::CUSTOM_CONTROL :
             if(DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
             {
-                KeyBoard_MoveCtrl_Custom(toBottomdata);
+                if (DR16.GetS1() == 2)
+                {
+                    DR16_MoveCtrl(toBottomdata);
+                }
+                else
+                {
+                    KeyBoard_MoveCtrl_Custom(toBottomdata);
+                }
             }
             if (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C && VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
             {
-                VT13_KeyBoard_MoveCtrl_Custom(toBottomdata);
+                if(VT13_IsButtonActive(ButtonType::FN1))
+                {
+                    VT13_MoveCtrl(toBottomdata);
+                }
+                else if(!VT13_IsButtonActive(ButtonType::FN1))
+                {
+                    VT13_KeyBoard_MoveCtrl_Custom(toBottomdata);
+                }
             }
         case ControlMode::VISION_CONTROL :
             if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
             {
-                KeyBoard_MoveCtrl_Ore(toBottomdata);
+                if (DR16.GetS1() == 2)
+                {
+                    DR16_MoveCtrl(toBottomdata);
+                }
+                else
+                {
+                    KeyBoard_MoveCtrl(toBottomdata);
+                }
             }
             if (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C && VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
             {
-                VT13_KeyBoard_MoveCtrl(toBottomdata);
+                if(VT13_IsButtonActive(ButtonType::FN1))
+                {
+                    VT13_MoveCtrl(toBottomdata);
+                }
+                else if(!VT13_IsButtonActive(ButtonType::FN1))
+                {
+                    VT13_KeyBoard_MoveCtrl(toBottomdata);
+                }
             }
             break;        
         default:
