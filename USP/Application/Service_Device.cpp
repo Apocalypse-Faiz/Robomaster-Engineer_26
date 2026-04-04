@@ -436,7 +436,6 @@ void tskMotor(void *arg)
 				joint[i].updateJointData();
 			}
 
-
 			if (Robot_Prepared)
 			{
 				// DR16_Debug_Ctrl();
@@ -470,19 +469,35 @@ void tskMotor(void *arg)
 			motor[3].execute();
 			motor[4].execute();
 			motor[5].execute();
-
-
 		}
 		else
 		{
-			
-			for (int i = 0; i < 2; i++)
+			for (int i = 0; i < 6; i++)
 			{
-				drive_dji_motor_2006[i].setTorque(0.0f);
+				motor[i].setGravity_feedforward(0.0f);
+				motor[i].setBackEMF_feedforward(0.0f);
+				motor[i].setCoulomb_feedforward(0.0f);
+				motor[i].setViscous_feedforward(0.0f);
+				motor[i].setInertia_feedforward(0.0f);
 			}
-			for (int i = 0; i < 4; i++)
+
+			for (int i = 0; i < 6; i++)
 			{
-				drive_dm_motor[i].setTorque(0.0f);
+				if (motor[i].getStatus() == MotorStatus::ready)
+				{
+					motor[i].execute();
+				}
+				else
+				{
+					if (i < 4)
+					{
+						drive_dm_motor[i].setTorque(0.0f);
+					}
+					else
+					{
+						drive_dji_motor_2006[i - 4].setTorque(0.0f);
+					}
+				}
 			}
 		}
 
