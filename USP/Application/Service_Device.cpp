@@ -224,6 +224,7 @@ void CheckMotorStatus()
 				if (dm_offline_latched[i] == 0U)
 				{
 					motor[i].forceSetMode(MotorMode::disabled);
+					joint[i].setMode(JointMode::disabled);
 					dm_offline_latched[i] = 1U;
 				}
 			}
@@ -254,6 +255,7 @@ void CheckMotorStatus()
 				for (uint8_t i = 0; i < 6; i++)
 				{
 					motor[i].setMode(MotorMode::angle);
+					joint[i].setMode(JointMode::angle);
 				}
 				mode_init_done = 1U;
 			}
@@ -262,6 +264,7 @@ void CheckMotorStatus()
 				for (uint8_t i = 0; i < DM_MOTOR_COUNT; i++)
 				{
 					motor[i].setMode(MotorMode::angle);
+					joint[i].setMode(JointMode::angle);
 				}
 				dm_recover_pending = 0U;
 			}
