@@ -1382,47 +1382,50 @@ void Keyboard_Store(ToBottomDataStructdef &_ToBottomData)
 {
     if(DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
     {
-        bool leftgripperchanged = false;
-        bool rightgripperchanged = false;
-        if (DR16.IsKeyPress(DR16_KEY_E) && !lastGripperState[2])
+        if (DR16.GetS1() == 2 && DR16.GetS2() == 3)  // 左下右中
         {
-            GripperStates[2] = !GripperStates[2];
-            rightgripperchanged = true;
-        }
-
-        lastGripperState[2] = DR16.IsKeyPress(DR16_KEY_E);
-        
-        if (rightgripperchanged)
-        {
-            if (reBottomdata.R_Store == 2 || reBottomdata.R_Store == 0)
+            bool leftgripperchanged = false;
+            bool rightgripperchanged = false;
+            if (DR16.IsKeyPress(DR16_KEY_E) && !lastGripperState[2])
             {
-                _ToBottomData.R_Store = 1; // 打开
+                GripperStates[2] = !GripperStates[2];
+                rightgripperchanged = true;
             }
-            else if (reBottomdata.R_Store == 1)
-            {
-                _ToBottomData.R_Store = 2; // 夹紧
-            }
-        }
 
-        if (DR16.IsKeyPress(DR16_KEY_Q) && !lastGripperState[1])
-        {
-            GripperStates[1] = !GripperStates[1];
-            leftgripperchanged = true;
-        }
-
-        lastGripperState[1] = DR16.IsKeyPress(DR16_KEY_Q);
-
-        if (leftgripperchanged)
-        {
-            if (reBottomdata.L_Store == 2 || reBottomdata.L_Store == 0)
+            lastGripperState[2] = DR16.IsKeyPress(DR16_KEY_E);
+            
+            if (rightgripperchanged)
             {
-                _ToBottomData.L_Store = 1; // 打开
+                if (reBottomdata.R_Store == 2 || reBottomdata.R_Store == 0)
+                {
+                    _ToBottomData.R_Store = 1; // 打开
+                }
+                else if (reBottomdata.R_Store == 1)
+                {
+                    _ToBottomData.R_Store = 2; // 夹紧
+                }
             }
-            else if (reBottomdata.L_Store == 1)
+
+            if (DR16.IsKeyPress(DR16_KEY_Q) && !lastGripperState[1])
             {
-                _ToBottomData.L_Store = 2; // 夹紧
+                GripperStates[1] = !GripperStates[1];
+                leftgripperchanged = true;
             }
-        }
+
+            lastGripperState[1] = DR16.IsKeyPress(DR16_KEY_Q);
+
+            if (leftgripperchanged)
+            {
+                if (reBottomdata.L_Store == 2 || reBottomdata.L_Store == 0)
+                {
+                    _ToBottomData.L_Store = 1; // 打开
+                }
+                else if (reBottomdata.L_Store == 1)
+                {
+                    _ToBottomData.L_Store = 2; // 夹紧
+                }
+            }
+        }    
         
     }
     else
