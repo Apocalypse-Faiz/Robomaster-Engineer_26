@@ -61,7 +61,7 @@ bool Manipulator_TorqueReset()
             {
                 if (motor1_torque < 5700 || motor2_torque < 5700)
                  {
-                     joint[5].ajustJointTarget(-15.0f);
+                     joint[5].ajustJointTarget(15.0f);
                     // joint[5].setTargetAngle(j6_reset_target += 0.1f);
                  }
                  else
@@ -71,8 +71,8 @@ bool Manipulator_TorqueReset()
  
                      joint[5].calibrate();
  
-                     joint[5].setJointMapping(-Reduction_ratio, 170);
-                     joint[5].setJointParam(-170, 170, -10, 10);
+                     joint[5].setJointMapping(Reduction_ratio, 170.9);
+                     joint[5].setJointParam(-168, 168, -10, 10);
  
                      joint[4].setMode(JointMode::angle);
                      joint[5].setMode(JointMode::angle);
@@ -117,10 +117,10 @@ bool Manipulator_TorqueReset()
                      // J5与J6只要一个进行了标定，那么motor5与motor6都会进行标定，之后相关的映射与限位J5、J6都要重新设
                      joint[4].calibrate();
  
-                     joint[4].setJointMapping(Reduction_ratio, -120);
-                     joint[4].setJointParam(-120, 65, -10, 10);
-                     joint[5].setJointMapping(-Reduction_ratio, 0);
-                     joint[5].setJointParam(-170, 170, -10, 10);
+                     joint[4].setJointMapping(Reduction_ratio, -65);
+                     joint[4].setJointParam(-63, 120, -10, 10);
+                     joint[5].setJointMapping(Reduction_ratio, 0);
+                     joint[5].setJointParam(-168, 168, -10, 10);
  
                      joint[4].setMode(JointMode::angle);
                      joint[5].setMode(JointMode::angle);

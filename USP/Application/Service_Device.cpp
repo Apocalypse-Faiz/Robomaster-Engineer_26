@@ -320,11 +320,11 @@ void Joint_limitSet()
 			float j2_angle = joint[1].getCurrentAngle();
 			if (j2_angle <= 90)
 			{
-				joint[2].setJointParam(-80, 60, -10, 10);
+				joint[2].setJointParam(-50, 50, -10, 10);
 			}
-			else if (j2_angle <= 180)
+			else if (j2_angle <= 180 && j2_angle > 90)
 			{
-				joint[2].setJointParam(-(180 - j2_angle + 50 - 90), 60, -10, 10);
+				joint[2].setJointParam(-(180 - j2_angle + 50 - 90), 50, -10, 10);
 			}
 		}
 
@@ -341,12 +341,12 @@ void Joint_limitSet()
 		// 只有初次上电的时候才会设置，复位之前暂时使用这些初始值，复位状态机中重新设置
 		// 对于DM电机初次上电时在这里就已经设置好了，DJI电机需要在复位状态机中设置
 		/*标定和极性设置*/
-		joint[0].setJointMapping(-1, 0);
-		joint[1].setJointMapping(-1, 0);
-		joint[2].setJointMapping(-1, 0);
+		joint[0].setJointMapping(1, 0);
+		joint[1].setJointMapping(1, 164);
+		joint[2].setJointMapping(1, 0);
 		joint[3].setJointMapping(-1, 0);
 		joint[4].setJointMapping(Reduction_ratio, 0);
-		joint[5].setJointMapping(-Reduction_ratio, 0);
+		joint[5].setJointMapping(Reduction_ratio, 0);
 
 		special_actuator3[0].calibrate();
 		special_actuator3[1].calibrate();
@@ -355,7 +355,7 @@ void Joint_limitSet()
 
 		/*关节软限位*/
 		joint[0].setJointParam(-170, 170, 10, -10);
-		joint[1].setJointParam(10, 164, -10, 10);
+		joint[1].setJointParam(10, 160, -10, 10);	
 		joint[2].setJointParam(-180, 180, -10, 10);
 		joint[3].setJointParam(-180, 180, -10, 10);
 		joint[4].setJointParam(-360, 360, -10, 10); // J5关节在力矩复位后还要重新再限位一下
@@ -391,8 +391,10 @@ void tskMotor(void *arg)
 		drive_dm_motor[i].enableMotor();
 	}
 
-	// DM8009.setEncoderOffset(0x6D6A);
-	// DM4310.setEncoderOffset(0x7C25);
+	DM8009.setEncoderOffset(0xB78C);
+	DM10010.setEncoderOffset(0x60E7);
+	DM4340.setEncoderOffset(0x64FF);
+	DM4310.setEncoderOffset(0x985A);
 
 	angle_kp = 0.11f;
     angle_ki = 0.01f;
@@ -439,8 +441,8 @@ void tskMotor(void *arg)
 				joint[i].updateJointData();
 			}
 
-			if (Robot_Prepared)
-			{
+			// if (Robot_Prepared)
+			// {
 				// DR16_Debug_Ctrl();
 				GravityCompension_Calculate(joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), &Gravity_feedforward[1], &Gravity_feedforward[2]);
 				motor[1].setGravity_feedforward(Gravity_feedforward[1] * gravity_J2);
@@ -449,7 +451,7 @@ void tskMotor(void *arg)
 				InertiaCompension_Calculate(joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), f_torque1.f(motor[0].v_pid.Out), &Inertia_feedforward[0]);
 				motor[0].setInertia_feedforward(Inertia_feedforward[0] * inertia_J1);
 
-			}
+			// }
 
 			BackEMFCompension_Calculate(motor[0].getSpeed(), motor[1].getSpeed(), motor[2].getSpeed(), motor[3].getSpeed(), motor[4].getSpeed(), motor[5].getSpeed(), &BackEMF_feedforward[0], &BackEMF_feedforward[1], &BackEMF_feedforward[2], &BackEMF_feedforward[3], &BackEMF_feedforward[4], &BackEMF_feedforward[5]);
 

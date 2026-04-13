@@ -2,26 +2,33 @@
 
 void GravityCompension_Calculate(float _J2, float _J3, float *torque_J2, float *torque_J3)
 {
-    float theta2 = _J2 * PI / 180.0f;
-    float theta3 = (_J3 - 90.0f) * PI / 180.0f;
+    if (torque_J2 == nullptr || torque_J3 == nullptr)
+    {
+        return;
+    }
 
-    float c2 = cos(theta2);
-    float s2 = sin(theta2);
-    float c23 = cos(theta2 + theta3);
-    float s23 = sin(theta2 + theta3);
-    float c3 = cos(theta3);
-    float s3 = sin(theta3);
+    const float theta2 = _J2 * PI / 180.0f;
+    const float theta3 = -(_J3 + 90.0f) * PI / 180.0f;
+    const float c2 = cosf(theta2);
+    const float s2 = sinf(theta2);
+    const float c23 = cosf(theta2 + theta3);
+    const float s23 = sinf(theta2 + theta3);
 
-    float g = 9.81;
-    float m2 = 2.0; 
-    float m3 = 2.858;  
-    float xc3 = 0.14174;
-    float yc3 = 0.00069;
-    float xc2 = 0.19;
-    float a2 = 0.38;
+    const float g = 9.81f;
+    const float m2 = 1.643f;
+    const float m3 = 3.846f;
+    const float l2 = 0.3185f;
+    const float xc2 = 0.16f;
+    const float yc2 = 0.0f;
+    const float xc3 = 0.119194f;
+    const float yc3 = -0.008744f;
 
-    *torque_J2 = c2 * g * m2 * xc2 + c23 * g * m3 * xc3 - g * m3 * s23 * yc3 + a2 * c3 * c23 * g * m3 + a2 * g * m3 * s3 * s23;
-    *torque_J3 = c23 * g * m3 * xc3 - g * m3 * s23 * yc3;
+    const float arm2 = xc2 * c2 - yc2 * s2;
+    const float arm3_about_j3 = xc3 * c23 - yc3 * s23;
+    const float arm3_about_j2 = l2 * c2 + arm3_about_j3;
+
+    *torque_J3 = g * m3 * arm3_about_j3;
+    *torque_J2 = g * (m2 * arm2 + m3 * arm3_about_j2);
 }
 
 void BackEMFCompension_Calculate(float speed0, float speed1, float speed2, float speed3, float speed4, float speed5, float *backEMF0, float *backEMF1, float *backEMF2, float *backEMF3, float *backEMF4, float *backEMF5)
