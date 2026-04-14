@@ -135,25 +135,25 @@ void Task_VofaMonitor(void *arg){
 				// 	motor[3].a_pid.I_Term, 
 				// 	motor[3].v_pid.Out);
 
-				VofaMonitor::setDatas(0, debug_target_angle, 
-					joint[2].data.target_angle,
-					joint[2].data.current_angle,
-					joint[2].data.current_speed,
-					motor[2].getAngle(),
-					motor[2].getSpeed(),
-					motor[2].a_pid.Out,
-					motor[2].a_pid.I_Term, 
-					motor[2].v_pid.Out);
-
 				// VofaMonitor::setDatas(0, debug_target_angle, 
-				// 	joint[1].data.target_angle,
-				// 	joint[1].data.current_angle,
-				// 	joint[1].data.current_speed,
-				// 	motor[1].getAngle(),
-				// 	motor[1].getSpeed(),
-				// 	motor[1].a_pid.Out,
-				// 	motor[1].a_pid.I_Term, 
-				// 	motor[1].v_pid.Out);
+				// 	joint[2].data.target_angle,
+				// 	joint[2].data.current_angle,
+				// 	joint[2].data.current_speed,
+				// 	motor[2].getAngle(),
+				// 	motor[2].getSpeed(),
+				// 	motor[2].a_pid.Out,
+				// 	motor[2].a_pid.I_Term, 
+				// 	motor[2].v_pid.Out);
+
+				VofaMonitor::setDatas(0, debug_target_angle, 
+					joint[1].data.target_angle,
+					joint[1].data.current_angle,
+					joint[1].data.current_speed,
+					motor[1].getAngle(),
+					motor[1].getSpeed(),
+					motor[1].a_pid.Out,
+					motor[1].a_pid.I_Term, 
+					motor[1].v_pid.Out);
 
 				// VofaMonitor::setDatas(0, debug_target_angle, 
 				// 	joint[0].data.target_angle,

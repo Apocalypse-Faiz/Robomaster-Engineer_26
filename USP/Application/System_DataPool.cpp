@@ -146,7 +146,7 @@ uint8_t UI_Mode;          // UI模式
 uint8_t Robot_Prepared = 0; // 机器人准备状态，0：未准备好，1：准备好
 Indicator_Classdef Indicator(&htim1, &hdma_tim1_ch1, TIM_CHANNEL_1);           // 指示灯
 float gravity_J2 = 0.11f;
-float gravity_J3 = -0.78f;
+float gravity_J3 = -0.8f;
 float gravity_J5 = 0.0f;
 float inertia_J1 = 0.0075f;
 

@@ -1071,10 +1071,8 @@ void DR16_Debug_Ctrl()
     // motor[5].setPidParameters({speed_kp, -speed_Out_Max, speed_Out_Max, angle_kp, angle_ki, angle_kd, -angle_Out_Max, angle_Out_Max, 0, angle_I_Max});
     // motor[3].setPidParameters({speed_kp, -speed_Out_Max, speed_Out_Max, angle_kp, angle_ki, angle_kd, -angle_Out_Max, angle_Out_Max, 0, angle_I_Max});
     // motor[2].setPidParameters({speed_kp, -speed_Out_Max, speed_Out_Max, angle_kp, angle_ki, angle_kd, -angle_Out_Max, angle_Out_Max, 0, angle_I_Max});
-    // motor[1].setPidParameters({speed_kp, -speed_Out_Max, speed_Out_Max, angle_kp, angle_ki, angle_kd, -angle_Out_Max, angle_Out_Max, 0, angle_I_Max});
+    motor[1].setPidParameters({speed_kp, -speed_Out_Max, speed_Out_Max, angle_kp, angle_ki, angle_kd, -angle_Out_Max, angle_Out_Max, 0, angle_I_Max});
     // motor[0].setPidParameters({speed_kp, -speed_Out_Max, speed_Out_Max, angle_kp, angle_ki, angle_kd, -angle_Out_Max, angle_Out_Max, 0, angle_I_Max});
-    // motor[1].setPidParameters({0, -15000, 15000, 0, 0, 0, -angle_Out_Max, angle_Out_Max, 0, angle_I_Max});
-    // motor[2].setPidParameters({0, -15000, 15000, 0, 0, 0, -angle_Out_Max, angle_Out_Max, 0, angle_I_Max});
     /*具体执行*/
     if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
     {
@@ -1148,11 +1146,11 @@ void DR16_Debug_Ctrl()
             }
         }
 
-        // motor[4].setTarget(debug_target_angle1);
-        // motor[5].setTarget(debug_target_angle);
-        // motor[3].setTarget(debug_target_angle);
-        motor[2].setTarget(debug_target_angle);
-        // motor[1].setTarget(debug_target_angle);
+        // joint[5].setTargetAngle(debug_target_angle);
+        // joint[4].setTargetAngle(debug_target_angle1);
+        // joint[3].setTargetAngle(debug_target_angle);
+        // joint[2].setTargetAngle(debug_target_angle);
+        joint[1].setTargetAngle(debug_target_angle);
         // motor[0].setTarget(debug_target_angle);
     }
     else
@@ -1162,26 +1160,26 @@ void DR16_Debug_Ctrl()
             joint[i].setMode(JointMode::disabled);
         }
 
-        // if (motor[4].getStatus() == MotorStatus::ready)
+        // if (motor[5].getStatus() == MotorStatus::ready && motor[4].getStatus() == MotorStatus::ready)
         // {
-        //     debug_target_angle1 = motor[4].getAngle();
+        //     debug_target_angle = joint[5].getCurrentAngle();
         // }
-        // if (motor[5].getStatus() == MotorStatus::ready)
+        // if (motor[5].getStatus() == MotorStatus::ready && motor[4].getStatus() == MotorStatus::ready)
         // {
-        //     debug_target_angle = motor[5].getAngle();
+        //     debug_target_angle = joint[4].getCurrentAngle();
         // }
         // if (motor[3].getStatus() == MotorStatus::ready)
         // {
-        //     debug_target_angle = motor[3].getAngle();
+        //     debug_target_angle = joint[3].getCurrentAngle();
         // }
-        if (motor[2].getStatus() == MotorStatus::ready)
-        {
-            debug_target_angle = motor[2].getAngle();
-        }
-        // if (motor[1].getStatus() == MotorStatus::ready)
+        // if (motor[2].getStatus() == MotorStatus::ready)
         // {
-        //     debug_target_angle = motor[1].getAngle();
+        //     debug_target_angle = joint[2].getCurrentAngle();
         // }
+        if (motor[1].getStatus() == MotorStatus::ready)
+        {
+            debug_target_angle = joint[1].getCurrentAngle();
+        }
         // if (motor[0].getStatus() == MotorStatus::ready)
         // {
         //     debug_target_angle = motor[0].getAngle();

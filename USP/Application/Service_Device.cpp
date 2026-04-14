@@ -345,7 +345,7 @@ void Joint_limitSet()
 		joint[1].setJointMapping(1, 164);
 		joint[2].setJointMapping(1, 0);
 		joint[3].setJointMapping(-1, 0);
-		joint[4].setJointMapping(Reduction_ratio, 0);
+		joint[4].setJointMapping(-Reduction_ratio, 0);
 		joint[5].setJointMapping(Reduction_ratio, 0);
 
 		special_actuator3[0].calibrate();
@@ -379,11 +379,11 @@ void tskMotor(void *arg)
 	drive_dm_motor[3].bindTxQueueHandle(CAN1_TxPort);
 
 	motor[0].setPidParameters({.v_Kp = 0, .v_Min = -10, .v_Max = 10, .a_Kp = 0, .a_Ki = 0, .a_Kd = 0, .a_Min = -10, .a_Max = 10, .a_IntSep = 0, .a_IntMax = 2});
-	motor[1].setPidParameters({.v_Kp = 0, .v_Min = -15000, .v_Max = 15000, .a_Kp = 0, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 10});
-	motor[2].setPidParameters({.v_Kp = 0, .v_Min = -15000, .v_Max = 15000, .a_Kp = 0, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 10});
-	motor[3].setPidParameters({.v_Kp = 0, .v_Min = -10, .v_Max = 10, .a_Kp = 0, .a_Ki = 0, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
-	motor[4].setPidParameters({.v_Kp = 0.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 0, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
-	motor[5].setPidParameters({.v_Kp = 0.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 0, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
+	motor[1].setPidParameters({.v_Kp = 2.4, .v_Min = -10, .v_Max = 10, .a_Kp = 0.3, .a_Ki = 0.02, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
+	motor[2].setPidParameters({.v_Kp = 3.5f, .v_Min = -20, .v_Max = 20, .a_Kp = 1.25f, .a_Ki = 0.13f, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 5});
+	motor[3].setPidParameters({.v_Kp = 0.56f, .v_Min = -10, .v_Max = 10, .a_Kp = 1.1f, .a_Ki = 0, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
+	motor[4].setPidParameters({.v_Kp = 10.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 10, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
+	motor[5].setPidParameters({.v_Kp = 10.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 10, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
 
 	vTaskDelay(1000);
 	for(int i = 0; i < 4; i++)
@@ -394,18 +394,18 @@ void tskMotor(void *arg)
 	DM8009.setEncoderOffset(0xB78C);
 	DM10010.setEncoderOffset(0x60E7);
 	DM4340.setEncoderOffset(0x64FF);
-	DM4310.setEncoderOffset(0x985A);
+	DM4310.setEncoderOffset(0x75DA);
 
-	angle_kp = 0.11f;
-    angle_ki = 0.01f;
+	angle_kp = 0.93f;
+    angle_ki = 0.0f;
     angle_kd = 0.0f;
-    angle_Out_Max = 10.0f;
+    angle_Out_Max = 20.0f;
     angle_I_Max = 2.0f;
-    speed_kp = 4.2f;
+    speed_kp = 1.0f;
     speed_Out_Max = 10.0f;
 
-    // angle_kp1 = 7.5f;
-    // angle_ki1 = 1.0f;
+    // angle_kp1 = 10.0f;
+    // angle_ki1 = 0.0f;
     // angle_kd1 = 0.0f;
     // angle_Out_Max1 = 6000.0f;
     // angle_I_Max1 = 100.0f;
@@ -443,7 +443,7 @@ void tskMotor(void *arg)
 
 			// if (Robot_Prepared)
 			// {
-				// DR16_Debug_Ctrl();
+				DR16_Debug_Ctrl();
 				GravityCompension_Calculate(joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), &Gravity_feedforward[1], &Gravity_feedforward[2]);
 				motor[1].setGravity_feedforward(Gravity_feedforward[1] * gravity_J2);
 				motor[2].setGravity_feedforward(Gravity_feedforward[2] * gravity_J3);
