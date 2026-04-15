@@ -148,7 +148,7 @@ Indicator_Classdef Indicator(&htim1, &hdma_tim1_ch1, TIM_CHANNEL_1);           /
 float gravity_J2 = 0.11f;
 float gravity_J3 = -0.8f;
 float gravity_J5 = 0.0f;
-float inertia_J1 = 0.0075f;
+float inertia_J1 = 0.5f;
 
 ToBottomDataStructdef toBottomdata; // 发送到底盘的数据结构体
 ReBottomDataStructdef reBottomdata; // 从底盘接收的数据结构体
@@ -162,7 +162,7 @@ float speed_kp, speed_Out_Max, angle_kp, angle_ki, angle_kd, angle_Out_Max, angl
 float speed_kp1, speed_Out_Max1, angle_kp1, angle_ki1, angle_kd1, angle_Out_Max1, angle_I_Max1, debug_target_angle1 = 0.000f;
 
 MeanFilter<10> mfsL1, mfsL2;
-MeanFilter<50> f_torque1;
+MeanFilter<50> f_torque1, f_omega1;
 float j5_reset_target, j6_reset_target = 0.0f;
 
 

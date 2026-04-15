@@ -71,7 +71,7 @@ bool Manipulator_TorqueReset()
  
                      joint[5].calibrate();
  
-                     joint[5].setJointMapping(Reduction_ratio, 170.9);
+                     joint[5].setJointMapping(Reduction_ratio, 176.9);
                      joint[5].setJointParam(-168, 168, -10, 10);
  
                      joint[4].setMode(JointMode::angle);
@@ -90,11 +90,11 @@ bool Manipulator_TorqueReset()
                 {
                     if (j6_angle_diff > 0)
                     {
-                        joint[5].ajustJointTarget(0.1f);
+                        joint[5].ajustJointTarget(-15.0f);
                     }
                     else
                     {
-                        joint[5].ajustJointTarget(-0.1f);
+                        joint[5].ajustJointTarget(15.0f);
                     }
                 }
                 else                
@@ -107,7 +107,7 @@ bool Manipulator_TorqueReset()
             {
                  if (motor1_torque < 5700 || motor2_torque < 5700)
                  {
-                     joint[4].ajustJointTarget(-15.0f);
+                     joint[4].ajustJointTarget(10.0f);
                  }
                  else
                  {
@@ -137,11 +137,11 @@ bool Manipulator_TorqueReset()
                 {
                     if (j5_angle_diff > 0)
                     {
-                        joint[4].ajustJointTarget(0.1f);
+                        joint[4].ajustJointTarget(10.0f);
                     }
                     else
                     {
-                        joint[4].ajustJointTarget(-0.1f);
+                        joint[4].ajustJointTarget(-10.0f);
                     }
                 }
                 else                

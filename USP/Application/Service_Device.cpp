@@ -22,6 +22,8 @@
 #include "Keyboard.h"
 
 /* Private define ------------------------------------------------------------*/
+#define ENABLE_J1_INERTIA_VALIDATION 0
+
 /* Private variables ---------------------------------------------------------*/
 TaskHandle_t Motor_Handle;
 TaskHandle_t IMU_Handle;
@@ -33,6 +35,16 @@ TaskHandle_t Log_Handle;
 TaskHandle_t tskBackpackdrive_Handle; // 杂项机构任务
 TaskHandle_t StateMachine_Handle;	  // 状态机任务
 TaskHandle_t BoardCom_Handle;  //通信任务
+#if ENABLE_J1_INERTIA_VALIDATION
+volatile float j1_validation_cmd_debug = 0.0f;            // J1验证模式输出力矩命令（Nm）
+volatile float j1_validation_inertia_total_debug = 0.0f;  // 当前姿态估计的J1总等效惯量 I_total
+volatile float j1_validation_k_dynamic_debug = 0.0f;      // 动态刚度 K_dynamic = k * I_total
+volatile float j1_validation_theta_center_debug = 0.0f;   // 虚拟弹簧中心角 theta1_center（deg）
+volatile float j1_validation_spring_k_debug = 30.0f;       // 虚拟弹簧比例系数 k
+volatile float j1_validation_torque_limit_debug = 15.0f;   // 力矩限幅（Nm）
+volatile float j1_validation_speed_limit_debug = 20.0f;   // 超速保护阈值（同 motor[0].getSpeed() 单位）
+volatile float j1_validation_recenter_req_debug = 0.0f;   // 置1后下一周期重置中心角，随后自动清零
+#endif
 /* Private function declarations ---------------------------------------------*/
 void tskMotor(void *arg);
 void tskFS_I6X(void *arg);
@@ -250,9 +262,15 @@ void CheckMotorStatus()
 
 		if (all_motor_connected == false)
 		{
+			#if ENABLE_J1_INERTIA_VALIDATION
+			const uint8_t mode_set_start = 1U;
+			#else
+			const uint8_t mode_set_start = 0U;
+			#endif
+
 			if (mode_init_done == 0U)
 			{
-				for (uint8_t i = 0; i < 6; i++)
+				for (uint8_t i = mode_set_start; i < 6; i++)
 				{
 					motor[i].setMode(MotorMode::angle);
 					joint[i].setMode(JointMode::angle);
@@ -261,7 +279,7 @@ void CheckMotorStatus()
 			}
 			else if (dm_recover_pending != 0U)
 			{
-				for (uint8_t i = 0; i < DM_MOTOR_COUNT; i++)
+				for (uint8_t i = mode_set_start; i < DM_MOTOR_COUNT; i++)
 				{
 					motor[i].setMode(MotorMode::angle);
 					joint[i].setMode(JointMode::angle);
@@ -365,6 +383,86 @@ void Joint_limitSet()
 	}
 }
 
+static void UpdateMotor0PidByPose()
+{
+	if (motor[0].getStatus() != MotorStatus::ready || motor[1].getStatus() != MotorStatus::ready || motor[2].getStatus() != MotorStatus::ready)
+	{
+		return;
+	}
+
+	struct Motor0PidPosePoint
+	{
+		float j2;
+		float j3;
+		float a_kp;
+		float a_ki;
+		float v_kp;
+	};
+
+	static const Motor0PidPosePoint pose_points[] = {
+		{64.07f, 1.85f, 0.064f, 0.0f, 5.7f},
+		{59.0f, 26.96f, 0.064f, 0.017f, 5.6f},
+		{59.82f, -25.88f, 0.06f, 0.0f, 6.4f},
+		{38.64f, -43.70f, 0.05f, 0.0f, 6.7f},
+		{41.32f, -38.43f, 0.067f, 0.0f, 5.7f},
+	};
+
+	float j2_angle = joint[1].getCurrentAngle();
+	float j3_angle = joint[2].getCurrentAngle();
+	float a_kp = 0.0f;
+	float a_ki = 0.0f;
+	float v_kp = 0.0f;
+
+	// J2大于90度时使用固定参数。
+	if (j2_angle >= 90.0f)
+	{
+		a_kp = 0.07f;
+		a_ki = 0.017f;
+		v_kp = 5.6f;
+	}
+	else
+	{
+		// J2<=90度区域按(J2,J3)二维标定点做加权插值，实现连续自动调参。
+		const float eps = 1e-3f;
+		const float exact_match_d2 = 1e-4f;
+		float w_sum = 0.0f;
+		float a_kp_sum = 0.0f;
+		float a_ki_sum = 0.0f;
+		float v_kp_sum = 0.0f;
+
+		for (uint32_t i = 0; i < (sizeof(pose_points) / sizeof(pose_points[0])); i++)
+		{
+			float dj2 = j2_angle - pose_points[i].j2;
+			float dj3 = j3_angle - pose_points[i].j3;
+			float d2 = dj2 * dj2 + dj3 * dj3;
+
+			if (d2 < exact_match_d2)
+			{
+				a_kp = pose_points[i].a_kp;
+				a_ki = pose_points[i].a_ki;
+				v_kp = pose_points[i].v_kp;
+				w_sum = -1.0f;
+				break;
+			}
+
+			float w = 1.0f / (d2 + eps);
+			w_sum += w;
+			a_kp_sum += w * pose_points[i].a_kp;
+			a_ki_sum += w * pose_points[i].a_ki;
+			v_kp_sum += w * pose_points[i].v_kp;
+		}
+
+		if (w_sum > 0.0f)
+		{
+			a_kp = a_kp_sum / w_sum;
+			a_ki = a_ki_sum / w_sum;
+			v_kp = v_kp_sum / w_sum;
+		}
+	}
+
+	motor[0].setPidParameters({.v_Kp = v_kp, .v_Min = -20, .v_Max = 20, .a_Kp = a_kp, .a_Ki = a_ki, .a_Kd = 0, .a_Min = -10, .a_Max = 10, .a_IntSep = 0, .a_IntMax = 2});
+}
+
 /**
  * @brief <freertos> 电机控制任务
  */
@@ -378,10 +476,10 @@ void tskMotor(void *arg)
 	drive_dm_motor[2].bindTxQueueHandle(CAN1_TxPort);
 	drive_dm_motor[3].bindTxQueueHandle(CAN1_TxPort);
 
-	motor[0].setPidParameters({.v_Kp = 0, .v_Min = -10, .v_Max = 10, .a_Kp = 0, .a_Ki = 0, .a_Kd = 0, .a_Min = -10, .a_Max = 10, .a_IntSep = 0, .a_IntMax = 2});
+	motor[0].setPidParameters({.v_Kp = 0, .v_Min = -20, .v_Max = 20, .a_Kp = 0, .a_Ki = 0, .a_Kd = 0, .a_Min = -10, .a_Max = 10, .a_IntSep = 0, .a_IntMax = 2});
 	motor[1].setPidParameters({.v_Kp = 2.4, .v_Min = -10, .v_Max = 10, .a_Kp = 0.3, .a_Ki = 0.02, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
 	motor[2].setPidParameters({.v_Kp = 3.5f, .v_Min = -20, .v_Max = 20, .a_Kp = 1.25f, .a_Ki = 0.13f, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 5});
-	motor[3].setPidParameters({.v_Kp = 0.56f, .v_Min = -10, .v_Max = 10, .a_Kp = 1.1f, .a_Ki = 0, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
+	motor[3].setPidParameters({.v_Kp = 1.9f, .v_Min = -10, .v_Max = 10, .a_Kp = 0.726f, .a_Ki = 0.04f, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
 	motor[4].setPidParameters({.v_Kp = 10.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 10, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
 	motor[5].setPidParameters({.v_Kp = 10.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 10, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
 
@@ -391,12 +489,12 @@ void tskMotor(void *arg)
 		drive_dm_motor[i].enableMotor();
 	}
 
-	DM8009.setEncoderOffset(0xB78C);
+	DM8009.setEncoderOffset(0x7E25);
 	DM10010.setEncoderOffset(0x60E7);
 	DM4340.setEncoderOffset(0x64FF);
-	DM4310.setEncoderOffset(0x75DA);
+	DM4310.setEncoderOffset(0x9326);
 
-	angle_kp = 0.93f;
+	angle_kp = 0.1f;
     angle_ki = 0.0f;
     angle_kd = 0.0f;
     angle_Out_Max = 20.0f;
@@ -431,6 +529,32 @@ void tskMotor(void *arg)
 		gripper.updateControl(); // 更新夹爪控制逻辑
 		
 		Joint_limitSet();
+
+#if ENABLE_J1_INERTIA_VALIDATION
+		if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
+		{
+			if (motor[0].getStatus() == MotorStatus::ready)
+			{
+			// J1惯量验证模式：虚拟弹簧法纯力矩控制，不走J1角度/速度PID。
+			float j1_validation_cmd = 0.0f;
+			float j1_validation_inertia_total = j1_validation_inertia_total_debug;
+			float j1_validation_k_dynamic = j1_validation_k_dynamic_debug;
+			float j1_validation_theta_center = j1_validation_theta_center_debug;
+			uint8_t recenter_req = (j1_validation_recenter_req_debug != 0.0f) ? 1U : 0U;
+			InertiaCompension_ValidationStep(joint[0].getCurrentAngle(), joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), motor[0].getSpeed(), j1_validation_spring_k_debug, j1_validation_torque_limit_debug, j1_validation_speed_limit_debug, 0.001f, recenter_req, &j1_validation_cmd, &j1_validation_inertia_total, &j1_validation_k_dynamic, &j1_validation_theta_center);
+			j1_validation_cmd_debug = j1_validation_cmd;
+			j1_validation_inertia_total_debug = j1_validation_inertia_total;
+			j1_validation_k_dynamic_debug = j1_validation_k_dynamic;
+			j1_validation_theta_center_debug = j1_validation_theta_center;
+			j1_validation_recenter_req_debug = 0.0f;
+			joint[0].setMode(JointMode::torque);
+			motor[0].forceSetMode(MotorMode::torque);
+			motor[0].setTarget(j1_validation_cmd);
+			// 验证时关闭J1惯量前馈，避免混入原补偿路径。
+			motor[0].setInertia_feedforward(0.0f);
+			}
+		}
+#endif
 		
 		if(all_motor_connected)
 		{
@@ -443,12 +567,15 @@ void tskMotor(void *arg)
 
 			// if (Robot_Prepared)
 			// {
-				DR16_Debug_Ctrl();
+				// DR16_Debug_Ctrl();
+				UpdateMotor0PidByPose();
+
 				GravityCompension_Calculate(joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), &Gravity_feedforward[1], &Gravity_feedforward[2]);
 				motor[1].setGravity_feedforward(Gravity_feedforward[1] * gravity_J2);
 				motor[2].setGravity_feedforward(Gravity_feedforward[2] * gravity_J3);
 
-				InertiaCompension_Calculate(joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), f_torque1.f(motor[0].v_pid.Out), &Inertia_feedforward[0]);
+				InertiaCompension_Calculate(joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), f_torque1.f(motor[0].v_pid.Out), f_omega1.f(motor[0].getSpeed()), &Inertia_feedforward[0]);
+				// 正常模式下，J1惯量补偿前馈由模型输出并乘总增益后注入。
 				motor[0].setInertia_feedforward(Inertia_feedforward[0] * inertia_J1);
 
 			// }
@@ -481,6 +608,8 @@ void tskMotor(void *arg)
 				{
 					joint[1].updateJointData();
 					joint[2].updateJointData();
+					UpdateMotor0PidByPose();
+
 					GravityCompension_Calculate(joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), &Gravity_feedforward[1], &Gravity_feedforward[2]);
 					motor[1].setGravity_feedforward(Gravity_feedforward[1] * gravity_J2);
 					motor[2].setGravity_feedforward(Gravity_feedforward[2] * gravity_J3);
@@ -493,7 +622,7 @@ void tskMotor(void *arg)
 
 				if (motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready)
 				{
-					InertiaCompension_Calculate(joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), f_torque1.f(motor[0].v_pid.Out), &Inertia_feedforward[0]);
+					InertiaCompension_Calculate(joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), f_torque1.f(motor[0].v_pid.Out), motor[0].getSpeed(), &Inertia_feedforward[0]);
 					motor[0].setInertia_feedforward(Inertia_feedforward[0] * inertia_J1);
 				}
 				else
