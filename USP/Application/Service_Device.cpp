@@ -146,7 +146,7 @@ void tskBackpackdrive(void *arg)
 			WS_indicator[1] = WS_Black;
 		}
 		// 储矿夹爪状态观察
-		if (reBottomdata.L_Ore == 1)
+		if (reBottomdata.L_Store == 1)
 		{
 			WS_indicator[5] = WS_White;
 		}
@@ -155,7 +155,7 @@ void tskBackpackdrive(void *arg)
 			WS_indicator[5] = WS_Black;
 		}
 
-		if (reBottomdata.R_Ore == 1)
+		if (reBottomdata.R_Store == 1)
 		{
 			WS_indicator[4] = WS_White;
 		}
