@@ -13,8 +13,8 @@ void Reset_enterAction()
 {
     // 进入复位状态后先执行一次力矩复位参数重置，确保每次进入复位状态时相关参数都被重置
     Manipulator_TorqueReset_Params_Reset();
-    j5_reset_target = joint[4].getCurrentAngle();
-    j6_reset_target = joint[5].getCurrentAngle();
+    // j5_reset_target = joint[4].getCurrentAngle();
+    // j6_reset_target = joint[5].getCurrentAngle();
 }
 
 void Manipulator_TorqueReset_Params_Reset()
@@ -44,6 +44,11 @@ bool Manipulator_TorqueReset()
     /*复位过程*/
     if (motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready && motor[3].getStatus() == MotorStatus::ready && motor[4].getStatus() == MotorStatus::ready && motor[5].getStatus() == MotorStatus::ready)
     {
+
+        if (motor[4].getStatus() != MotorStatus::ready || motor[5].getStatus() != MotorStatus::ready)
+        {
+            return false;
+        }
 
         //完成力矩复位
         motor1_torque = mfsL1.f(abs(motor[4].getTorque()));

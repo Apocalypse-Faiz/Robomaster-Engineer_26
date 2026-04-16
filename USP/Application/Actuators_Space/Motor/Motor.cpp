@@ -58,24 +58,21 @@ void Motor::update()
 float Motor::getAngle()
 {
     if (getStatus() != MotorStatus::ready)
-        for (;;)
-            ;
+        return (current_angle - calibration);
     return (current_angle - calibration); // 如果标定了，那返回的减掉了标定
 }
 
 float Motor::getSpeed()
 {
     if (getStatus() != MotorStatus::ready)
-        for (;;)
-            ;
+        return 0.0f;
     return current_speed;
 }
 
 float Motor::getTorque()
 {
     if (getStatus() != MotorStatus::ready)
-        for (;;)
-            ;
+        return 0.0f;
     return current_torque;
 }
 

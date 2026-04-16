@@ -100,7 +100,7 @@ void tskStateMachine(void *arg)
 	TickType_t xLastWakeTime_t;
 	xLastWakeTime_t = xTaskGetTickCount();
 	Total_init();
-	vTaskDelayUntil(&xLastWakeTime_t, 50);
+	vTaskDelayUntil(&xLastWakeTime_t, 1000);
 	for (;;)
 	{
 		/* wait for next circle */
