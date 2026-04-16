@@ -30,7 +30,7 @@ void Lost_action(Event_t **pEvent)
     }
     // 底盘失能
 
-    toBottomdata.is_ctrl = 0; // 失能底盘控制
+    toBottomdata.ChassisState = 0; // 失能底盘控制
     toBottomdata.chassis_control_struct.x = 0;
     toBottomdata.chassis_control_struct.y = 0;
     toBottomdata.chassis_control_struct.z = 0;

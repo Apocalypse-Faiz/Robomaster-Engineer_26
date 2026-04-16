@@ -1,5 +1,7 @@
 #include "internal.h"
 
+volatile BottomComDiagStats g_bottom_com_diag_stats = {0U, 0U, 0U, 0U};
+
 /**
  * @brief 底盘信息发送执行
  */
@@ -14,6 +16,10 @@ uint8_t Bottomdata_Transmit(float _x, float _y, float _z)
     ToBottomData_temp.chassis_control_struct.x = _x;
     ToBottomData_temp.chassis_control_struct.y = _y;
     ToBottomData_temp.chassis_control_struct.z = _z;
+    ToBottomData_temp.chassis_control_struct.rfid_height = toBottomdata.chassis_control_struct.rfid_height;
+    ToBottomData_temp.chassis_control_struct.chassis_height = toBottomdata.chassis_control_struct.chassis_height;
+
+    ToBottomData_temp.ChassisState = toBottomdata.ChassisState; // 控制状态
 
     // Final_toBottomdata.chassis_control_struct.x = _x; // 用于打印信息
     // Final_toBottomdata.chassis_control_struct.y = _y;
@@ -36,12 +42,33 @@ uint8_t Bottomdata_Transmit(float _x, float _y, float _z)
 /**
  * * @brief 接受底盘信息
  */
-void Bottomdata_Receive(USART_COB _Usart_RxCOB)
+uint8_t Bottomdata_ReceiveBytes(const uint8_t *Recv_Data, uint16_t ReceiveLen)
 {
     static ReBottomDataStructdef _tempReBottomData;
-    memcpy(&_tempReBottomData, _Usart_RxCOB.address, sizeof(_tempReBottomData));
-    if (std_lib::CRC16(&_tempReBottomData, sizeof(_tempReBottomData), 0x8005) == 0 && _Usart_RxCOB.len == sizeof(_tempReBottomData))
+
+    g_bottom_com_diag_stats.rx_total_packets++;
+
+    if (Recv_Data == NULL || ReceiveLen != sizeof(_tempReBottomData))
+    {
+        g_bottom_com_diag_stats.rx_len_fail_packets++;
+        return 0U;
+    }
+
+    memcpy(&_tempReBottomData, Recv_Data, sizeof(_tempReBottomData));
+    if (std_lib::CRC16(&_tempReBottomData, sizeof(_tempReBottomData), 0x8005) == 0)
     {
         memcpy(&reBottomdata, &_tempReBottomData, sizeof(_tempReBottomData));
+        g_bottom_com_diag_stats.rx_ok_packets++;
+        return 1U;
     }
+    else
+    {
+        g_bottom_com_diag_stats.rx_crc_fail_packets++;
+        return 0U;
+    }
+}
+
+void Bottomdata_Receive(USART_COB _Usart_RxCOB)
+{
+    (void)Bottomdata_ReceiveBytes((const uint8_t *)_Usart_RxCOB.address, _Usart_RxCOB.len);
 }

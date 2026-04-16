@@ -129,7 +129,7 @@ void VT13_KeyBoard_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
 
     if (VT13.GetModeSwitch() == MS_Status_Typedef::MS_N)
     {
-        _ToBottomData.is_ctrl = 1;
+        _ToBottomData.ChassisState = 1;
 
         if (VT13.IsKeyPress(VT13_KEY_SHIFT))
         {
@@ -220,7 +220,7 @@ void VT13_KeyBoard_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
     }
     else
     {
-        _ToBottomData.is_ctrl = 0;
+        _ToBottomData.ChassisState = 0;
         chassis_control_struct.x = 0;
         chassis_control_struct.y = 0;
         chassis_control_struct.z = 0;
@@ -248,7 +248,7 @@ void VT13_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
         //     Chassis_flag = 1; // 底盘跟随模式
         // }
 
-        _ToBottomData.is_ctrl = 1;
+        _ToBottomData.ChassisState = 1;
 
         // read remote data
         const float x = map(deadband(VT13.GetCh3(), 1024, 50), 364, 1684, -chassis_max_translation_speed, chassis_max_translation_speed);
@@ -274,7 +274,7 @@ void VT13_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
     }
     else
     {
-        _ToBottomData.is_ctrl = 0;
+        _ToBottomData.ChassisState = 0;
         chassis_control_struct.x = 0;
         chassis_control_struct.y = 0;
         chassis_control_struct.z = 0;
@@ -297,7 +297,7 @@ void VT13_KeyBoard_MoveCtrl_Custom(ToBottomDataStructdef &_ToBottomData)
 
     if(VT13.GetModeSwitch() == MS_Status_Typedef::MS_N)
     {
-        _ToBottomData.is_ctrl = 1;
+        _ToBottomData.ChassisState = 1;
 
         // if (VT13.IsKeyPress(VT13_KEY_SHIFT))
         // {
@@ -385,7 +385,7 @@ void VT13_KeyBoard_MoveCtrl_Custom(ToBottomDataStructdef &_ToBottomData)
     }
     else
     {
-        _ToBottomData.is_ctrl = 0;
+        _ToBottomData.ChassisState = 0;
         chassis_control_struct.x = 0;
         chassis_control_struct.y = 0;
         chassis_control_struct.z = 0;
@@ -651,7 +651,7 @@ void KeyBoard_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
 
     if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
     {
-        _ToBottomData.is_ctrl = 1;
+        _ToBottomData.ChassisState = 1;
 
         if (DR16.IsKeyPress(DR16_KEY_SHIFT))
         {
@@ -737,7 +737,7 @@ void KeyBoard_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
     }
     else
     {
-        _ToBottomData.is_ctrl = 0;
+        _ToBottomData.ChassisState = 0;
         chassis_control_struct.x = 0;
         chassis_control_struct.y = 0;
         chassis_control_struct.z = 0;
@@ -764,7 +764,7 @@ void KeyBoard_MoveCtrl_Custom(ToBottomDataStructdef &_ToBottomData)
 
     if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
     {
-        _ToBottomData.is_ctrl = 1;
+        _ToBottomData.ChassisState = 1;
 
         if (DR16.IsKeyPress(DR16_KEY_CTRL))
         {
@@ -843,7 +843,7 @@ void KeyBoard_MoveCtrl_Custom(ToBottomDataStructdef &_ToBottomData)
     }
     else
     {
-        _ToBottomData.is_ctrl = 0;
+        _ToBottomData.ChassisState = 0;
         chassis_control_struct.x = 0;
         chassis_control_struct.y = 0;
         chassis_control_struct.z = 0;
@@ -866,7 +866,7 @@ void KeyBoard_MoveCtrl_Ore(ToBottomDataStructdef &_ToBottomData)
 
     if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
     {
-        _ToBottomData.is_ctrl = 1;
+        _ToBottomData.ChassisState = 1;
 
         if (DR16.IsKeyPress(DR16_KEY_CTRL))
         {
@@ -943,7 +943,7 @@ void KeyBoard_MoveCtrl_Ore(ToBottomDataStructdef &_ToBottomData)
     }
     else
     {
-        _ToBottomData.is_ctrl = 0;
+        _ToBottomData.ChassisState = 0;
         chassis_control_struct.x = 0;
         chassis_control_struct.y = 0;
         chassis_control_struct.z = 0;
@@ -1197,7 +1197,7 @@ void DR16_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
     {
         if (DR16.GetS1() == SW_DOWN && DR16.GetS2() == SW_DOWN) // S1下，S2下
         {
-            _ToBottomData.is_ctrl = 1;
+            _ToBottomData.ChassisState = 1;
 
             // read remote data
             const float y = map(deadband(DR16.GetCh3(), 1024, 50), 364, 1684, -chassis_max_translation_speed, chassis_max_translation_speed);
@@ -1222,7 +1222,7 @@ void DR16_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
     }
     else
     {
-        _ToBottomData.is_ctrl = 0;
+        _ToBottomData.ChassisState = 0;
         chassis_control_struct.x = 0;
         chassis_control_struct.y = 0;
         chassis_control_struct.z = 0;
@@ -1239,7 +1239,7 @@ void DR16_MoveCtrl_Ore(ToBottomDataStructdef &_ToBottomData)
     {
         if (DR16.GetS1() == 2 && DR16.GetS2() == 2) // S1中，S2上
         {
-            _ToBottomData.is_ctrl = 1;
+            _ToBottomData.ChassisState = 1;
 
             // read remote data
             const float x = map(deadband(DR16.GetCh3(), 1024, 50), 364, 1684, -1.0f, 1.0f);
@@ -1264,7 +1264,7 @@ void DR16_MoveCtrl_Ore(ToBottomDataStructdef &_ToBottomData)
     }
     else
     {
-        _ToBottomData.is_ctrl = 0;
+        _ToBottomData.ChassisState = 0;
         chassis_control_struct.x = 0;
         chassis_control_struct.y = 0;
         chassis_control_struct.z = 0;

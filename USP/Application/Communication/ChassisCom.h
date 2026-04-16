@@ -6,11 +6,11 @@
  */
 struct ReBottomDataStructdef
 {
-    uint8_t is_ctrl : 1; // 底盘控制状态 0：无控，1：在控
-    uint8_t L_Store : 1; // 左储矿 0：电磁铁关闭；1：电磁铁开启
-    uint8_t R_Store : 1; // 右储矿 0：电磁铁关闭；1：电磁铁开启
+    uint8_t ChassisState : 4; // 底盘控制状态 0：无控，1：在控
     float rfid_height;
     float chassis_height;
+    uint8_t L_Store : 1; // 左储矿 0：电磁铁关闭；1：电磁铁开启
+    uint8_t R_Store : 1; // 右储矿 0：电磁铁关闭；1：电磁铁开启
     uint8_t HP;          // 机器人血量
     uint16_t CRC_code;   // 16位CRC校验码
 } __attribute__((packed));
@@ -31,7 +31,7 @@ struct ToBottomDataStructdef
 {
     uint8_t frame_head[2] = {0x12, 0x23};
     ChassisControlStruct chassis_control_struct;
-    uint8_t is_ctrl : 1;
+    uint8_t ChassisState : 4;
     uint8_t UI_mode : 7; // 暂时用做UI_mode
     uint8_t L_Store : 1;        // 左储矿 0：关闭电磁铁，1：开启
     uint8_t R_Store : 1;        // 右储矿 0：关闭电磁铁，1：开启
@@ -43,5 +43,16 @@ struct Vec3
     float x, y, z;
 };
 
+struct BottomComDiagStats
+{
+    uint32_t rx_total_packets;
+    uint32_t rx_ok_packets;
+    uint32_t rx_crc_fail_packets;
+    uint32_t rx_len_fail_packets;
+};
+
+extern volatile BottomComDiagStats g_bottom_com_diag_stats;
+
 uint8_t Bottomdata_Transmit(float _x, float _y, float _z);
+uint8_t Bottomdata_ReceiveBytes(const uint8_t *Recv_Data, uint16_t ReceiveLen);
 void Bottomdata_Receive(USART_COB _Usart_RxCOB);
