@@ -66,7 +66,7 @@ bool Manipulator_TorqueReset()
             {
                 if (motor1_torque < 5700 || motor2_torque < 5700)
                  {
-                     joint[5].ajustJointTarget(5.0f);
+                     joint[5].ajustJointTarget(10.0f);
                     // joint[5].setTargetAngle(j6_reset_target += 0.1f);
                  }
                  else
@@ -95,11 +95,11 @@ bool Manipulator_TorqueReset()
                 {
                     if (j6_angle_diff > 0)
                     {
-                        joint[5].ajustJointTarget(-5.0f);
+                        joint[5].ajustJointTarget(-10.0f);
                     }
                     else
                     {
-                        joint[5].ajustJointTarget(5.0f);
+                        joint[5].ajustJointTarget(10.0f);
                     }
                 }
                 else                
@@ -112,7 +112,7 @@ bool Manipulator_TorqueReset()
             {
                  if (motor1_torque < 5700 || motor2_torque < 5700)
                  {
-                     joint[4].ajustJointTarget(5.0f);
+                     joint[4].ajustJointTarget(10.0f);
                  }
                  else
                  {
@@ -142,11 +142,11 @@ bool Manipulator_TorqueReset()
                 {
                     if (j5_angle_diff > 0)
                     {
-                        joint[4].ajustJointTarget(5.0f);
+                        joint[4].ajustJointTarget(10.0f);
                     }
                     else
                     {
-                        joint[4].ajustJointTarget(-5.0f);
+                        joint[4].ajustJointTarget(-10.0f);
                     }
                 }
                 else                
