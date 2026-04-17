@@ -81,7 +81,7 @@ extern float TurnOre_ing[5][7];
 extern float TurnOre_end[1][7];
 
 // 取能量单元
-extern float TakeOre1_prepare[3][7];
+extern float TakeOre1_prepare[2][7];
 extern float TakeOre2_prepare[3][7];
 extern float TakeOre3_prepare[3][7];
 extern float TakeOre4_prepare[3][7];
@@ -95,7 +95,7 @@ extern float TakeOre4_ing[2][7];
 extern float TakeOre5_ing[2][7];
 extern float TakeOre6_ing[2][7];
 
-extern float TakeOre1_end[4][7];
+extern float TakeOre1_end[3][7];
 extern float TakeOre2_end[3][7];
 extern float TakeOre3_end[3][7];
 extern float TakeOre4_end[3][7];
