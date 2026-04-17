@@ -103,16 +103,16 @@ extern float TakeOre5_end[3][7];
 extern float TakeOre6_end[3][7];
 
 // 储存能量单元
-extern float StoreOre_R[4][7];
+extern float StoreOre_R[3][7];
 extern float StoreOre_L[3][7];
-extern float ExitStoreOre_L[4][7];
-extern float ExitStoreOre_R[4][7];
+extern float ExitStoreOre_L[3][7];
+extern float ExitStoreOre_R[3][7];
 
 // 取肚子内能量单元
 extern float TakeInOre_L[3][7];
 extern float TakeInOre_R[3][7];
-extern float TakeinOreRight_end[4][7];
-extern float TakeinOreLeft_end[4][7];
+extern float TakeinOreRight_end[3][7];
+extern float TakeinOreLeft_end[3][7];
 
 /*世界坐标系下*/
 extern float TempAction_World[4][7];

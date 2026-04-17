@@ -350,6 +350,7 @@ void Joint_limitSet()
 	}
 
 	float Reduction_ratio = 0.0278 * 0.5; // 1/36 DJI2006的减速比
+	float k1 = 6.28 / 12.5;
 
 	if (motor[2].getStatus() == MotorStatus::ready && motor[3].getStatus() == MotorStatus::ready && motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[4].getStatus() == MotorStatus::ready && motor[5].getStatus() == MotorStatus::ready)
 	{
@@ -359,7 +360,7 @@ void Joint_limitSet()
 		// 只有初次上电的时候才会设置，复位之前暂时使用这些初始值，复位状态机中重新设置
 		// 对于DM电机初次上电时在这里就已经设置好了，DJI电机需要在复位状态机中设置
 		/*标定和极性设置*/
-		joint[0].setJointMapping(1, 0);
+		joint[0].setJointMapping(k1, 0);
 		joint[1].setJointMapping(1, 164);
 		joint[2].setJointMapping(1, 0);
 		joint[3].setJointMapping(-1, 0);
@@ -489,7 +490,7 @@ void tskMotor(void *arg)
 		drive_dm_motor[i].enableMotor();
 	}
 
-	DM8009.setEncoderOffset(0x7E25);
+	DM8009.setEncoderOffset(0x6CEE);
 	DM10010.setEncoderOffset(0x60E7);
 	DM4340.setEncoderOffset(0x64FF);
 	DM4310.setEncoderOffset(0x9326);
