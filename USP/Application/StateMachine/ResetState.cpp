@@ -76,7 +76,7 @@ bool Manipulator_TorqueReset()
  
                      joint[5].calibrate();
  
-                     joint[5].setJointMapping(Reduction_ratio, 194.6);  // 原为170.9
+                     joint[5].setJointMapping(Reduction_ratio, 176.5);  // 原为170.9
                      joint[5].setJointParam(-168, 168, -10, 10);
  
                      joint[4].setMode(JointMode::angle);

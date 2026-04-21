@@ -15,6 +15,7 @@ enum class ControlMode {
 static ControlMode current_mode = ControlMode::ACTION_GROUP;
 static CustomData custom_control_data;            // 自定义控制数据
 static VisionData vision_control_data;            // 视觉控制数据
+static constexpr float get_energy_unit_default_chassis_height_m = 0.441f;
 
 // 模式切换状态
 static bool mode_changing = false;
@@ -222,6 +223,10 @@ void GetEnergyUnit_enterAction()
     current_mode = ControlMode::ACTION_GROUP;
     mode_changing = false;
 
+    // 进入取能量单元状态时，默认将底盘高度目标设置为 0.441m
+    toBottomdata.chassis_control_struct.chassis_height = get_energy_unit_default_chassis_height_m;
+    SetGetEnergyUnitHeightTarget(get_energy_unit_default_chassis_height_m);
+
 }
 
 void GetEnergyUnit_action(Event_t **pEvent)
@@ -271,7 +276,7 @@ void GetEnergyUnit_action(Event_t **pEvent)
                 }
                 else if(!VT13_IsButtonActive(ButtonType::FN1))
                 {
-                    VT13_KeyBoard_MoveCtrl_Custom(ToBottomDataStructdef &_ToBottomData);
+                    VT13_KeyBoard_MoveCtrl_Custom(toBottomdata);
                 }
             }
             break;
@@ -298,6 +303,7 @@ void GetEnergyUnit_action(Event_t **pEvent)
                     VT13_KeyBoard_MoveCtrl_Custom(toBottomdata);
                 }
             }
+            break;
         case ControlMode::VISION_CONTROL :
             if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
             {
@@ -325,6 +331,9 @@ void GetEnergyUnit_action(Event_t **pEvent)
         default:
             break;
     }
+
+    // 统一在状态机中处理底盘高度微调，避免分散在各自定义移动函数中
+    ApplyGetEnergyUnitHeightControl(toBottomdata);
 
     handleModeSwitchInput(); 
 

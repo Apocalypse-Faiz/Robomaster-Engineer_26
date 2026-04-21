@@ -32,6 +32,8 @@ float sgn(float val);
 float deadband(float val, float center, float radius);
 void UpdateChassisCurrentHeightFromReBottomData();
 void ControlChassisHeight(float target_height_m, ChassisControlStruct &_chassis_control_struct);
+void SetGetEnergyUnitHeightTarget(float target_height_m);
+void ApplyGetEnergyUnitHeightControl(ToBottomDataStructdef &_ToBottomData);
 
 
 /**
