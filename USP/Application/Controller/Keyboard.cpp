@@ -88,6 +88,35 @@ constexpr float chassis_max_resultant_speed = 3.5f;   // 底盘最大合速度 m
 constexpr float chassis_max_translation_speed = 6.5f; // 底盘最大平移速度 m/s
 constexpr float chassis_max_spinning_speed = 8;  
 
+constexpr float chassis_height_min_m = 0.212f;
+constexpr float chassis_height_max_m = 0.467f;
+constexpr float chassis_height_step_m = 0.01f;
+static float current_chassis_height_m = chassis_height_min_m;
+
+void UpdateChassisCurrentHeightFromReBottomData()
+{
+    current_chassis_height_m = constrain(reBottomdata.chassis_height, chassis_height_min_m, chassis_height_max_m);
+}
+
+void ControlChassisHeight(float target_height_m, ChassisControlStruct &_chassis_control_struct)
+{
+    const float constrained_target = constrain(target_height_m, chassis_height_min_m, chassis_height_max_m);
+
+    UpdateChassisCurrentHeightFromReBottomData();
+
+    const float height_error = constrained_target - current_chassis_height_m;
+    if (fabsf(height_error) > chassis_height_step_m)
+    {
+        current_chassis_height_m += sgn(height_error) * chassis_height_step_m;
+    }
+    else
+    {
+        current_chassis_height_m = constrained_target;
+    }
+
+    _chassis_control_struct.chassis_height = current_chassis_height_m;
+}
+
 // 关于遥控器：1为上，2为下，3为中
 
 bool keyPressedFlag[18] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -124,35 +153,56 @@ void VT13_KeyBoard_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
     float temp_Speed = 5.0f;
 
     static float increas_buffer[4] = {0, 0, 0, 0};
+    static int commanded_chassis_state = 1;
+    static int last_rebottom_chassis_state = 1;
+    static bool last_f_key_state = false;
+    static bool last_b_key_state = false;
 
     ChassisControlStruct chassis_control_struct = {};
+    chassis_control_struct.rfid_height = _ToBottomData.chassis_control_struct.rfid_height;
+    chassis_control_struct.chassis_height = _ToBottomData.chassis_control_struct.chassis_height;
 
     if (VT13.GetModeSwitch() == MS_Status_Typedef::MS_N)
     {
-        _ToBottomData.ChassisState = 1;
+        const bool f_key_pressed = VT13.IsKeyPress(VT13_KEY_F);
+        const bool b_key_pressed = VT13.IsKeyPress(VT13_KEY_B);
+        const bool f_rising_edge = f_key_pressed && !last_f_key_state;
+        const bool b_rising_edge = b_key_pressed && !last_b_key_state;
 
-        if (VT13.IsKeyPress(VT13_KEY_SHIFT))
-        {
-            temp_Speed = 1.5;
-        }
-        else if (VT13.IsKeyPress(VT13_KEY_CTRL))
-        {
-            temp_Speed = 0.5;
-        }
-        else
-        {
+        // if (VT13.IsKeyPress(VT13_KEY_SHIFT))
+        // {
+        //     temp_Speed = 1.5;
+        // }
+        // else if (VT13.IsKeyPress(VT13_KEY_CTRL))
+        // {
+        //     temp_Speed = 0.5;
+        // }
+        // else
+        // {
             temp_Speed = 5.0f;
+        // }
+
+        if (commanded_chassis_state == 1)
+        {
+            if (f_rising_edge)
+            {
+                commanded_chassis_state = 3;
+            }
+            else if (b_rising_edge)
+            {
+                commanded_chassis_state = 4;
+            }
+        }
+        else if ((last_rebottom_chassis_state == 3 || last_rebottom_chassis_state == 4) && reBottomdata.ChassisState == 1)
+        {
+            commanded_chassis_state = 1;
         }
 
-        // if (VT13.IsKeyPress(VT13_KEY_R)) // 变速小陀螺
-        // {
-        //     Chassis_flag = 0;
-        //     temp_wz = 4;
-        // }
-        // else // 底盘跟随
-        // {
-        //     Chassis_flag = 1;
-        // }
+        _ToBottomData.ChassisState = commanded_chassis_state;
+
+        last_rebottom_chassis_state = reBottomdata.ChassisState;
+        last_f_key_state = f_key_pressed;
+        last_b_key_state = b_key_pressed;
 
         if (VT13.IsKeyPress(VT13_KEY_W))
         {
@@ -221,6 +271,10 @@ void VT13_KeyBoard_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
     else
     {
         _ToBottomData.ChassisState = 0;
+        commanded_chassis_state = 1;
+        last_rebottom_chassis_state = reBottomdata.ChassisState;
+        last_f_key_state = false;
+        last_b_key_state = false;
         chassis_control_struct.x = 0;
         chassis_control_struct.y = 0;
         chassis_control_struct.z = 0;
@@ -289,6 +343,7 @@ void VT13_KeyBoard_MoveCtrl_Custom(ToBottomDataStructdef &_ToBottomData)
     float temp_vx = 0.0f;
     float temp_vy = 0.0f;  
     float temp_wz = 0.0f;
+    float target_chassis_height_m;
 
     float temp_Speed = 1.0f;
 
@@ -297,7 +352,7 @@ void VT13_KeyBoard_MoveCtrl_Custom(ToBottomDataStructdef &_ToBottomData)
 
     if(VT13.GetModeSwitch() == MS_Status_Typedef::MS_N)
     {
-        _ToBottomData.ChassisState = 1;
+        _ToBottomData.ChassisState = 2;
 
         // if (VT13.IsKeyPress(VT13_KEY_SHIFT))
         // {
@@ -352,18 +407,26 @@ void VT13_KeyBoard_MoveCtrl_Custom(ToBottomDataStructdef &_ToBottomData)
             temp_vx = 0;
         }
 
-        if (VT13.IsKeyPress(VT13_KEY_R))
+        temp_wz = -temp_Speed * VT13.Get_MouseX_Norm();
+
+        UpdateChassisCurrentHeightFromReBottomData();
+
+        if (VT13.IsKeyPress(VT13_KEY_R) && VT13.IsKeyPress(VT13_KEY_CTRL))
         {
-            temp_wz = -temp_Speed;
+            target_chassis_height_m = current_chassis_height_m + 0.01f;
         }
         else if (VT13.IsKeyPress(VT13_KEY_R) && VT13.IsKeyPress(VT13_KEY_SHIFT))
         {
-            temp_wz = temp_Speed;
+            target_chassis_height_m = current_chassis_height_m - 0.01f;
         }
-        else 
+        else
         {
-            temp_wz = -temp_Speed * VT13.Get_MouseX_Norm();
+            target_chassis_height_m = current_chassis_height_m;
         }
+
+        target_chassis_height_m = constrain(target_chassis_height_m, chassis_height_min_m, chassis_height_max_m);
+        ControlChassisHeight(target_chassis_height_m, chassis_control_struct);
+        
         // read remote data
         const float x = temp_vx;
         const float y = temp_vy;
@@ -390,6 +453,9 @@ void VT13_KeyBoard_MoveCtrl_Custom(ToBottomDataStructdef &_ToBottomData)
         chassis_control_struct.y = 0;
         chassis_control_struct.z = 0;
 
+        UpdateChassisCurrentHeightFromReBottomData();
+        chassis_control_struct.chassis_height = current_chassis_height_m;
+
         _ToBottomData.chassis_control_struct = chassis_control_struct;
     }
 
@@ -412,20 +478,20 @@ void VT13_Manipulater_JointCtrl()
 
             if (VT13.GetCh3() > 1324)
             {
-                joint[1].ajustJointTarget(-10);
+                joint[1].ajustJointTarget(-0.01);
             }
             if (VT13.GetCh3() < 724)
             {
-                joint[1].ajustJointTarget(10);
+                joint[1].ajustJointTarget(0.01);
             }
 
             if (VT13.GetCh1() > 1324)
             {
-                joint[2].ajustJointTarget(-10);
+                joint[2].ajustJointTarget(-0.02);
             }
             if (VT13.GetCh1() < 724)
             {
-                joint[2].ajustJointTarget(10);
+                joint[2].ajustJointTarget(0.02);
             }
 
             if(VT13.GetCh0() > 1324)
@@ -646,25 +712,55 @@ void KeyBoard_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
     float temp_Speed = 3.0f;
 
     static float increas_buffer[4] = {0, 0, 0, 0};
+    static int commanded_chassis_state = 1;
+    static int last_rebottom_chassis_state = 1;
+    static bool last_f_key_state = false;
+    static bool last_b_key_state = false;
 
     ChassisControlStruct chassis_control_struct = {};
+    chassis_control_struct.rfid_height = _ToBottomData.chassis_control_struct.rfid_height;
+    chassis_control_struct.chassis_height = _ToBottomData.chassis_control_struct.chassis_height;
 
     if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
     {
-        _ToBottomData.ChassisState = 1;
+        const bool f_key_pressed = DR16.IsKeyPress(DR16_KEY_F);
+        const bool b_key_pressed = DR16.IsKeyPress(DR16_KEY_B);
+        const bool f_rising_edge = f_key_pressed && !last_f_key_state;
+        const bool b_rising_edge = b_key_pressed && !last_b_key_state;
 
-        if (DR16.IsKeyPress(DR16_KEY_SHIFT))
+        if (commanded_chassis_state == 1)
         {
-            temp_Speed = 3;
+            if (f_rising_edge)
+            {
+                commanded_chassis_state = 3;
+            }
+            else if (b_rising_edge)
+            {
+                commanded_chassis_state = 4;
+            }
         }
-        else if (DR16.IsKeyPress(DR16_KEY_CTRL))
+        else if ((last_rebottom_chassis_state == 3 || last_rebottom_chassis_state == 4) && reBottomdata.ChassisState == 1)
         {
-            temp_Speed = 0.5;
+            commanded_chassis_state = 1;
         }
-        else
-        {
-            temp_Speed = 1.5;
-        }
+
+        _ToBottomData.ChassisState = commanded_chassis_state;
+        last_rebottom_chassis_state = reBottomdata.ChassisState;
+        last_f_key_state = f_key_pressed;
+        last_b_key_state = b_key_pressed;
+
+        // if (DR16.IsKeyPress(DR16_KEY_SHIFT))
+        // {
+        //     temp_Speed = 3;
+        // }
+        // else if (DR16.IsKeyPress(DR16_KEY_CTRL))
+        // {
+        //     temp_Speed = 0.5;
+        // }
+        // else
+        // {
+            temp_Speed = 5;
+        // }
 
         if (DR16.IsKeyPress(DR16_KEY_W))
         {
@@ -738,6 +834,10 @@ void KeyBoard_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
     else
     {
         _ToBottomData.ChassisState = 0;
+        commanded_chassis_state = 1;
+        last_rebottom_chassis_state = reBottomdata.ChassisState;
+        last_f_key_state = false;
+        last_b_key_state = false;
         chassis_control_struct.x = 0;
         chassis_control_struct.y = 0;
         chassis_control_struct.z = 0;
@@ -755,6 +855,7 @@ void KeyBoard_MoveCtrl_Custom(ToBottomDataStructdef &_ToBottomData)
     float temp_vx = 0.0f;
     float temp_vy = 0.0f;
     float temp_wz = 0.0f;
+    float target_chassis_height_m;
 
     float temp_Speed = 1.0f;
 
@@ -764,7 +865,7 @@ void KeyBoard_MoveCtrl_Custom(ToBottomDataStructdef &_ToBottomData)
 
     if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
     {
-        _ToBottomData.ChassisState = 1;
+        _ToBottomData.ChassisState = 2;
 
         if (DR16.IsKeyPress(DR16_KEY_CTRL))
         {
@@ -819,6 +920,24 @@ void KeyBoard_MoveCtrl_Custom(ToBottomDataStructdef &_ToBottomData)
 
         temp_vy = -temp_Speed * DR16.Get_MouseX_Norm(); // 旋转速度
 
+        UpdateChassisCurrentHeightFromReBottomData();
+
+        if (DR16.IsKeyPress(DR16_KEY_R) && DR16.IsKeyPress(DR16_KEY_CTRL))
+        {
+            target_chassis_height_m = current_chassis_height_m + 0.01f;
+        }
+        else if (DR16.IsKeyPress(DR16_KEY_R) && DR16.IsKeyPress(DR16_KEY_SHIFT))
+        {
+            target_chassis_height_m = current_chassis_height_m - 0.01f;
+        }
+        else
+        {
+            target_chassis_height_m = current_chassis_height_m;
+        }
+
+        target_chassis_height_m = constrain(target_chassis_height_m, chassis_height_min_m, chassis_height_max_m);
+        ControlChassisHeight(target_chassis_height_m, chassis_control_struct);
+
         // read remote data
         const float x = temp_vx;
         const float y = temp_vy;
@@ -847,6 +966,9 @@ void KeyBoard_MoveCtrl_Custom(ToBottomDataStructdef &_ToBottomData)
         chassis_control_struct.x = 0;
         chassis_control_struct.y = 0;
         chassis_control_struct.z = 0;
+
+        UpdateChassisCurrentHeightFromReBottomData();
+        chassis_control_struct.chassis_height = current_chassis_height_m;
 
         _ToBottomData.chassis_control_struct = chassis_control_struct;
     }
@@ -1192,12 +1314,27 @@ void DR16_Debug_Ctrl()
 void DR16_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
 {
     ChassisControlStruct chassis_control_struct = {};
+    static float target_chassis_height_m = chassis_height_min_m;
 
     if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
     {
         if (DR16.GetS1() == SW_DOWN && DR16.GetS2() == SW_DOWN) // S1下，S2下
         {
             _ToBottomData.ChassisState = 1;
+
+            UpdateChassisCurrentHeightFromReBottomData();
+
+            if (DR16.GetCh1() > 1324)
+            {
+                target_chassis_height_m += 0.01f;
+            }
+            else if (DR16.GetCh1() < 724)
+            {
+                target_chassis_height_m -= 0.01f;
+            }
+
+            target_chassis_height_m = constrain(target_chassis_height_m, chassis_height_min_m, chassis_height_max_m);
+            ControlChassisHeight(target_chassis_height_m, chassis_control_struct);
 
             // read remote data
             const float y = map(deadband(DR16.GetCh3(), 1024, 50), 364, 1684, -chassis_max_translation_speed, chassis_max_translation_speed);
@@ -1218,14 +1355,22 @@ void DR16_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
             chassis_control_struct.z = z;
             _ToBottomData.chassis_control_struct = chassis_control_struct;
         }
+        else
+        {
+            UpdateChassisCurrentHeightFromReBottomData();
+            target_chassis_height_m = current_chassis_height_m;
+        }
         
     }
     else
     {
+        UpdateChassisCurrentHeightFromReBottomData();
+        target_chassis_height_m = current_chassis_height_m;
         _ToBottomData.ChassisState = 0;
         chassis_control_struct.x = 0;
         chassis_control_struct.y = 0;
         chassis_control_struct.z = 0;
+        chassis_control_struct.chassis_height = current_chassis_height_m;
 
         _ToBottomData.chassis_control_struct = chassis_control_struct;
     }

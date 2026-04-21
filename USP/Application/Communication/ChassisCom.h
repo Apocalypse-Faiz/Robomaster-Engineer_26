@@ -6,9 +6,9 @@
  */
 struct ReBottomDataStructdef
 {
-    uint8_t ChassisState : 4; // 底盘控制状态 0：无控，1：在控
-    float rfid_height;
-    float chassis_height;
+    uint8_t ChassisState : 4; // 失能0 正常1 兑矿2 前腿3 后腿4
+    float rfid_height;   // 单位: m
+    float chassis_height; // 单位: m
     uint8_t L_Store : 1; // 左储矿 0：电磁铁关闭；1：电磁铁开启
     uint8_t R_Store : 1; // 右储矿 0：电磁铁关闭；1：电磁铁开启
     uint8_t HP;          // 机器人血量
@@ -20,8 +20,8 @@ struct ChassisControlStruct // struct of targets and flags for controlling chass
     float x;
     float y;
     float z;
-    float rfid_height;
-    float chassis_height;
+    float rfid_height;   // 单位: m
+    float chassis_height; // 单位: m
 } __attribute__((packed));
 
 /**
@@ -31,7 +31,7 @@ struct ToBottomDataStructdef
 {
     uint8_t frame_head[2] = {0x12, 0x23};
     ChassisControlStruct chassis_control_struct;
-    uint8_t ChassisState : 4;
+    uint8_t ChassisState : 4; // 失能0 正常1 兑矿2 前腿3 后腿4
     uint8_t UI_mode : 7; // 暂时用做UI_mode
     uint8_t L_Store : 1;        // 左储矿 0：关闭电磁铁，1：开启
     uint8_t R_Store : 1;        // 右储矿 0：关闭电磁铁，1：开启

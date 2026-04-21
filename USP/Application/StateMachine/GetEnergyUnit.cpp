@@ -260,7 +260,7 @@ void GetEnergyUnit_action(Event_t **pEvent)
                 }
                 else
                 {
-                    KeyBoard_MoveCtrl(toBottomdata);
+                    KeyBoard_MoveCtrl_Custom(toBottomdata);
                 }
             }
             if (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C && VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
@@ -271,7 +271,7 @@ void GetEnergyUnit_action(Event_t **pEvent)
                 }
                 else if(!VT13_IsButtonActive(ButtonType::FN1))
                 {
-                    VT13_KeyBoard_MoveCtrl(toBottomdata);
+                    VT13_KeyBoard_MoveCtrl_Custom(ToBottomDataStructdef &_ToBottomData);
                 }
             }
             break;
@@ -307,7 +307,7 @@ void GetEnergyUnit_action(Event_t **pEvent)
                 }
                 else
                 {
-                    KeyBoard_MoveCtrl(toBottomdata);
+                    KeyBoard_MoveCtrl_Custom(toBottomdata);
                 }
             }
             if (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C && VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
@@ -318,7 +318,7 @@ void GetEnergyUnit_action(Event_t **pEvent)
                 }
                 else if(!VT13_IsButtonActive(ButtonType::FN1))
                 {
-                    VT13_KeyBoard_MoveCtrl(toBottomdata);
+                    VT13_KeyBoard_MoveCtrl_Custom(toBottomdata);
                 }
             }
             break;        

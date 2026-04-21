@@ -66,5 +66,7 @@ void Lost_exitAction()
             joint[i].setMode(JointMode::angle);
         }
     }
+
+    toBottomdata.ChassisState = 1; // 使能底盘控制
     
 }

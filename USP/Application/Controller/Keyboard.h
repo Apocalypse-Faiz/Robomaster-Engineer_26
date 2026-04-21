@@ -30,6 +30,9 @@ float constrain(float val, float lb, float rb);
 float map(float x, float in_lb, float in_rb, float out_lb, float out_rb);
 float sgn(float val);
 float deadband(float val, float center, float radius);
+void UpdateChassisCurrentHeightFromReBottomData();
+void ControlChassisHeight(float target_height_m, ChassisControlStruct &_chassis_control_struct);
+
 
 /**
  * @brief 判断是否只有传入的按键被按下
