@@ -240,13 +240,30 @@ bool IsKeyPressOnce(int _key)
 }
 
 #if USE_SRML_VT13
+static bool ChassisDisableToggle()
+{
+    static bool chassis_disabled = false;
+    static bool last_combo_pressed = false;
+
+    const bool combo_pressed = VT13.IsKeyPress(VT13_KEY_SHIFT) && VT13.IsKeyPress(VT13_KEY_CTRL);
+    if (combo_pressed && !last_combo_pressed)
+    {
+        chassis_disabled = !chassis_disabled;
+    }
+
+    last_combo_pressed = combo_pressed;
+    return chassis_disabled;
+}
+#endif
+
+#if USE_SRML_VT13
 void VT13_KeyBoard_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
 {
     float temp_vx = 0.0f;
     float temp_vy = 0.0f;
     float temp_wz = 0.0f;
 
-    float temp_Speed = 1.5f;
+    float temp_Speed = 1.0f;
 
     static float increas_buffer[4] = {0, 0, 0, 0};
     static int commanded_chassis_state = 1;
@@ -258,10 +275,21 @@ void VT13_KeyBoard_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
     chassis_control_struct.rfid_height = _ToBottomData.chassis_control_struct.rfid_height;
     chassis_control_struct.chassis_height = _ToBottomData.chassis_control_struct.chassis_height;
 
+    if (ChassisDisableToggle())
+    {
+        _ToBottomData.ChassisState = 0;
+        chassis_control_struct.x = 0;
+        chassis_control_struct.y = 0;
+        chassis_control_struct.z = 0;
+
+        _ToBottomData.chassis_control_struct = chassis_control_struct;
+        return;
+    }
+
     if (VT13.GetModeSwitch() == MS_Status_Typedef::MS_N)
     {
         const bool f_key_pressed = VT13.IsKeyPress(VT13_KEY_F);
-        const bool b_key_pressed = VT13.IsKeyPress(VT13_KEY_B);
+        const bool b_key_pressed = VT13.IsKeyPress(VT13_KEY_C);
         const bool f_rising_edge = f_key_pressed && !last_f_key_state;
         const bool b_rising_edge = b_key_pressed && !last_b_key_state;
 
@@ -302,13 +330,13 @@ void VT13_KeyBoard_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
 
         if (VT13.IsKeyPress(VT13_KEY_D))
         {
-            increas_buffer[0] += 0.1;
+            increas_buffer[0] += 0.05;
             increas_buffer[0] = constrain(increas_buffer[0], 0.5, 1);
             temp_vy = 0.8 * temp_Speed * increas_buffer[0];
         }
         else if (VT13.IsKeyPress(VT13_KEY_A))
         {
-            increas_buffer[1] += 0.1;
+            increas_buffer[1] += 0.05;
             increas_buffer[1] = constrain(increas_buffer[1], 0.5, 1);
             temp_vy = -0.8 * temp_Speed * increas_buffer[1];
         }
@@ -321,14 +349,14 @@ void VT13_KeyBoard_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
 
         if (VT13.IsKeyPress(VT13_KEY_S))
         {
-            increas_buffer[2] += 0.1;
+            increas_buffer[2] += 0.05;
             increas_buffer[2] = constrain(increas_buffer[2], 0.5, 1);
 
             temp_vx = -0.8 * temp_Speed * increas_buffer[2];
         }
         else if (VT13.IsKeyPress(VT13_KEY_W))
         {
-            increas_buffer[3] += 0.1;
+            increas_buffer[3] += 0.05;
             increas_buffer[3] = constrain(increas_buffer[3], 0.5, 1);
 
             temp_vx = 0.8 * temp_Speed * increas_buffer[3];
@@ -447,6 +475,17 @@ void VT13_KeyBoard_MoveCtrl_Custom(ToBottomDataStructdef &_ToBottomData)
     chassis_control_struct.rfid_height = _ToBottomData.chassis_control_struct.rfid_height;
     chassis_control_struct.chassis_height = _ToBottomData.chassis_control_struct.chassis_height;
 
+    if (ChassisDisableToggle())
+    {
+        _ToBottomData.ChassisState = 0;
+        chassis_control_struct.x = 0;
+        chassis_control_struct.y = 0;
+        chassis_control_struct.z = 0;
+
+        _ToBottomData.chassis_control_struct = chassis_control_struct;
+        return;
+    }
+
     if(VT13.GetModeSwitch() == MS_Status_Typedef::MS_N)
     {
         _ToBottomData.ChassisState = 2;
@@ -466,13 +505,13 @@ void VT13_KeyBoard_MoveCtrl_Custom(ToBottomDataStructdef &_ToBottomData)
 
         if (VT13.IsKeyPress(VT13_KEY_D))
         {
-            increas_buffer[0] += 0.1;
+            increas_buffer[0] += 0.05;
             increas_buffer[0] = constrain(increas_buffer[0], 0.5, 1);
             temp_vy = 0.5 * temp_Speed * increas_buffer[0];
         }
         else if (VT13.IsKeyPress(VT13_KEY_A))
         {
-            increas_buffer[1] += 0.1;
+            increas_buffer[1] += 0.05;
             increas_buffer[1] = constrain(increas_buffer[1], 0.5, 1);
             temp_vy = -0.5 * temp_Speed * increas_buffer[1];
         }
@@ -485,14 +524,14 @@ void VT13_KeyBoard_MoveCtrl_Custom(ToBottomDataStructdef &_ToBottomData)
 
         if (VT13.IsKeyPress(VT13_KEY_S))
         {
-            increas_buffer[2] += 0.1;
+            increas_buffer[2] += 0.05;
             increas_buffer[2] = constrain(increas_buffer[2], 0.5, 1);
 
             temp_vx = -0.5 * temp_Speed * increas_buffer[2];
         }
         else if (VT13.IsKeyPress(VT13_KEY_W))
         {
-            increas_buffer[3] += 0.1;
+            increas_buffer[3] += 0.05;
             increas_buffer[3] = constrain(increas_buffer[3], 0.5, 1);
 
             temp_vx = 0.5 * temp_Speed * increas_buffer[3];
