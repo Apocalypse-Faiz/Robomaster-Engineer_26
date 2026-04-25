@@ -34,8 +34,10 @@ void Special_Actuator2::resolve_angle_motor2actuator(float motor_angle[2], float
  */
 void Special_Actuator2::resolve_torque_actuator2motor(float actuator_torque[2], float motor_torque[2])
 {
-    motor_torque[0] = 0.5f * (actuator_torque[0] + actuator_torque[1]);
-    motor_torque[1] = 0.5f * (actuator_torque[0] - actuator_torque[1]);
+   // J5 (Pitch) 轴力矩由两电机反向出力提供，且经过 0.5 减速比（力矩放大 2 倍）
+    // 所以电机端只需输出 0.5 * 0.5 = 0.25 倍的执行器力矩
+    motor_torque[0] = 0.5f * Differential_reduction_ratio * actuator_torque[0] + 0.5f * actuator_torque[1];
+    motor_torque[1] = -0.5f * Differential_reduction_ratio * actuator_torque[0] + 0.5f * actuator_torque[1];
 }
 
 /**
@@ -46,8 +48,12 @@ void Special_Actuator2::resolve_torque_actuator2motor(float actuator_torque[2], 
  */
 void Special_Actuator2::resolve_torque_motor2actuator(float motor_torque[2], float actuator_torque[2])
 {
-    actuator_torque[0] = (motor_torque[0] + motor_torque[1]);
-    actuator_torque[1] = (motor_torque[0] - motor_torque[1]);
+    // J5 (Pitch): 两电机力矩之差，由于大齿轮 2:1 减速，末端力矩被放大
+    // 物理表现：(m0 - m1) * (1 / 0.5)
+    actuator_torque[0] = (motor_torque[0] - motor_torque[1]) * (1.0f / Differential_reduction_ratio);
+
+    // J6 (Roll): 两电机力矩之和，无额外齿轮减速
+    actuator_torque[1] = (motor_torque[0] + motor_torque[1]);
 }
 
 /**
