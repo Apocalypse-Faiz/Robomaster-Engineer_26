@@ -224,8 +224,7 @@ void GetEnergyUnit_enterAction()
     mode_changing = false;
 
     // 进入取能量单元状态时，默认将底盘高度目标设置为 0.441m
-    toBottomdata.chassis_control_struct.chassis_height = get_energy_unit_default_chassis_height_m;
-    SetGetEnergyUnitHeightTarget(get_energy_unit_default_chassis_height_m);
+    SetTargetChassisHeight(get_energy_unit_default_chassis_height_m);
 
 }
 
@@ -333,7 +332,7 @@ void GetEnergyUnit_action(Event_t **pEvent)
     }
 
     // 统一在状态机中处理底盘高度微调，避免分散在各自定义移动函数中
-    ApplyGetEnergyUnitHeightControl(toBottomdata);
+    UpdateTargetChassisHeight();
 
     handleModeSwitchInput(); 
 

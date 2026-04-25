@@ -349,7 +349,7 @@ void Joint_limitSet()
 		return;
 	}
 
-	float Reduction_ratio = 0.0278 * 0.5; // 1/36 DJI2006的减速比
+	float Reduction_ratio = 0.0278 * 0.5; // 1/36 DJI2006的减速比再加上传动
 	float k1 = 6.28 / 12.5;
 
 	if (motor[2].getStatus() == MotorStatus::ready && motor[3].getStatus() == MotorStatus::ready && motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[4].getStatus() == MotorStatus::ready && motor[5].getStatus() == MotorStatus::ready)
@@ -518,6 +518,26 @@ void tskMotor(void *arg)
 	{
 		/* wait for next circle */
 		vTaskDelayUntil(&xLastWakeTime_t, 1);
+
+		current_chassis_height = constrain(reBottomdata.chassis_height,
+												chassis_height_min,
+												chassis_height_max);
+
+		if (!target_height_initialized)
+		{
+			target_chassis_height = current_chassis_height;
+			target_height_initialized = true;
+		}
+
+		if (reBottomdata.ChassisState != 2)
+		{
+			target_chassis_height = current_chassis_height;
+			align_to_target_active = false;
+		}
+
+		toBottomdata.chassis_control_struct.chassis_height = constrain(target_chassis_height,
+																		  chassis_height_min,
+																		  chassis_height_max);
 
 		for (uint8_t i = 0; i < 6; i++)
 		{

@@ -150,6 +150,14 @@ float gravity_J3 = -0.8f;
 float gravity_J5 = 0.0f;
 float inertia_J1 = 0.5f;
 
+float chassis_height_min = 0.212f;
+float chassis_height_max = 0.467f;
+float chassis_height_step = 0.03f;
+float current_chassis_height = 0.212f;
+float target_chassis_height = 0.212f;
+bool target_height_initialized = false;
+bool align_to_target_active = false;
+
 ToBottomDataStructdef toBottomdata; // 发送到底盘的数据结构体
 ReBottomDataStructdef reBottomdata; // 从底盘接收的数据结构体
 ReBottomDataStructdef temp_reBottomdata; // 作为Buffer的底盘数据结构体

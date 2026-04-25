@@ -172,6 +172,14 @@ extern uint8_t OreBit[2];                                                    // 
 extern uint8_t UI_Mode;          // UI模式
 extern uint8_t Robot_Prepared; // 机器人准备状态，0：未准备好，1：准备好
 
+extern float chassis_height_min;
+extern float chassis_height_max;
+extern float chassis_height_step;
+extern float current_chassis_height;
+extern float target_chassis_height;
+extern bool target_height_initialized;
+extern bool align_to_target_active;
+
 extern ToBottomDataStructdef toBottomdata; // 发送到底盘的数据结构体
 extern ReBottomDataStructdef reBottomdata; // 从底盘接收的数据结构体
 extern ReBottomDataStructdef temp_reBottomdata; // 作为Buffer的底盘数据结构体

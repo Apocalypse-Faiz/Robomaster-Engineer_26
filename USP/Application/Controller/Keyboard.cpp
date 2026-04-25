@@ -88,47 +88,25 @@ constexpr float chassis_max_resultant_speed = 3.5f;   // 底盘最大合速度 m
 constexpr float chassis_max_translation_speed = 6.5f; // 底盘最大平移速度 m/s
 constexpr float chassis_max_spinning_speed = 8;  
 
-constexpr float chassis_height_min_m = 0.212f;
-constexpr float chassis_height_max_m = 0.467f;
-constexpr float chassis_height_step_m = 0.03f;
-static float current_chassis_height_m = chassis_height_min_m;
-static float get_energy_unit_target_chassis_height_m = chassis_height_min_m;
-static bool get_energy_unit_target_height_initialized = false;
-static bool get_energy_unit_align_to_target_active = false;
-
-void UpdateChassisCurrentHeightFromReBottomData()
+void SetTargetChassisHeight(float target_height)
 {
-    current_chassis_height_m = constrain(reBottomdata.chassis_height, chassis_height_min_m, chassis_height_max_m);
-}
-
-void ControlChassisHeight(float target_height_m, ChassisControlStruct &_chassis_control_struct)
-{
-    const float constrained_target = constrain(target_height_m, chassis_height_min_m, chassis_height_max_m);
-
-    UpdateChassisCurrentHeightFromReBottomData();
-
-    const float height_error = constrained_target - current_chassis_height_m;
-    if (fabsf(height_error) > chassis_height_step_m)
+    if (toBottomdata.ChassisState != 2)
     {
-        current_chassis_height_m += sgn(height_error) * chassis_height_step_m;
-    }
-    else
-    {
-        current_chassis_height_m = constrained_target;
+        return;
     }
 
-    _chassis_control_struct.chassis_height = current_chassis_height_m;
+    target_chassis_height = constrain(target_height, chassis_height_min, chassis_height_max);
+    target_height_initialized = true;
+    align_to_target_active = true;
 }
 
-void SetGetEnergyUnitHeightTarget(float target_height_m)
+void UpdateTargetChassisHeight()
 {
-    get_energy_unit_target_chassis_height_m = constrain(target_height_m, chassis_height_min_m, chassis_height_max_m);
-    get_energy_unit_target_height_initialized = true;
-    get_energy_unit_align_to_target_active = true;
-}
+    if (toBottomdata.ChassisState != 2)
+    {
+        return;
+    }
 
-void ApplyGetEnergyUnitHeightControl(ToBottomDataStructdef &_ToBottomData)
-{
     const bool dr16_established = (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED);
 #if USE_SRML_VT13
     const bool vt13_established = (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C && VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED);
@@ -148,26 +126,19 @@ void ApplyGetEnergyUnitHeightControl(ToBottomDataStructdef &_ToBottomData)
         return;
     }
 
-    if (!get_energy_unit_target_height_initialized)
-    {
-        UpdateChassisCurrentHeightFromReBottomData();
-        get_energy_unit_target_chassis_height_m = current_chassis_height_m;
-        get_energy_unit_target_height_initialized = true;
-    }
-
-    float target_chassis_height_m = get_energy_unit_target_chassis_height_m;
+    float updated_target_chassis_height = target_chassis_height;
     bool has_manual_command = false;
 
     if (dr16_custom_height_enabled)
     {
         if (DR16.IsKeyPress(DR16_KEY_R) && DR16.IsKeyPress(DR16_KEY_CTRL))
         {
-            target_chassis_height_m = current_chassis_height_m - 0.02f;
+            updated_target_chassis_height = current_chassis_height - 0.02f;
             has_manual_command = true;
         }
         else if (DR16.IsKeyPress(DR16_KEY_R) && DR16.IsKeyPress(DR16_KEY_SHIFT))
         {
-            target_chassis_height_m = current_chassis_height_m + 0.02f;
+            updated_target_chassis_height = current_chassis_height + 0.02f;
             has_manual_command = true;
         }
     }
@@ -177,12 +148,12 @@ void ApplyGetEnergyUnitHeightControl(ToBottomDataStructdef &_ToBottomData)
     {
         if (VT13.IsKeyPress(VT13_KEY_R) && VT13.IsKeyPress(VT13_KEY_CTRL))
         {
-            target_chassis_height_m = current_chassis_height_m - 0.02f;
+            updated_target_chassis_height = current_chassis_height - 0.02f;
             has_manual_command = true;
         }
         else if (VT13.IsKeyPress(VT13_KEY_R) && VT13.IsKeyPress(VT13_KEY_SHIFT))
         {
-            target_chassis_height_m = current_chassis_height_m + 0.02f;
+            updated_target_chassis_height = current_chassis_height + 0.02f;
             has_manual_command = true;
         }
     }
@@ -191,26 +162,24 @@ void ApplyGetEnergyUnitHeightControl(ToBottomDataStructdef &_ToBottomData)
     // 手动控制优先；无手动输入时若处于进状态自动对位阶段则继续对位，否则保持当前位置。
     if (has_manual_command)
     {
-        get_energy_unit_align_to_target_active = false;
+        align_to_target_active = false;
     }
-    else if (get_energy_unit_align_to_target_active)
+    else if (align_to_target_active)
     {
-        target_chassis_height_m = get_energy_unit_target_chassis_height_m;
-        if (fabsf(current_chassis_height_m - get_energy_unit_target_chassis_height_m) < 1e-4f)
+        updated_target_chassis_height = target_chassis_height;
+        if (fabsf(current_chassis_height - target_chassis_height) < 1e-4f)
         {
-            get_energy_unit_align_to_target_active = false;
+            align_to_target_active = false;
         }
     }
     else
     {
-        target_chassis_height_m = current_chassis_height_m;
+        updated_target_chassis_height = current_chassis_height;
     }
 
-    get_energy_unit_target_chassis_height_m = constrain(target_chassis_height_m,
-                                                        chassis_height_min_m,
-                                                        chassis_height_max_m);
-
-    ControlChassisHeight(get_energy_unit_target_chassis_height_m, _ToBottomData.chassis_control_struct);
+    target_chassis_height = constrain(updated_target_chassis_height,
+                                      chassis_height_min,
+                                      chassis_height_max);
 }
 
 // 关于遥控器：1为上，2为下，3为中
@@ -1409,7 +1378,7 @@ void DR16_Debug_Ctrl()
 void DR16_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
 {
     ChassisControlStruct chassis_control_struct = {};
-    static float target_chassis_height_m = chassis_height_min_m;
+    static float target_chassis_height_m = chassis_height_min;
 
     if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
     {
@@ -1417,7 +1386,7 @@ void DR16_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
         {
             _ToBottomData.ChassisState = 1;
 
-            // UpdateChassisCurrentHeightFromReBottomData();
+            // UpdateChassisCurrentHeight();
 
             // if (DR16.GetCh1() > 1324)
             // {
@@ -1428,7 +1397,7 @@ void DR16_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
             //     target_chassis_height_m -= 0.01f;
             // }
 
-            // target_chassis_height_m = constrain(target_chassis_height_m, chassis_height_min_m, chassis_height_max_m);
+            // target_chassis_height_m = constrain(target_chassis_height_m, chassis_height_min, chassis_height_max);
             // ControlChassisHeight(target_chassis_height_m, chassis_control_struct);
 
             // read remote data
@@ -1452,20 +1421,20 @@ void DR16_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
         }
         else
         {
-            // UpdateChassisCurrentHeightFromReBottomData();
-            // target_chassis_height_m = current_chassis_height_m;
+            // UpdateChassisCurrentHeight();
+            // target_chassis_height_m = current_chassis_height;
         }
         
     }
     else
     {
-        // UpdateChassisCurrentHeightFromReBottomData();
-        // target_chassis_height_m = current_chassis_height_m;
+        // UpdateChassisCurrentHeight();
+        // target_chassis_height_m = current_chassis_height;
         _ToBottomData.ChassisState = 0;
         chassis_control_struct.x = 0;
         chassis_control_struct.y = 0;
         chassis_control_struct.z = 0;
-        // chassis_control_struct.chassis_height = current_chassis_height_m;
+        // chassis_control_struct.chassis_height = current_chassis_height;
 
         _ToBottomData.chassis_control_struct = chassis_control_struct;
     }
