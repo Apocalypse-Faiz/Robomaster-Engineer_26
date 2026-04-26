@@ -20,7 +20,7 @@ void DJI_Motor_2006::update(Motor &motor)
     case MotorStatus::ready:
         motor.current_angle = dji_motor->getAngle();
         motor.current_speed = dji_motor->getSpeed();
-        motor.current_torque = dji_motor->getTorqueCurrent();
+        motor.current_torque = dji_motor->getTorqueCurrent() / 1000.0f * 0.18f; // 2006的力矩常数是0.18Nm/A，电流单位是mA，所以要除以1000
         break;
     default:
         for (;;)

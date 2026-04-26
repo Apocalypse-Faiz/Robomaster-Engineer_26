@@ -123,6 +123,8 @@ static bool SwitchModeFromCustomData()
         return false; // 没有新的模式切换命令
     }
 
+    last_mode_command = mode_command;
+
     switch (mode_command)
     {
         case 1:
