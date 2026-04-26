@@ -239,6 +239,7 @@ void executeVisionControlMode()
 
         // 更新视觉控制
         vision_controller.update(vision_control_data, joint, joint_trajectory_point_array, 6);
+        SetTargetChassisHeight(reVisiondata.chassis_height_target);
     }
 
 }

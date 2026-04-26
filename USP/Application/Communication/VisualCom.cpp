@@ -17,7 +17,7 @@ uint8_t Visiondata_Transmist()
     memcpy(&ToVisionData_temp, &toVisiondata, sizeof(ToVisionData_temp));
 
     ToVisionData_temp.head1 = 0xFE;
-    ToVisionData_temp.head2 = 0xED;
+    ToVisionData_temp.head2 = 0xEE;
 
     ToVisionData_temp.crc_code = calculate_crc16((uint8_t *)&ToVisionData_temp, sizeof(ToVisionData_temp) - 2);
 
@@ -49,7 +49,7 @@ uint8_t Visiondata_Receive(const uint8_t *Recv_Data, uint16_t ReceiveLen)
         return 0;
     }
 
-    if (ReVisionData_temp.head1 != 0xFE || ReVisionData_temp.head2 != 0xED)
+    if (ReVisionData_temp.head1 != 0xFE || ReVisionData_temp.head2 != 0xEE)
     {
         vision_crc_stats.crc_errors++;
         Visiondata_UpdateErrorRate();

@@ -15,8 +15,10 @@ struct ToVisionDataStruct
     uint8_t head1;
     uint8_t head2;
     uint16_t seq_num;
-    uint32_t timestamp;
+    uint8_t comm_flag;
     float joint_current[6];
+    float torque_current[6];
+    float chassis_height_current;
     uint16_t crc_code;
 };
 
@@ -25,8 +27,10 @@ struct ReVisionDataStruct
     uint8_t head1;
     uint8_t head2;
     uint16_t seq_num;
-    uint32_t timestamp;
+    uint8_t comm_flag;
     float joint_target[6];
+    float torque_target[6];
+    float chassis_height_target;
     uint16_t crc_code;
 };
 

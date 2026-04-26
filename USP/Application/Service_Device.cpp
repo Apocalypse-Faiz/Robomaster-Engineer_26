@@ -735,9 +735,11 @@ void tskBoardCom(void *arg)
 			for (int i = 0; i < 6; i++)
 			{
 				vision_latest_frame.joint_current[i] = joint[i].getCurrentAngle();
+				vision_latest_frame.torque_current[i] = joint[i].getCurrentTorque();
 			}
+			vision_latest_frame.chassis_height_current = current_chassis_height;
 			vision_latest_frame.seq_num = seq_num++;
-			vision_latest_frame.timestamp = HAL_GetTick();
+			vision_latest_frame.comm_flag = reVisiondata.comm_flag;
 
 			if (vision_pending_valid == 0U)
 			{
