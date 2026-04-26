@@ -705,21 +705,26 @@ void VT13_KeyBoard_Grip()
     if(VT13.GetModeSwitch() == MS_Status_Typedef::MS_N)
     {
         bool gripperchanged = false;
-        if (VT13.IsKeyPress(VT13_KEY_E) && !lastGripperState[0])
+        static uint8_t last_gripper_button_state = 0; // 0: 未按下，1: 按下
+        uint8_t current_gripper_button_state = VT13.Datapack_custom.pick & 0x01; // 取最低位作为夹爪按钮状态
+        uint8_t gripper_button_state_changed = current_gripper_button_state ^ last_gripper_button_state;
+
+        if ((VT13.IsKeyPress(VT13_KEY_E) && !lastGripperState[0]) || gripper_button_state_changed)
         {
             GripperStates[0] = !GripperStates[0];
             gripperchanged = true;
         }
 
         lastGripperState[0] = VT13.IsKeyPress(VT13_KEY_E);
+        last_gripper_button_state = current_gripper_button_state;
 
         if (gripperchanged)
         {
-            if (gripper.getState() == GripperState::CLOSING || gripper.getState() == GripperState::IDLE)
+            if (gripper.getState() == GripperState::CLOSING)
             {
                 gripper.open(); // 打开
             }
-            else if (gripper.getState() == GripperState::OPENING)
+            else if (gripper.getState() == GripperState::OPENING || gripper.getState() == GripperState::IDLE)
             {
                 gripper.close(); // 夹紧
             }
@@ -738,13 +743,21 @@ void VT13_KeyboardStoreGrippers(ToBottomDataStructdef &_ToBottomData)
     {
         bool leftgripperchanged = false;
         bool rightgripperchanged = false;
-        if (VT13.IsKeyPress(VT13_KEY_E) && !lastGripperState[2])
+        static uint8_t last_left_store_button_state = 0; // 0: 未按下，1: 按下
+        static uint8_t last_right_store_button_state = 0; // 0: 未按下，1: 按下
+        uint8_t current_left_store_button_state = VT13.Datapack_custom.L_Storage & 0x01; // 取最低位作为左侧储存按钮状态
+        uint8_t current_right_store_button_state = VT13.Datapack_custom.R_Storage & 0x01; // 取最低位作为右侧储存按钮状态
+        uint8_t left_store_button_state_changed = current_left_store_button_state ^ last_left_store_button_state;
+        uint8_t right_store_button_state_changed = current_right_store_button_state ^ last_right_store_button_state;
+
+        if (VT13.IsKeyPress(VT13_KEY_E) && !lastGripperState[2] || right_store_button_state_changed)
         {
             GripperStates[2] = !GripperStates[2];
             rightgripperchanged = true;
         }
 
         lastGripperState[2] = VT13.IsKeyPress(VT13_KEY_E);
+        last_right_store_button_state = current_right_store_button_state;
         
         if (rightgripperchanged)
         {
@@ -758,13 +771,14 @@ void VT13_KeyboardStoreGrippers(ToBottomDataStructdef &_ToBottomData)
             }
         }
 
-        if (VT13.IsKeyPress(VT13_KEY_Q) && !lastGripperState[1])
+        if (VT13.IsKeyPress(VT13_KEY_Q) && !lastGripperState[1] || left_store_button_state_changed)
         {
             GripperStates[1] = !GripperStates[1];
             leftgripperchanged = true;
         }
 
         lastGripperState[1] = VT13.IsKeyPress(VT13_KEY_Q);
+        last_left_store_button_state = current_left_store_button_state;
 
         if (leftgripperchanged)
         {
