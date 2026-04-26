@@ -108,11 +108,58 @@ void switchControlMode(ControlMode new_mode)
     }
 }
 
+static bool SwitchModeFromCustomData()
+{
+    if (VT13.GetStatus() != VT13_ESTABLISHED)
+    {
+        return false;
+    }
+
+    static uint8_t last_mode_command = 0;
+    uint8_t mode_command = VT13.Datapack_custom.mode & 0x03u; // 只关注最低两位
+
+    if (mode_command == last_mode_command)
+    {
+        return false; // 没有新的模式切换命令
+    }
+
+    switch (mode_command)
+    {
+        case 1:
+            switchControlMode(ControlMode::ACTION_GROUP);
+            return true;
+
+        case 2:
+            if (current_mode == ControlMode::ACTION_GROUP && !action_group_controller.isActionGroupCompleted())
+            {
+                return false; // 动作组未完成，不切换
+            }
+            switchControlMode(ControlMode::CUSTOM_CONTROL);
+            return true;
+
+        case 3:
+            if (current_mode == ControlMode::ACTION_GROUP && !action_group_controller.isActionGroupCompleted())
+            {
+                return false; // 动作组未完成，不切换
+            }
+            switchControlMode(ControlMode::VISION_CONTROL);
+            return true;
+
+        default:
+            return false;
+    }
+}
+
 /**
  * @brief 处理模式切换按键
  */
 void handleModeSwitchInput() 
 {
+    if (SwitchModeFromCustomData())
+    {
+        return;
+    }
+
     static uint32_t last_press_time = 0;
     uint32_t current_time = HAL_GetTick();
     
