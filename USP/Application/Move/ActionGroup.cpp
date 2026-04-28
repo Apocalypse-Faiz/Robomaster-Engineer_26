@@ -314,7 +314,7 @@ float MobileOreAction_Joint[2][7] =
 
 float MobileTunnelAction_Joint[2][7] = {
     {0, 120, 35, 0, 0, 0, 800},
-    {0, 131, 44, 0, 0, 0, 800}};
+    {0, 149.27, 47.59, 0, 63, 0, 800}};
 
 /*取地矿*/
 float TakeLandOre_prepare[2][7] = {
