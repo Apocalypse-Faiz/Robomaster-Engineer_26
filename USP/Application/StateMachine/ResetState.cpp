@@ -64,7 +64,7 @@ bool Manipulator_TorqueReset()
 
             if (J6_reset_prepared == 0)
             {
-                if (motor1_torque < 5700 || motor2_torque < 5700)
+                if (motor1_torque < 1.026 || motor2_torque < 1.026)
                  {
                      joint[5].ajustJointTarget(10.0f);
                     // joint[5].setTargetAngle(j6_reset_target += 0.1f);
@@ -110,7 +110,7 @@ bool Manipulator_TorqueReset()
 
             if (J5_reset_prepared == 0 && J6_reset == 1 && J6_reset_prepared == 1)
             {
-                 if (motor1_torque < 5700 || motor2_torque < 5700)
+                 if (motor1_torque < 1.026 || motor2_torque < 1.026)
                  {
                      joint[4].ajustJointTarget(10.0f);
                  }

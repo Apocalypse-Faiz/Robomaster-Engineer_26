@@ -46,7 +46,7 @@ public:
         min_position = 0.0f;
         max_position = 78.0f;
         angle_step = 3.0f;
-        current_position = 0.0f;
+        current_position = 78.0f;
         target_position = 0.0f;
         pwm_started = false;
     }
