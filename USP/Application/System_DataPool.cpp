@@ -150,11 +150,11 @@ float gravity_J3 = -0.8f;
 float gravity_J5 = 0.0f;
 float inertia_J1 = 0.5f;
 
-float chassis_height_min = 0.212f;
-float chassis_height_max = 0.467f;
+float chassis_height_min = 0.203f;
+float chassis_height_max = 0.458f;
 float chassis_height_step = 0.03f;
-float current_chassis_height = 0.212f;
-float target_chassis_height = 0.212f;
+float current_chassis_height = 0.203f;
+float target_chassis_height = 0.203f;
 bool target_height_initialized = false;
 bool align_to_target_active = false;
 

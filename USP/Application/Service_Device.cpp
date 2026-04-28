@@ -529,7 +529,8 @@ void tskMotor(void *arg)
 			target_height_initialized = true;
 		}
 
-		if (reBottomdata.ChassisState != 2)
+		// Use commanded state here to avoid clearing target height before feedback state updates.
+		if (toBottomdata.ChassisState != 2)
 		{
 			target_chassis_height = current_chassis_height;
 			align_to_target_active = false;

@@ -274,6 +274,7 @@ void GetEnergyUnit_enterAction()
     mode_changing = false;
 
     // 进入取能量单元状态时，默认将底盘高度目标设置为 0.441m
+    toBottomdata.ChassisState = 2;
     SetTargetChassisHeight(get_energy_unit_default_chassis_height_m);
 
 }
