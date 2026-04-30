@@ -208,7 +208,7 @@ void executeActionGroupMode()
 void executeCustomControlMode() 
 {
     // 检查图传连接状态
-    if (VT13.GetStatus() == VT13_ESTABLISHED) 
+    if (VT13.Check_CustomController_Link()) 
     {
         // 接收自定义控制器数据
         for (int i = 0; i < 6; i++) 

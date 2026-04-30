@@ -207,6 +207,8 @@ void tskBackpackdrive(void *arg)
 			}
 		}
 
+		Indicator.Update();
+
 	}
 }
 
