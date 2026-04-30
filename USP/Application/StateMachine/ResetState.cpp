@@ -267,6 +267,7 @@ void Reset_action(Event_t **pEvent)
         DR16_Store(toBottomdata);
     }
 
+    WS_indicator[2] = WS_Blue; // 进入复位状态指示灯
 
     if (DG_reset == true)
     {

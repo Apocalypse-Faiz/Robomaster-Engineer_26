@@ -200,6 +200,7 @@ void executeActionGroupMode()
 {
     // 使用动作组控制器处理所有动作组逻辑
     action_group_controller.update(joint, joint_trajectory_point_array, gripper, toBottomdata, reBottomdata);
+    WS_indicator[3] = WS_Green; // 动作组模式指示灯
 }
 
 /**
@@ -218,10 +219,12 @@ void executeCustomControlMode()
         
         // 更新自定义控制器
         custom_controller.update(custom_control_data, joint, joint_trajectory_point_array, 6);
+        WS_indicator[3] = WS_Blue;
     }
     
     VT13_KeyBoard_Grip();
     VT13_KeyboardStoreGrippers(toBottomdata);
+    WS_indicator[3] = WS_Red;
 }
 
 /**
@@ -240,7 +243,9 @@ void executeVisionControlMode()
         // 更新视觉控制
         vision_controller.update(vision_control_data, joint, joint_trajectory_point_array, 6);
         SetTargetChassisHeight(reVisiondata.chassis_height_target);
+        WS_indicator[3] = WS_Purple;
     }
+    WS_indicator[3] = WS_Red;
 
 }
 
@@ -303,6 +308,8 @@ void GetEnergyUnit_action(Event_t **pEvent)
         }
         
     }
+
+    WS_indicator[2] = WS_Cyan;
 
     switch (current_mode)
     {

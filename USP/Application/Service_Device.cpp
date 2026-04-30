@@ -139,38 +139,64 @@ void tskBackpackdrive(void *arg)
 		// 末端夹爪状态观察（闭合指令态点亮）
 		if (gripper.getState() == GripperState::CLOSING)
 		{
-			WS_indicator[1] = WS_White;
+			WS_indicator[0] = WS_Green;
 		}
 		else
 		{
-			WS_indicator[1] = WS_Black;
-		}
-		// 储矿夹爪状态观察
-		if (reBottomdata.L_Store == 1)
-		{
-			WS_indicator[5] = WS_White;
-		}
-		else
-		{
-			WS_indicator[5] = WS_Black;
+			WS_indicator[0] = WS_Yellow;
 		}
 
-		if (reBottomdata.R_Store == 1)
+		if (reBottomdata.ChassisState == 0)
 		{
-			WS_indicator[4] = WS_White;
+			WS_indicator[1] = WS_Red;
+		}
+		else if (reBottomdata.ChassisState == 1)
+		{
+			WS_indicator[1] = WS_Green;
+		}
+		else if (reBottomdata.ChassisState == 2)
+		{
+			WS_indicator[1] = WS_Blue;
+		}
+		else if (reBottomdata.ChassisState == 3 || reBottomdata.ChassisState == 4)
+		{
+			WS_indicator[1] = WS_Cyan;
 		}
 		else
 		{
-			WS_indicator[4] = WS_Black;
+			WS_indicator[1] = WS_Yellow;
 		}
+		
+		
+		// 储矿夹爪状态观察
+		// if (reBottomdata.L_Store == 1)
+		// {
+		// 	WS_indicator[5] = WS_White;
+		// }
+		// else
+		// {
+		// 	WS_indicator[5] = WS_Black;
+		// }
+
+		// if (reBottomdata.R_Store == 1)
+		// {
+		// 	WS_indicator[4] = WS_White;
+		// }
+		// else
+		// {
+		// 	WS_indicator[4] = WS_Black;
+		// }
 
 		// 电机状态观察
-		if (DM8009.GetMotorState() != 0 || DM4310.GetMotorState() != 0)
+		if (DM8009.GetMotorState() != 0 || DM4310.GetMotorState() != 0 || DM10010.GetMotorState() != 0 || DM4340.GetMotorState() != 0)
 		{
-			for (int i = 0; i < 6; i++)
-			{
-				WS_indicator[i] = WS_Red;
-			}
+			WS_indicator[4] = WS_Red;
+			WS_indicator[5] = WS_Red;
+		}
+		else
+		{
+			WS_indicator[4] = WS_Green;
+			WS_indicator[5] = WS_Green;
 		}
 
 		// 指示灯状态更新

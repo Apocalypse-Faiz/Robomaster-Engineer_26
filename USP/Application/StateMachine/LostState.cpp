@@ -37,6 +37,8 @@ void Lost_action(Event_t **pEvent)
     toBottomdata.L_Store = 0; // 夹爪待命
     toBottomdata.R_Store = 0; // 夹爪待命
 
+    WS_indicator[2] = WS_Red; // 失联状态指示灯
+
     // UI
     UI_Mode = 0;
 
