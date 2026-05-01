@@ -27,6 +27,7 @@ void Manipulator_TorqueReset_Params_Reset()
 
     J5_reset = 0;
     J6_reset = 0;
+    reset_ok = 0;
 }
 
 /**

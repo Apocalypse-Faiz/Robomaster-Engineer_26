@@ -8,6 +8,8 @@ static bool emergencyTorqueResetDone = false;
 
 void Emergency_enterAction()
 {    
+    emergencyTorqueResetActive = false;
+    emergencyTorqueResetDone = false;
     Robot_Prepared = 0;
     // 清除所有轨迹点
     for (uint8_t i = 0; i < 6; i++)
@@ -17,8 +19,9 @@ void Emergency_enterAction()
     }
     gripper.emergencyStop();
 
-    j5_reset_target = joint[4].getCurrentAngle();
-    j6_reset_target = joint[5].getCurrentAngle();
+    joint[4].setJointParam(-360, 360, -10, 10); // J5关节在力矩复位后还要重新再限位一下
+	joint[5].setJointParam(-360, 360, -10, 10);
+
     Manipulator_TorqueReset_Params_Reset();
 }
 

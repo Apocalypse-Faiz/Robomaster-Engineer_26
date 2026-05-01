@@ -133,12 +133,12 @@ void UpdateTargetChassisHeight()
     {
         if (DR16.IsKeyPress(DR16_KEY_R) && DR16.IsKeyPress(DR16_KEY_CTRL))
         {
-            updated_target_chassis_height = current_chassis_height - 0.02f;
+            updated_target_chassis_height = current_chassis_height - 0.1f;
             has_manual_command = true;
         }
         else if (DR16.IsKeyPress(DR16_KEY_R) && DR16.IsKeyPress(DR16_KEY_SHIFT))
         {
-            updated_target_chassis_height = current_chassis_height + 0.02f;
+            updated_target_chassis_height = current_chassis_height + 0.1f;
             has_manual_command = true;
         }
     }
@@ -148,12 +148,12 @@ void UpdateTargetChassisHeight()
     {
         if (VT13.IsKeyPress(VT13_KEY_R) && VT13.IsKeyPress(VT13_KEY_CTRL))
         {
-            updated_target_chassis_height = current_chassis_height - 0.02f;
+            updated_target_chassis_height = current_chassis_height - 0.1f;
             has_manual_command = true;
         }
         else if (VT13.IsKeyPress(VT13_KEY_R) && VT13.IsKeyPress(VT13_KEY_SHIFT))
         {
-            updated_target_chassis_height = current_chassis_height + 0.02f;
+            updated_target_chassis_height = current_chassis_height + 0.1f;
             has_manual_command = true;
         }
     }
