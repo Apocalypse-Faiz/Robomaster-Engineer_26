@@ -110,7 +110,7 @@ void Task_VofaMonitor(void *arg){
 				joint[i].updateJointData();
 			}
 
-			VofaMonitor::setDatas(0, joint[0].getCurrentTorque(), joint[1].getCurrentTorque(), joint[2].getCurrentTorque(), joint[3].getCurrentTorque(), joint[4].getCurrentTorque(), joint[5].getCurrentTorque());
+			VofaMonitor::setDatas(0, joint[0].getCurrentTorque(), joint[1].getCurrentTorque(), joint[2].getCurrentTorque(), joint[3].getCurrentTorque(), joint[4].getCurrentTorque(), joint[5].getCurrentTorque(), toBottomdata.ChassisState, reBottomdata.ChassisState);
 
 			// VofaMonitor::setDatas(0, debug_target_angle, 
 			// 	joint[4].data.target_angle,
