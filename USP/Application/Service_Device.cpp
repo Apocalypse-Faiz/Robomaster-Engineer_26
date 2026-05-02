@@ -244,11 +244,17 @@ void CheckMotorStatus()
 	static uint8_t dm_reconnect_rr_idx = 0U;
 	static uint8_t all_ready_stable_cnt = 0U;
 	static uint8_t dm_offline_latched[4] = {0U, 0U, 0U, 0U};
+	static uint8_t ready_init_done[6] = {0U};
 	static uint8_t mode_init_done = 0U;
 	static uint8_t dm_recover_pending = 0U;
 	static const uint8_t DM_MOTOR_COUNT = 4U;
 	static const uint8_t ALL_READY_STABLE_TICKS = 20U;
 	const TickType_t DM_RECONNECT_PERIOD_TICK = pdMS_TO_TICKS(100);
+#if ENABLE_J1_INERTIA_VALIDATION
+	const uint8_t mode_set_start = 1U;
+#else
+	const uint8_t mode_set_start = 0U;
+#endif
 
 	bool all_ready = true;
 	bool dm_has_disconnect = false;
@@ -258,6 +264,7 @@ void CheckMotorStatus()
 		if (motor[i].getStatus() != MotorStatus::ready)
 		{
 			all_ready = false;
+			ready_init_done[i] = 0U;
 			if (i < DM_MOTOR_COUNT)
 			{
 				dm_has_disconnect = true;
@@ -272,6 +279,12 @@ void CheckMotorStatus()
 		else if (i < DM_MOTOR_COUNT)
 		{
 			dm_offline_latched[i] = 0U;
+		}
+		else if (ready_init_done[i] == 0U && i >= mode_set_start)
+		{
+			motor[i].setMode(MotorMode::angle);
+			joint[i].setMode(JointMode::angle);
+			ready_init_done[i] = 1U;
 		}
 	}
 
@@ -290,18 +303,16 @@ void CheckMotorStatus()
 
 		if (all_motor_connected == false)
 		{
-			#if ENABLE_J1_INERTIA_VALIDATION
-			const uint8_t mode_set_start = 1U;
-			#else
-			const uint8_t mode_set_start = 0U;
-			#endif
-
 			if (mode_init_done == 0U)
 			{
 				for (uint8_t i = mode_set_start; i < 6; i++)
 				{
-					motor[i].setMode(MotorMode::angle);
-					joint[i].setMode(JointMode::angle);
+					if (ready_init_done[i] == 0U)
+					{
+						motor[i].setMode(MotorMode::angle);
+						joint[i].setMode(JointMode::angle);
+						ready_init_done[i] = 1U;
+					}
 				}
 				mode_init_done = 1U;
 			}

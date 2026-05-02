@@ -272,7 +272,7 @@ void VT13_KeyBoard_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
         // }
         // else
         // {
-            temp_Speed = 2.5f;
+            temp_Speed = 3.75f;
         // }
 
         if (commanded_chassis_state == 1)
