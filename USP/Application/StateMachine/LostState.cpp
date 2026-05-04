@@ -3,6 +3,8 @@
 
 void Lost_enterAction()
 {
+    g_top_state_id = TopStateId::Lost;
+
     if (motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready && motor[3].getStatus() == MotorStatus::ready && motor[4].getStatus() == MotorStatus::ready && motor[5].getStatus() == MotorStatus::ready)
     {
         for (uint8_t i = 0; i < 6; i++)

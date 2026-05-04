@@ -9,6 +9,17 @@
 using namespace hfsm;
 /* Private type --------------------------------------------------------------*/
 
+enum class TopStateId : uint8_t
+{
+	None = 0,
+	Mobile,
+	Lost,
+	Reset,
+	GetEnergyUnit,
+	ExchangeEnergyUnit,
+	Emergency
+};
+
 /* Exported macros -----------------------------------------------------------*/
 
 /* Exported types ------------------------------------------------------------*/
@@ -16,6 +27,8 @@ extern State_t TopStateMachine;
 extern State_t MobileState;
 extern State_t LostState;
 extern State_t ResetState;
+
+extern TopStateId g_top_state_id;
 
 extern Event_t ToMobile;
 extern Event_t ToReset;

@@ -265,6 +265,8 @@ void executeJointTakeover()
 
 void GetEnergyUnit_enterAction()
 {
+    g_top_state_id = TopStateId::GetEnergyUnit;
+
     for (uint8_t i = 0; i < 6; i++)
     {
         joint_trajectory_point_array[i].clear();
@@ -388,9 +390,6 @@ void GetEnergyUnit_action(Event_t **pEvent)
         default:
             break;
     }
-
-    // 统一在状态机中处理底盘高度微调，避免分散在各自定义移动函数中
-    UpdateTargetChassisHeight();
 
     handleModeSwitchInput(); 
 

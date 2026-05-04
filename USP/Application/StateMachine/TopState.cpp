@@ -28,6 +28,8 @@ Event_t ToGetEnergyUnit;
 Event_t ToExchangeEnergyUnit;
 Event_t ToEmergency;
 
+TopStateId g_top_state_id = TopStateId::None;
+
 /* Private type --------------------------------------------------------------*/
 
 /* Private function declarations ---------------------------------------------*/

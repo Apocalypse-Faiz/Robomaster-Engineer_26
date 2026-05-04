@@ -229,6 +229,8 @@ bool executeCalculatedTrajectory(float trajectory_angles[6][10], uint32_t durati
  */
 void ExchangeEnergyUnit_enterAction() 
 {
+    g_top_state_id = TopStateId::ExchangeEnergyUnit;
+
     // 清理所有轨迹
     for (uint8_t i = 0; i < 6; i++) 
     {

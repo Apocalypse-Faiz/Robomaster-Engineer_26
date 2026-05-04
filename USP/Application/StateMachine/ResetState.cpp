@@ -11,6 +11,8 @@ static uint8_t J5_reset, J6_reset = 0;
 
 void Reset_enterAction()
 {
+    g_top_state_id = TopStateId::Reset;
+
     // 进入复位状态后先执行一次力矩复位参数重置，确保每次进入复位状态时相关参数都被重置
     Manipulator_TorqueReset_Params_Reset();
     // j5_reset_target = joint[4].getCurrentAngle();
@@ -67,7 +69,7 @@ bool Manipulator_TorqueReset()
             {
                 if (motor1_torque < 1.026 || motor2_torque < 1.026)
                  {
-                     joint[5].ajustJointTarget(10.0f);
+                     joint[5].ajustJointTarget(15.0f);
                     // joint[5].setTargetAngle(j6_reset_target += 0.1f);
                  }
                  else
@@ -96,11 +98,11 @@ bool Manipulator_TorqueReset()
                 {
                     if (j6_angle_diff > 0)
                     {
-                        joint[5].ajustJointTarget(-10.0f);
+                        joint[5].ajustJointTarget(-15.0f);
                     }
                     else
                     {
-                        joint[5].ajustJointTarget(10.0f);
+                        joint[5].ajustJointTarget(15.0f);
                     }
                 }
                 else                
@@ -113,7 +115,7 @@ bool Manipulator_TorqueReset()
             {
                  if (motor1_torque < 1.026 || motor2_torque < 1.026)
                  {
-                     joint[4].ajustJointTarget(10.0f);
+                     joint[4].ajustJointTarget(15.0f);
                  }
                  else
                  {
@@ -143,11 +145,11 @@ bool Manipulator_TorqueReset()
                 {
                     if (j5_angle_diff > 0)
                     {
-                        joint[4].ajustJointTarget(10.0f);
+                        joint[4].ajustJointTarget(15.0f);
                     }
                     else
                     {
-                        joint[4].ajustJointTarget(-10.0f);
+                        joint[4].ajustJointTarget(-15.0f);
                     }
                 }
                 else                

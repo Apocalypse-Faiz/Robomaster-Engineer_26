@@ -4,6 +4,8 @@
 
 void Mobile_enterAction()
 {
+    g_top_state_id = TopStateId::Mobile;
+
     for (uint8_t i = 0; i < 6; i++)
     {
         joint_trajectory_point_array[i].clear();

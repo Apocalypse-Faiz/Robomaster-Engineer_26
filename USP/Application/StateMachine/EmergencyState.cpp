@@ -5,9 +5,15 @@
 
 static bool emergencyTorqueResetActive = false;
 static bool emergencyTorqueResetDone = false;
+static TopStateId emergency_entry_state = TopStateId::None;
+static bool emergency_use_energy_unit_move_ctrl = false;
 
 void Emergency_enterAction()
 {    
+    emergency_entry_state = g_top_state_id;
+    g_top_state_id = TopStateId::Emergency;
+    emergency_use_energy_unit_move_ctrl = (emergency_entry_state == TopStateId::GetEnergyUnit);
+
     emergencyTorqueResetActive = false;
     emergencyTorqueResetDone = false;
     Robot_Prepared = 0;
@@ -95,13 +101,20 @@ void Emergency_action(Event_t **pEvent)
 
     if (vt13Online)
     {
-        if(VT13_IsButtonActive(ButtonType::FN1))
+        if (VT13_IsButtonActive(ButtonType::FN1))
         {
             VT13_MoveCtrl(toBottomdata);
         }
-        else if(!VT13_IsButtonActive(ButtonType::FN1))
+        else if (!VT13_IsButtonActive(ButtonType::FN1))
         {
-            VT13_KeyBoard_MoveCtrl(toBottomdata);
+            if (emergency_use_energy_unit_move_ctrl)
+            {
+                VT13_KeyBoard_MoveCtrl_Custom(toBottomdata);
+            }
+            else
+            {
+                VT13_KeyBoard_MoveCtrl(toBottomdata);
+            }
         }
     }
     if (dr16Online)
@@ -112,7 +125,14 @@ void Emergency_action(Event_t **pEvent)
         }
         else
         {
-            KeyBoard_MoveCtrl(toBottomdata);
+            if (emergency_use_energy_unit_move_ctrl)
+            {
+                KeyBoard_MoveCtrl_Custom(toBottomdata);
+            }
+            else
+            {
+                KeyBoard_MoveCtrl(toBottomdata);
+            }
         }
     }
     

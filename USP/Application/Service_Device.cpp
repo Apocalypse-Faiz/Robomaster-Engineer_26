@@ -575,6 +575,8 @@ void tskMotor(void *arg)
 			align_to_target_active = false;
 		}
 
+		UpdateTargetChassisHeight();
+
 		toBottomdata.chassis_control_struct.chassis_height = constrain(target_chassis_height,
 																		  chassis_height_min,
 																		  chassis_height_max);
