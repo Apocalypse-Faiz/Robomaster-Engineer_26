@@ -39,7 +39,17 @@ void Lost_action(Event_t **pEvent)
     toBottomdata.L_Store = 0; // 夹爪待命
     toBottomdata.R_Store = 0; // 夹爪待命
 
-    WS_indicator[2] = WS_Red; // 失联状态指示灯
+    for (int i = 0; i < 6; i++)
+    {
+        if (motor[i].getStatus() != MotorStatus::ready)
+        {
+            WS_indicator[i] = WS_Red;
+        }
+        else
+        {
+            WS_indicator[i] = WS_White;
+        }
+    }
 
     // UI
     UI_Mode = 0;

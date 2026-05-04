@@ -35,16 +35,6 @@ void Emergency_action(Event_t **pEvent)
 {
     const uint32_t nowTick = xTaskGetTickCount();
 
-    // 急停闪烁指示
-    if (((nowTick / 200U) % 2U) == 0U)
-    {
-        WS_indicator[0] = WS_Red;
-    }
-    else
-    {
-        WS_indicator[0] = WS_Black;
-    }
-
     // 链路可用判定
     const bool dr16Online = (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED);
     const bool vt13Online = (VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED && VT13.GetModeSwitch() != MS_Status_Typedef::MS_C);
@@ -133,6 +123,22 @@ void Emergency_action(Event_t **pEvent)
             {
                 KeyBoard_MoveCtrl(toBottomdata);
             }
+        }
+    }
+
+    for (int i = 0; i < 6; i++)
+    {
+        if (motor[i].getStatus() != MotorStatus::ready)
+        {
+            WS_indicator[i] = WS_Red;
+        }
+        else if (emergencyTorqueResetActive)
+        {
+            WS_indicator[i] = WS_Blue;
+        }
+        else
+        {
+            WS_indicator[i] = WS_Yellow;
         }
     }
     

@@ -62,7 +62,36 @@ void Mobile_action(Event_t **pEvent)
         ActionGroup_Execute(joint, joint_trajectory_point_array, 6, Add_onlyOnce);
     }
 
-    WS_indicator[2] = WS_Green; // 机动状态指示灯
+    for (int i = 0; i < 6; i++)
+    {
+        if (motor[i].getStatus() != MotorStatus::ready)
+        {
+            WS_indicator[i] = WS_Red;
+        }
+        else if (i == 0)
+        {
+            if (toBottomdata.ChassisState == 1)
+            {
+                WS_indicator[i] = WS_Green;
+            }
+            else if (toBottomdata.ChassisState == 3)
+            {
+                WS_indicator[i] = WS_Cyan;
+            }
+            else if (toBottomdata.ChassisState == 4)
+            {
+                WS_indicator[i] = WS_Purple;
+            }
+            else if (toBottomdata.ChassisState == 0)
+            {
+                WS_indicator[i] = WS_Yellow;
+            }
+        }
+        else
+        {
+            WS_indicator[i] = WS_Blue;
+        }
+    }
 
     /* 底盘移动 */
     if(VT13.GetModeSwitch() != MS_Status_Typedef::MS_C && VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)

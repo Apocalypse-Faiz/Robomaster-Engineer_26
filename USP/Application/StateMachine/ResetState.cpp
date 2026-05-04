@@ -270,7 +270,21 @@ void Reset_action(Event_t **pEvent)
         DR16_Store(toBottomdata);
     }
 
-    WS_indicator[2] = WS_Blue; // 进入复位状态指示灯
+    for (int i = 0; i < 6; i++)
+    {
+        if (motor[i].getStatus() != MotorStatus::ready)
+        {
+            WS_indicator[i] = WS_Red;
+        }
+        else if (VT13.GetTrigger() || (DR16.GetS1() == 1 && DR16.GetS2() == 1))
+        {
+            WS_indicator[i] = WS_Blue;
+        }
+        else
+        {
+            WS_indicator[i] = WS_Green;
+        }
+    }
 
     if (DG_reset == true)
     {

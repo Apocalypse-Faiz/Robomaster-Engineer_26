@@ -200,7 +200,6 @@ void executeActionGroupMode()
 {
     // 使用动作组控制器处理所有动作组逻辑
     action_group_controller.update(joint, joint_trajectory_point_array, gripper, toBottomdata, reBottomdata);
-    WS_indicator[3] = WS_Green; // 动作组模式指示灯
 }
 
 /**
@@ -219,12 +218,10 @@ void executeCustomControlMode()
         
         // 更新自定义控制器
         custom_controller.update(custom_control_data, joint, joint_trajectory_point_array, 6);
-        WS_indicator[3] = WS_Blue;
     }
     
     VT13_KeyBoard_Grip();
     VT13_KeyboardStoreGrippers(toBottomdata);
-    WS_indicator[3] = WS_Red;
 }
 
 /**
@@ -243,10 +240,7 @@ void executeVisionControlMode()
         // 更新视觉控制
         vision_controller.update(vision_control_data, joint, joint_trajectory_point_array, 6);
         SetTargetChassisHeight(reVisiondata.chassis_height_target);
-        WS_indicator[3] = WS_Purple;
     }
-    WS_indicator[3] = WS_Red;
-
 }
 
 /**
@@ -311,7 +305,49 @@ void GetEnergyUnit_action(Event_t **pEvent)
         
     }
 
-    WS_indicator[2] = WS_Cyan;
+    for (int i = 0; i < 6; i++)
+    {
+        if (motor[i].getStatus() != MotorStatus::ready)
+        {
+            WS_indicator[i] = WS_Red;
+        }
+        else
+        {
+            if (current_mode == ControlMode::ACTION_GROUP)
+            {
+                if (i == action_group_controller.getSelectedOre())
+                {
+                    WS_indicator[i] = WS_Yellow;
+                }
+                else
+                {
+                    WS_indicator[i] = WS_Green;
+                }
+            }
+            else if (current_mode == ControlMode::CUSTOM_CONTROL)
+            {
+                if (VT13.Check_CustomController_Link())
+                {
+                    WS_indicator[i] = WS_Blue;
+                }
+                else
+                {
+                    WS_indicator[i] = WS_Yellow; 
+                }
+            }
+            else if (current_mode == ControlMode::VISION_CONTROL)
+            {
+                if (ulTaskNotifyTake(pdTRUE, 0) == 55)
+                {
+                    WS_indicator[i] = WS_Purple;
+                }
+                else
+                {
+                    WS_indicator[i] = WS_Yellow; 
+                }
+            }
+        }
+    }
 
     switch (current_mode)
     {

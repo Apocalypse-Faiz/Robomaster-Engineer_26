@@ -137,35 +137,35 @@ void tskBackpackdrive(void *arg)
 		// 杂项机构运行代码放在这里
 		/* 指示灯控制 */
 		// 末端夹爪状态观察（闭合指令态点亮）
-		if (gripper.getState() == GripperState::CLOSING)
-		{
-			WS_indicator[0] = WS_Green;
-		}
-		else
-		{
-			WS_indicator[0] = WS_Yellow;
-		}
+		// if (gripper.getState() == GripperState::CLOSING)
+		// {
+		// 	WS_indicator[0] = WS_Green;
+		// }
+		// else
+		// {
+		// 	WS_indicator[0] = WS_Yellow;
+		// }
 
-		if (reBottomdata.ChassisState == 0)
-		{
-			WS_indicator[1] = WS_Red;
-		}
-		else if (reBottomdata.ChassisState == 1)
-		{
-			WS_indicator[1] = WS_Green;
-		}
-		else if (reBottomdata.ChassisState == 2)
-		{
-			WS_indicator[1] = WS_Blue;
-		}
-		else if (reBottomdata.ChassisState == 3 || reBottomdata.ChassisState == 4)
-		{
-			WS_indicator[1] = WS_Cyan;
-		}
-		else
-		{
-			WS_indicator[1] = WS_Yellow;
-		}
+		// if (reBottomdata.ChassisState == 0)
+		// {
+		// 	WS_indicator[1] = WS_Red;
+		// }
+		// else if (reBottomdata.ChassisState == 1)
+		// {
+		// 	WS_indicator[1] = WS_Green;
+		// }
+		// else if (reBottomdata.ChassisState == 2)
+		// {
+		// 	WS_indicator[1] = WS_Blue;
+		// }
+		// else if (reBottomdata.ChassisState == 3 || reBottomdata.ChassisState == 4)
+		// {
+		// 	WS_indicator[1] = WS_Cyan;
+		// }
+		// else
+		// {
+		// 	WS_indicator[1] = WS_Yellow;
+		// }
 		
 		
 		// 储矿夹爪状态观察
@@ -188,16 +188,16 @@ void tskBackpackdrive(void *arg)
 		// }
 
 		// 电机状态观察
-		if (DM8009.GetMotorState() != 0 || DM4310.GetMotorState() != 0 || DM10010.GetMotorState() != 0 || DM4340.GetMotorState() != 0)
-		{
-			WS_indicator[4] = WS_Red;
-			WS_indicator[5] = WS_Red;
-		}
-		else
-		{
-			WS_indicator[4] = WS_Green;
-			WS_indicator[5] = WS_Green;
-		}
+		// if (DM8009.GetMotorState() != 0 || DM4310.GetMotorState() != 0 || DM10010.GetMotorState() != 0 || DM4340.GetMotorState() != 0)
+		// {
+		// 	WS_indicator[4] = WS_Red;
+		// 	WS_indicator[5] = WS_Red;
+		// }
+		// else
+		// {
+		// 	WS_indicator[4] = WS_Green;
+		// 	WS_indicator[5] = WS_Green;
+		// }
 
 		// 指示灯状态更新
 		for (int i = 0; i < 6; i++)
