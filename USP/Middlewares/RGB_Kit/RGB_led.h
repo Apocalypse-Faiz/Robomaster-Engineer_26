@@ -29,8 +29,8 @@
 /* Private define ------------------------------------------------------------*/
 #define RGB_NUM 24	  // 一个RGB灯需要的PWM脉冲数目
 #define RESET_NUM 250 // 复位灯带需要的PWM脉冲数目
-#define LED_LOW 34	  // 0信号的占空比
-#define LED_HIGH 68	  // 1信号的占空比
+#define LED_LOW 59	  // 0信号的占空比
+#define LED_HIGH 118	  // 1信号的占空比
 
 /* Private include -----------------------------------------------------------*/
 
