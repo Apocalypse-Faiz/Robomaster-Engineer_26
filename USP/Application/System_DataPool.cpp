@@ -171,6 +171,7 @@ float speed_kp1, speed_Out_Max1, angle_kp1, angle_ki1, angle_kd1, angle_Out_Max1
 
 MeanFilter<10> mfsL1, mfsL2;
 MeanFilter<50> f_torque1, f_omega1;
+MeanFilter<50> mfsJ5, mfsJ6;
 float j5_reset_target, j6_reset_target = 0.0f;
 
 

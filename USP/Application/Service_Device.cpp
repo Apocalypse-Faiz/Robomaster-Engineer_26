@@ -777,7 +777,18 @@ void tskBoardCom(void *arg)
 			for (int i = 0; i < 6; i++)
 			{
 				vision_latest_frame.joint_current[i] = joint[i].getCurrentAngle();
-				vision_latest_frame.torque_current[i] = joint[i].getCurrentTorque();
+				if (i == 4)
+				{
+					vision_latest_frame.torque_current[i] = mfsJ5.f(joint[i].getCurrentTorque());
+				}
+				else if (i == 5)
+				{
+					vision_latest_frame.torque_current[i] = mfsJ6.f(joint[i].getCurrentTorque());
+				}
+				else
+				{
+					vision_latest_frame.torque_current[i] = joint[i].getCurrentTorque();
+				}
 			}
 			vision_latest_frame.chassis_height_current = current_chassis_height;
 			vision_latest_frame.seq_num = seq_num++;

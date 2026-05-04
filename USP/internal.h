@@ -192,6 +192,7 @@ extern float speed_kp1, speed_Out_Max1, angle_kp1, angle_ki1, angle_kd1, angle_O
 
 extern MeanFilter<10> mfsL1, mfsL2;
 extern MeanFilter<50> f_torque1, f_omega1;
+extern MeanFilter<50> mfsJ5, mfsJ6;
 extern float j5_reset_target, j6_reset_target;
 
 extern TaskHandle_t StateMachine_Handle; // 状态机任务
