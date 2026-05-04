@@ -33,6 +33,8 @@ extern TopStateId g_top_state_id;
 extern Event_t ToMobile;
 extern Event_t ToReset;
 extern Event_t ToLost;
+extern Event_t ToGetEnergyUnit;
+extern Event_t ToExchangeEnergyUnit;
 
 /* Exported function declarations --------------------------------------------*/
 void Total_init();

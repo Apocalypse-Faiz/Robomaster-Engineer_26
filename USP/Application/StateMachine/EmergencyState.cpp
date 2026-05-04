@@ -158,8 +158,36 @@ void Emergency_exitAction()
 
     gripper.emergencyStop();
 
-    if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED || (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C && VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED))
+    Event_t *resume_event = nullptr;
+    if (emergency_entry_state == TopStateId::Mobile)
+    {
+        resume_event = &ToMobile;
+    }
+    else if (emergency_entry_state == TopStateId::Lost)
+    {
+        resume_event = &ToLost;
+    }
+    else if (emergency_entry_state == TopStateId::Reset)
+    {
+        resume_event = &ToReset;
+    }
+    else if (emergency_entry_state == TopStateId::GetEnergyUnit)
+    {
+        resume_event = &ToGetEnergyUnit;
+    }
+    else if (emergency_entry_state == TopStateId::ExchangeEnergyUnit)
+    {
+        resume_event = &ToExchangeEnergyUnit;
+    }
+
+    if (resume_event != nullptr)
+    {
+        TopStateMachine.pSonEvent = resume_event;
+    }
+    else if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED || (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C && VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED))
+    {
         TopStateMachine.pSonEvent = &ToMobile;
+    }
     else
     {
         TopStateMachine.pSonEvent = &ToLost;
