@@ -67,12 +67,7 @@ void Emergency_action(Event_t **pEvent)
 
     if (emergencyTorqueResetActive && !emergencyTorqueResetDone)
     {
-        WS_indicator[1] = WS_Yellow;
         emergencyTorqueResetDone = Manipulator_TorqueReset();
-    }
-    else
-    {
-        WS_indicator[1] = WS_Blue;
     }
 
     // 手动控制机械臂（在未执行力矩复位时允许）
