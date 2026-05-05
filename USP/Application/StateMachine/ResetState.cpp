@@ -45,7 +45,7 @@ bool Manipulator_TorqueReset()
     }
 
     /*复位过程*/
-    if (motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready && motor[3].getStatus() == MotorStatus::ready && motor[4].getStatus() == MotorStatus::ready && motor[5].getStatus() == MotorStatus::ready)
+    if (motor[4].getStatus() == MotorStatus::ready && motor[5].getStatus() == MotorStatus::ready)
     {
 
         if (motor[4].getStatus() != MotorStatus::ready || motor[5].getStatus() != MotorStatus::ready)

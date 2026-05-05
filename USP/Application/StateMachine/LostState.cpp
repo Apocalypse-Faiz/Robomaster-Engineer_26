@@ -20,7 +20,6 @@ void Lost_enterAction()
 void Lost_action(Event_t **pEvent)
 {
 
-    WS_indicator[0] = WS_Red;
 
     if (motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready && motor[3].getStatus() == MotorStatus::ready && motor[4].getStatus() == MotorStatus::ready && motor[5].getStatus() == MotorStatus::ready)
     {
@@ -73,9 +72,17 @@ void Lost_action(Event_t **pEvent)
 
 void Lost_exitAction()
 {
-    if (motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready && motor[3].getStatus() == MotorStatus::ready && motor[4].getStatus() == MotorStatus::ready && motor[5].getStatus() == MotorStatus::ready)
+    // if (motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready && motor[3].getStatus() == MotorStatus::ready && motor[4].getStatus() == MotorStatus::ready && motor[5].getStatus() == MotorStatus::ready)
+    // {
+    //     for (uint8_t i = 0; i < 6; i++)
+    //     {
+    //         joint[i].setMode(JointMode::angle);
+    //     }
+    // }
+
+    for (uint8_t i = 0; i < 6; i++)
     {
-        for (uint8_t i = 0; i < 6; i++)
+        if (motor[i].getStatus() == MotorStatus::ready)
         {
             joint[i].setMode(JointMode::angle);
         }
