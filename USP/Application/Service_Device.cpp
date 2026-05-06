@@ -20,6 +20,7 @@
 #include "internal.h"
 #include "TopState.h"
 #include "Keyboard.h"
+#include "usbd_cdc_if.h"
 
 /* Private define ------------------------------------------------------------*/
 #define ENABLE_J1_INERTIA_VALIDATION 0
@@ -744,6 +745,8 @@ void tskBoardCom(void *arg)
 	Vec3 bottom_pending_speed = {0.0f, 0.0f, 0.0f};
 	uint8_t bottom_pending_valid = 0U;
 	uint8_t bottom_period_tick = 0U;
+	TickType_t vision_busy_hold_ticks = 0U;
+	const TickType_t vision_busy_backoff_ticks = pdMS_TO_TICKS(2);
 	xLastWakeTime_t = xTaskGetTickCount();
 	vTaskDelay(1000);
 	for (;;)
@@ -780,59 +783,87 @@ void tskBoardCom(void *arg)
 		/*发送给小电脑*/
 		if (Robot_Prepared)
 		{
-			for (int i = 0; i < 6; i++)
-			{
-				vision_latest_frame.joint_current[i] = joint[i].getCurrentAngle();
-				if (i == 4)
+			DTR_state = CDC_IsPortOpen();
+			// if (CDC_IsPortOpen() == 0U)
+			// {
+			// 	vision_pending_valid = 0U;
+			// 	vision_busy_hold_ticks = 0U;
+			// }
+			// else
+			// {
+				if (vision_busy_hold_ticks > 0U)
 				{
-					vision_latest_frame.torque_current[i] = mfsJ5.f(joint[i].getCurrentTorque());
+					vision_busy_hold_ticks--;
 				}
-				else if (i == 5)
-				{
-					vision_latest_frame.torque_current[i] = mfsJ6.f(joint[i].getCurrentTorque());
-				}
-				else
-				{
-					vision_latest_frame.torque_current[i] = joint[i].getCurrentTorque();
-				}
-			}
-			vision_latest_frame.chassis_height_current = current_chassis_height;
-			vision_latest_frame.seq_num = seq_num++;
-			vision_latest_frame.comm_flag = reVisiondata.comm_flag;
 
-			if (vision_pending_valid == 0U)
-			{
-				memcpy(&toVisiondata, &vision_latest_frame, sizeof(toVisiondata));
-				vision_pending_valid = 1U;
-			}
-
-			if (vision_pending_valid != 0U)
-			{
-				// 返回USBD_BUSY则重复发送
-				uint8_t tx_result = Visiondata_Transmist();
-				if (tx_result == USBD_OK)
+				if (vision_busy_hold_ticks == 0U)
 				{
-					if (toVisiondata.seq_num != vision_latest_frame.seq_num)
+					for (int i = 0; i < 6; i++)
+					{
+						vision_latest_frame.joint_current[i] = joint[i].getCurrentAngle();
+						if (i == 4)
+						{
+							vision_latest_frame.torque_current[i] = mfsJ5.f(joint[i].getCurrentTorque());
+						}
+						else if (i == 5)
+						{
+							vision_latest_frame.torque_current[i] = mfsJ6.f(joint[i].getCurrentTorque());
+						}
+						else
+						{
+							vision_latest_frame.torque_current[i] = joint[i].getCurrentTorque();
+						}
+					}
+					vision_latest_frame.chassis_height_current = current_chassis_height;
+					vision_latest_frame.seq_num = seq_num++;
+					vision_latest_frame.comm_flag = reVisiondata.comm_flag;
+
+					if (vision_pending_valid == 0U)
 					{
 						memcpy(&toVisiondata, &vision_latest_frame, sizeof(toVisiondata));
 						vision_pending_valid = 1U;
 					}
-					else
+
+					if (vision_pending_valid != 0U)
 					{
-						vision_pending_valid = 0U;
+						if (Visiondata_IsTxBusy() != 0U)
+						{
+							vision_busy_hold_ticks = vision_busy_backoff_ticks;
+						}
+						else
+						{
+							tx_result = Visiondata_Transmist();
+							if (tx_result == USBD_OK)
+							{
+								if (toVisiondata.seq_num != vision_latest_frame.seq_num)
+								{
+									memcpy(&toVisiondata, &vision_latest_frame, sizeof(toVisiondata));
+									vision_pending_valid = 1U;
+								}
+								else
+								{
+									vision_pending_valid = 0U;
+								}
+							}
+							else if (tx_result == USBD_BUSY)
+							{
+								vision_busy_hold_ticks = vision_busy_backoff_ticks;
+							}
+							else
+							{
+								memcpy(&toVisiondata, &vision_latest_frame, sizeof(toVisiondata));
+								vision_pending_valid = 1U;
+							}
+						}
 					}
-				}
-				else if (tx_result != USBD_BUSY)
-				{
-					memcpy(&toVisiondata, &vision_latest_frame, sizeof(toVisiondata));
-					vision_pending_valid = 1U;
-				}
+				// }
 			}
 					
 		}
 		else
 		{
 			vision_pending_valid = 0U;
+			vision_busy_hold_ticks = 0U;
 		}
 		
 		// toVisiondata.timestamp = HAL_GetTick();

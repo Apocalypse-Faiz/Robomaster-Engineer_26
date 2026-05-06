@@ -55,6 +55,13 @@ USBD_HandleTypeDef hUsbDeviceHS;
  */
 /* USER CODE BEGIN 1 */
 
+void USB_DEVICE_Restart(void)
+{
+  (void)USBD_Stop(&hUsbDeviceHS);
+  (void)USBD_DeInit(&hUsbDeviceHS);
+  MX_USB_DEVICE_Init();
+}
+
 /* USER CODE END 1 */
 
 /**

@@ -174,5 +174,7 @@ MeanFilter<50> f_torque1, f_omega1;
 MeanFilter<50> mfsJ5, mfsJ6;
 float j5_reset_target, j6_reset_target = 0.0f;
 
+uint8_t DTR_state;
+uint8_t tx_result; 
 
 /************************ COPYRIGHT(C) SCUT-ROBOTLAB **************************/

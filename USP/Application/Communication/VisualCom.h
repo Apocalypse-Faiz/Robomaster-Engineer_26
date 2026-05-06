@@ -64,6 +64,7 @@ inline uint16_t calculate_crc16(const uint8_t * data, size_t len)
 extern CRCErrorStats vision_crc_stats;
 uint8_t Visiondata_Transmist();
 uint8_t Visiondata_Receive(const uint8_t *Recv_Data, uint16_t ReceiveLen);
+uint8_t Visiondata_IsTxBusy(void);
 
 #ifdef __cplusplus
 }

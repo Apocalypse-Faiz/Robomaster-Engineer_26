@@ -28,6 +28,15 @@ uint8_t Visiondata_Transmist()
     return USBD_FAIL;
 }
 
+uint8_t Visiondata_IsTxBusy()
+{
+#if USE_SRML_VIRTUAL_COM
+    return VirtualComIsTxBusy();
+#else
+    return 0U;
+#endif
+}
+
 uint8_t Visiondata_Receive(const uint8_t *Recv_Data, uint16_t ReceiveLen)
 {
     vision_crc_stats.total_received++;

@@ -197,6 +197,9 @@ extern MeanFilter<50> f_torque1, f_omega1;
 extern MeanFilter<50> mfsJ5, mfsJ6;
 extern float j5_reset_target, j6_reset_target;
 
+extern uint8_t DTR_state;
+extern uint8_t tx_result; 
+
 extern TaskHandle_t StateMachine_Handle; // 状态机任务
 
 /* Exported function declarations --------------------------------------------*/

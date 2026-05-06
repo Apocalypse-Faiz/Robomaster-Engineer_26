@@ -95,6 +95,7 @@ uint8_t UserRxBufferHS[APP_RX_DATA_SIZE];
 uint8_t UserTxBufferHS[APP_TX_DATA_SIZE];
 
 /* USER CODE BEGIN PRIVATE_VARIABLES */
+static volatile uint8_t cdc_dtr_ready = 0U;
 
 /* USER CODE END PRIVATE_VARIABLES */
 
@@ -157,6 +158,7 @@ static int8_t CDC_Init_HS(void)
   /* Set Application Buffers */
   USBD_CDC_SetTxBuffer(&hUsbDeviceHS, UserTxBufferHS, 0);
   USBD_CDC_SetRxBuffer(&hUsbDeviceHS, UserRxBufferHS);
+  cdc_dtr_ready = 0U;
   return (USBD_OK);
   /* USER CODE END 8 */
 }
@@ -169,6 +171,7 @@ static int8_t CDC_Init_HS(void)
 static int8_t CDC_DeInit_HS(void)
 {
   /* USER CODE BEGIN 9 */
+  cdc_dtr_ready = 0U;
   return (USBD_OK);
   /* USER CODE END 9 */
 }
@@ -183,6 +186,7 @@ static int8_t CDC_DeInit_HS(void)
 static int8_t CDC_Control_HS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 {
   /* USER CODE BEGIN 10 */
+  UNUSED(length);
   switch(cmd)
   {
   case CDC_SEND_ENCAPSULATED_COMMAND:
@@ -231,7 +235,13 @@ static int8_t CDC_Control_HS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
     break;
 
   case CDC_SET_CONTROL_LINE_STATE:
-
+  {
+    USBD_SetupReqTypedef *req = (USBD_SetupReqTypedef *)pbuf;
+    if (req != NULL)
+    {
+      cdc_dtr_ready = ((req->wValue & 0x0001U) != 0U) ? 1U : 0U;
+    }
+  }
     break;
 
   case CDC_SEND_BREAK:
@@ -315,6 +325,11 @@ static int8_t CDC_TransmitCplt_HS(uint8_t *Buf, uint32_t *Len, uint8_t epnum)
 }
 
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_IMPLEMENTATION */
+
+uint8_t CDC_IsPortOpen(void)
+{
+  return cdc_dtr_ready;
+}
 
 /* USER CODE END PRIVATE_FUNCTIONS_IMPLEMENTATION */
 
