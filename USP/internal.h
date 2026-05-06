@@ -38,6 +38,8 @@
 
 #include "SEGGER_SYSVIEW.h"
 
+#define VISION_NOTIFY_BIT (1U << 0)
+
 #if USE_SRML_LOG
 #include "Drivers/Devices/Log/inc/srml_log.h"
 #include "Drivers/Devices/Log/inc/srml_utils.h"
