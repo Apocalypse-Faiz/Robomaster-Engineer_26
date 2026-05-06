@@ -442,12 +442,12 @@ void GetEnergyUnit_action(Event_t **pEvent)
     if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
     {
         Keyboard_Grippers();
-        Keyboard_Store(toBottomdata);
+        // Keyboard_Store(toBottomdata);
     }
     if (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C && VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
     {
         VT13_KeyBoard_Grip();
-        VT13_KeyboardStoreGrippers(toBottomdata);
+        // VT13_KeyboardStoreGrippers(toBottomdata);
     }
 
 }
