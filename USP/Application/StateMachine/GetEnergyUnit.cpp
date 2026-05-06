@@ -227,10 +227,10 @@ void executeCustomControlMode()
 /**
  * @brief 执行视觉控制模式
  */
-void executeVisionControlMode() 
+void executeVisionControlMode(bool vision_data_ready) 
 {
     // 检查是否收到小电脑数据
-    if (ulTaskNotifyTake(pdTRUE, 0) == 55)
+    if (vision_data_ready)
     {
         for (int i = 0; i < 6; i++)
         {
@@ -282,6 +282,16 @@ void GetEnergyUnit_enterAction()
 
 void GetEnergyUnit_action(Event_t **pEvent)
 {
+    bool vision_data_ready = false;
+    uint32_t vision_notify_value = 0U;
+    if (current_mode == ControlMode::VISION_CONTROL)
+    {
+        if (xTaskNotifyWait(0U, VISION_NOTIFY_BIT, &vision_notify_value, 0U) == pdTRUE)
+        {
+            vision_data_ready = ((vision_notify_value & VISION_NOTIFY_BIT) != 0U);
+        }
+    }
+
     // 根据当前模式执行不同逻辑
     if ((DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED) || (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C && VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)) 
     {
@@ -298,7 +308,7 @@ void GetEnergyUnit_action(Event_t **pEvent)
                 break;
                 
             case ControlMode::VISION_CONTROL:
-                executeVisionControlMode();
+                executeVisionControlMode(vision_data_ready);
                 executeJointTakeover();
                 break;
         }
@@ -337,7 +347,7 @@ void GetEnergyUnit_action(Event_t **pEvent)
             }
             else if (current_mode == ControlMode::VISION_CONTROL)
             {
-                if (ulTaskNotifyTake(pdTRUE, 0) == 55)
+                if (vision_data_ready)
                 {
                     WS_indicator[i] = WS_Purple;
                 }

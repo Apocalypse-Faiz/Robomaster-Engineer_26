@@ -465,7 +465,7 @@ void User_VirtualComRecCpltCallback(uint8_t *Recv_Data, uint16_t ReceiveLen)
 
   if ((StateMachine_Handle != NULL) && (Visiondata_Receive(Recv_Data, ReceiveLen) != 0U))
   {
-    xTaskNotifyFromISR(StateMachine_Handle, 55, eSetValueWithOverwrite, &xHigherPriorityTaskWoken);
+    xTaskNotifyFromISR(StateMachine_Handle, VISION_NOTIFY_BIT, eSetBits, &xHigherPriorityTaskWoken);
   }
 
   portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
