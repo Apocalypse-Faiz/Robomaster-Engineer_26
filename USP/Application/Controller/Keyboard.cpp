@@ -348,7 +348,7 @@ void VT13_KeyBoard_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
             temp_vx = 0;
         }
 
-        temp_wz = -1.2 * temp_Speed * VT13.Get_MouseX_Norm();
+        temp_wz = -2 * temp_Speed * VT13.Get_MouseX_Norm();
 
         // read remote data
         const float x = temp_vx;
@@ -409,8 +409,8 @@ void VT13_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
         _ToBottomData.ChassisState = 1;
 
         // read remote data
-        const float x = map(deadband(VT13.GetCh3(), 1024, 50), 364, 1684, -chassis_max_translation_speed, chassis_max_translation_speed);
-        const float y = map(deadband(VT13.GetCh2(), 1024, 50), 364, 1684, -chassis_max_translation_speed, chassis_max_translation_speed);
+        const float x = map(deadband(VT13.GetCh2(), 1024, 50), 364, 1684, -chassis_max_translation_speed, chassis_max_translation_speed);
+        const float y = map(deadband(VT13.GetCh3(), 1024, 50), 364, 1684, -chassis_max_translation_speed, chassis_max_translation_speed);
         const float z = -map(deadband(VT13.GetCh0(), 1024, 50), 364, 1684, -chassis_max_spinning_speed, chassis_max_spinning_speed);
         const float magxy = sqrtf(x * x + y * y);
         // const float z = constrain(temp_wz, -chassis_max_spinning_speed, chassis_max_spinning_speed);

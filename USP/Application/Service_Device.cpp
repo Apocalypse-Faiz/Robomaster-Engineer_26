@@ -667,10 +667,16 @@ void tskMotor(void *arg)
 		{
 			if (Robot_Prepared)
 			{
+				for (int i = 0; i < 6; i++)
+				{
+					if (motor[i].getStatus() == MotorStatus::ready)
+					{
+						joint[i].updateJointData();
+					}
+				}
+
 				if (motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready)
 				{
-					joint[1].updateJointData();
-					joint[2].updateJointData();
 					UpdateMotor0PidByPose();
 
 					GravityCompension_Calculate(joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), &Gravity_feedforward[1], &Gravity_feedforward[2]);
