@@ -300,7 +300,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 }
                 add_once_flag = 1;
                 take_ore_state = TakeOre_enum::TakeOre1_prepare;
-                UI_Mode = 1;
+                // UI_Mode = 1;
             }
             else if(action_free == true && take_ore_state == TakeOre_enum::TakeOre1_ing && /*gripper.isObjectGripped() == true gripper.getState() == GripperState::OPENING &&*/ (DR16.IsKeyPress(DR16_KEY_V) || VT13.IsKeyPress(VT13_KEY_V)))
             {
@@ -313,7 +313,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 action_enum = ActionGroup_enum::TakeOre1_end;
                 add_once_flag = 1;
                 take_ore_state = TakeOre_enum::Zero;
-                UI_Mode = 0;
+                // UI_Mode = 0;
             }
             //2
             else if(get_ore_num[1] == 1 && action_free == true && take_ore_state == TakeOre_enum::Zero && /*gripper.isObjectGripped() == false &&*/ (DR16.IsKeyPress(DR16_KEY_V) || VT13.IsKeyPress(VT13_KEY_V)))
@@ -325,7 +325,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 }
                 add_once_flag = 1;
                 take_ore_state = TakeOre_enum::TakeOre2_prepare;
-                UI_Mode = 1;
+                // UI_Mode = 1;
             }
             else if(action_free == true && take_ore_state == TakeOre_enum::TakeOre2_ing && /*gripper.isObjectGripped() == true gripper.getState() == GripperState::CLOSING &&*/ (DR16.IsKeyPress(DR16_KEY_V) || VT13.IsKeyPress(VT13_KEY_V)))
             {
@@ -338,7 +338,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 action_enum = ActionGroup_enum::TakeOre2_end;
                 add_once_flag = 1;
                 take_ore_state = TakeOre_enum::Zero;
-                UI_Mode = 0;
+                // UI_Mode = 0;
             }
             //3
             else if(get_ore_num[2] == 1 && action_free == true && take_ore_state == TakeOre_enum::Zero && /*gripper.isObjectGripped() == false &&*/ (DR16.IsKeyPress(DR16_KEY_V) || VT13.IsKeyPress(VT13_KEY_V)))
@@ -350,7 +350,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 }
                 add_once_flag = 1;
                 take_ore_state = TakeOre_enum::TakeOre3_prepare;
-                UI_Mode = 1;
+                // UI_Mode = 1;
             }
             else if(action_free == true && take_ore_state == TakeOre_enum::TakeOre3_ing && /*gripper.isObjectGripped() == true gripper.getState() == GripperState::CLOSING &&*/ (DR16.IsKeyPress(DR16_KEY_V) || VT13.IsKeyPress(VT13_KEY_V)))
             {
@@ -363,7 +363,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 action_enum = ActionGroup_enum::TakeOre3_end;
                 add_once_flag = 1;
                 take_ore_state = TakeOre_enum::Zero;
-                UI_Mode = 0;
+                // UI_Mode = 0;
             }
             //4
             else if(get_ore_num[3] == 1 && action_free == true && take_ore_state == TakeOre_enum::Zero && /*gripper.isObjectGripped() == false &&*/ (DR16.IsKeyPress(DR16_KEY_V) || VT13.IsKeyPress(VT13_KEY_V)))
@@ -375,7 +375,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 }
                 add_once_flag = 1;
                 take_ore_state = TakeOre_enum::TakeOre4_prepare;
-                UI_Mode = 1;
+                // UI_Mode = 1;
             }
             else if(action_free == true && take_ore_state == TakeOre_enum::TakeOre4_ing && /*gripper.isObjectGripped() == true gripper.getState() == GripperState::CLOSING &&*/ (DR16.IsKeyPress(DR16_KEY_V) || VT13.IsKeyPress(VT13_KEY_V)))
             {
@@ -388,7 +388,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 action_enum = ActionGroup_enum::TakeOre4_end;
                 add_once_flag = 1;
                 take_ore_state = TakeOre_enum::Zero;
-                UI_Mode = 0;
+                // UI_Mode = 0;
             }
             //5
             else if(get_ore_num[4] == 1 && action_free == true && take_ore_state == TakeOre_enum::Zero && /*gripper.isObjectGripped() == false &&*/ (DR16.IsKeyPress(DR16_KEY_V) || VT13.IsKeyPress(VT13_KEY_V)))
@@ -400,7 +400,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 }
                 add_once_flag = 1;
                 take_ore_state = TakeOre_enum::TakeOre5_prepare;
-                UI_Mode = 1;
+                // UI_Mode = 1;
             }
             else if(action_free == true && take_ore_state == TakeOre_enum::TakeOre5_ing && /*gripper.isObjectGripped() == true gripper.getState() == GripperState::CLOSING &&*/ (DR16.IsKeyPress(DR16_KEY_V) || VT13.IsKeyPress(VT13_KEY_V)))
             {
@@ -413,7 +413,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 action_enum = ActionGroup_enum::TakeOre5_end;
                 add_once_flag = 1;
                 take_ore_state = TakeOre_enum::Zero;
-                UI_Mode = 0;
+                // UI_Mode = 0;
             }
             //6
             else if(get_ore_num[5] == 1 && action_free == true && take_ore_state == TakeOre_enum::Zero && /*gripper.isObjectGripped() == false &&*/ (DR16.IsKeyPress(DR16_KEY_V) || VT13.IsKeyPress(VT13_KEY_V)))
@@ -425,7 +425,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 }
                 add_once_flag = 1;
                 take_ore_state = TakeOre_enum::TakeOre6_prepare;
-                UI_Mode = 1;
+                // UI_Mode = 1;
             }
             else if(action_free == true && take_ore_state == TakeOre_enum::TakeOre6_ing && /*gripper.isObjectGripped() == true gripper.getState() == GripperState::CLOSING &&*/ (DR16.IsKeyPress(DR16_KEY_V) || VT13.IsKeyPress(VT13_KEY_V)))
             {
@@ -438,7 +438,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 action_enum = ActionGroup_enum::TakeOre6_end;
                 add_once_flag = 1;
                 take_ore_state = TakeOre_enum::Zero;
-                UI_Mode = 0;
+                // UI_Mode = 0;
             }
     
     // 取肚矿逻辑
@@ -517,7 +517,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
 void ActionGroupController::reset() 
 {
     init();
-    UI_Mode = 0;
+    // UI_Mode = 0;
 }
 
 int ActionGroupController::isActionGroupCompleted()

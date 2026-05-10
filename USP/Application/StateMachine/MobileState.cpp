@@ -38,7 +38,7 @@ void Mobile_action(Event_t **pEvent)
             action_enum = ActionGroup_enum::Mobile_NoOre;
             Add_onlyOnce = 1;
             mobile_state = 1; // 微抬视野状态
-            UI_Mode = 1;
+            // UI_Mode = 1;
         }
         // else if ((DR16.IsKeyPress(DR16_KEY_C) || VT13.IsKeyPress(VT13_KEY_C)) && Add_onlyOnce == 0)
         // {
@@ -52,7 +52,7 @@ void Mobile_action(Event_t **pEvent)
             action_enum = ActionGroup_enum::Mobile_Tunnel;
             Add_onlyOnce = 1;
             mobile_state = 3; // 折叠压缩状态
-            UI_Mode = 1;
+            // UI_Mode = 1;
         }
 
         /*选择动作组*/
@@ -133,5 +133,5 @@ void Mobile_exitAction()
         joint[i].stopTrajectoryPlanner();
     }
 
-    UI_Mode = 0;
+    // UI_Mode = 0;
 }

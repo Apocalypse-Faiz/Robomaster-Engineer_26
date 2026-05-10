@@ -736,7 +736,7 @@ void tskBoardCom(void *arg)
 {
 
 	TickType_t xLastWakeTime_t;
-
+    
 	uint8_t debug_computerCOm = 100;
 	uint16_t seq_num = 0;
 	ToVisionDataStruct vision_latest_frame;
@@ -749,6 +749,11 @@ void tskBoardCom(void *arg)
 	const TickType_t vision_busy_backoff_ticks = pdMS_TO_TICKS(2);
 	xLastWakeTime_t = xTaskGetTickCount();
 	vTaskDelay(1000);
+	/* UI mode trigger: when VT13 Q pressed, set UI_Mode=1 for next 5 cycles */
+#if USE_SRML_VT13
+	static uint8_t ui_mode_count = 0U;
+	static uint8_t last_vt13_q_state = 0U;
+#endif
 	for (;;)
 	{
 		/*发送给底层*/
@@ -760,6 +765,30 @@ void tskBoardCom(void *arg)
 			.x = toBottomdata.chassis_control_struct.x,
 			.y = toBottomdata.chassis_control_struct.y,
 			.z = toBottomdata.chassis_control_struct.z};
+
+		/* VT13 Q key: 当检测到按下边沿时，触发接下来的5个周期 UI 模式为 1 */
+#if USE_SRML_VT13
+		uint8_t cur_q = VT13.IsKeyPress(VT13_KEY_Q) ? 1U : 0U;
+
+		/* 检测按下边沿 */
+		if (cur_q && !last_vt13_q_state)
+		{
+			ui_mode_count = 5U; // 包含本周期在内的5个周期，每周期1ms，共5ms
+		}
+
+		/* 更新UI_Mode状态 */
+		if (ui_mode_count > 0U)
+		{
+			UI_Mode = 1U;
+			ui_mode_count--;
+		}
+		else
+		{
+			UI_Mode = 0U;
+		}
+
+		last_vt13_q_state = cur_q;
+#endif
 
 		bottom_period_tick++;
 		if ((bottom_period_tick >= 3U) || (bottom_pending_valid != 0U))

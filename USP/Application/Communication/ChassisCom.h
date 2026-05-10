@@ -32,7 +32,7 @@ struct ToBottomDataStructdef
     uint8_t frame_head[2] = {0x12, 0x23};
     ChassisControlStruct chassis_control_struct;
     uint8_t ChassisState : 4; // 失能0 正常1 兑矿2 前腿3 后腿4
-    uint8_t UI_mode : 7; // 暂时用做UI_mode
+    uint8_t UI_mode : 7; // 0：默认状态  1：刷新UI —— 因为动态UI需要UI绘制到第一次才可以刷新，该位置以供刷新使用
     uint8_t L_Store : 1;        // 左储矿 0：关闭电磁铁，1：开启
     uint8_t R_Store : 1;        // 右储矿 0：关闭电磁铁，1：开启
     uint16_t crc_code;

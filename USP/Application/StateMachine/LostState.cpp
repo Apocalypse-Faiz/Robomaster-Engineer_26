@@ -51,7 +51,7 @@ void Lost_action(Event_t **pEvent)
     }
 
     // UI
-    UI_Mode = 0;
+    // UI_Mode = 0;
 
     gripper.emergencyStop(); // 夹爪失能
     gripper.setState(GripperState::IDLE);
