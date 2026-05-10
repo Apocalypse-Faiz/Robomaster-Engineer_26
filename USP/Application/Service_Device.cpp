@@ -530,7 +530,7 @@ void tskMotor(void *arg)
 		drive_dm_motor[i].enableMotor();
 	}
 
-	DM8009.setEncoderOffset(0x6CEE);
+	DM8009.setEncoderOffset(0x7872);
 	DM10010.setEncoderOffset(0x60E7);
 	DM4340.setEncoderOffset(0x64FF);
 	DM4310.setEncoderOffset(0x9326);
@@ -784,13 +784,13 @@ void tskBoardCom(void *arg)
 		if (Robot_Prepared)
 		{
 			DTR_state = CDC_IsPortOpen();
-			// if (CDC_IsPortOpen() == 0U)
-			// {
-			// 	vision_pending_valid = 0U;
-			// 	vision_busy_hold_ticks = 0U;
-			// }
-			// else
-			// {
+			if (CDC_IsPortOpen() == 0U)
+			{
+				vision_pending_valid = 0U;
+				vision_busy_hold_ticks = 0U;
+			}
+			else
+			{
 				if (vision_busy_hold_ticks > 0U)
 				{
 					vision_busy_hold_ticks--;
@@ -856,7 +856,7 @@ void tskBoardCom(void *arg)
 							}
 						}
 					}
-				// }
+				}
 			}
 					
 		}

@@ -348,7 +348,7 @@ void VT13_KeyBoard_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
             temp_vx = 0;
         }
 
-        temp_wz = -2 * temp_Speed * VT13.Get_MouseX_Norm();
+        temp_wz = -7.5 * temp_Speed * VT13.Get_MouseX_Norm();
 
         // read remote data
         const float x = temp_vx;
@@ -523,11 +523,11 @@ void VT13_KeyBoard_MoveCtrl_Custom(ToBottomDataStructdef &_ToBottomData)
             temp_vx = 0;
         }
 
-        if (VT13.IsKeyPress(VT13_KEY_Q))
+        if (VT13.IsKeyPress(VT13_KEY_Q) && VT13.IsKeyPress(VT13_KEY_CTRL))
         {
             temp_wz = temp_Speed; // 左转
         }
-        else if (VT13.IsKeyPress(VT13_KEY_E))
+        else if (VT13.IsKeyPress(VT13_KEY_Q) && VT13.IsKeyPress(VT13_KEY_SHIFT))
         {
             temp_wz = -temp_Speed; // 右转
         }
