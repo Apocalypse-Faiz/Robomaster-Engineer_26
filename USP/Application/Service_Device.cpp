@@ -414,7 +414,7 @@ void Joint_limitSet()
 
 		/*关节软限位*/
 		joint[0].setJointParam(-170, 170, 10, -10);
-		joint[1].setJointParam(10, 160, -10, 10);	
+		joint[1].setJointParam(35, 160, -10, 10);	
 		joint[2].setJointParam(-180, 180, -10, 10);
 		joint[3].setJointParam(-180, 180, -10, 10);
 		joint[4].setJointParam(-360, 360, -10, 10); // J5关节在力矩复位后还要重新再限位一下
@@ -845,7 +845,14 @@ void tskBoardCom(void *arg)
 					}
 					vision_latest_frame.chassis_height_current = current_chassis_height;
 					vision_latest_frame.seq_num = seq_num++;
-					vision_latest_frame.comm_flag = reVisiondata.comm_flag;
+					if (vision_comm_flag_override != 0U)
+					{
+						vision_latest_frame.comm_flag = vision_comm_flag_override;
+					}
+					else
+					{
+						vision_latest_frame.comm_flag = reVisiondata.comm_flag;
+					}
 
 					if (vision_pending_valid == 0U)
 					{

@@ -187,6 +187,7 @@ extern ReBottomDataStructdef reBottomdata; // 从底盘接收的数据结构体
 extern ReBottomDataStructdef temp_reBottomdata; // 作为Buffer的底盘数据结构体
 extern ToVisionDataStruct toVisiondata;
 extern ReVisionDataStruct reVisiondata;
+extern uint8_t vision_comm_flag_override;
 extern Indicator_Classdef Indicator;     // 指示灯
 
 extern float speed_kp, speed_Out_Max, angle_kp, angle_ki, angle_kd, angle_Out_Max, angle_I_Max, debug_target_angle;
