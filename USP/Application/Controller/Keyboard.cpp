@@ -348,7 +348,7 @@ void VT13_KeyBoard_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
             temp_vx = 0;
         }
 
-        temp_wz = -7.5 * temp_Speed * VT13.Get_MouseX_Norm();
+        temp_wz = -10 * temp_Speed * VT13.Get_MouseX_Norm();
 
         // read remote data
         const float x = temp_vx;
@@ -374,7 +374,7 @@ void VT13_KeyBoard_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
     }
     else
     {
-        _ToBottomData.ChassisState = 0;
+        // _ToBottomData.ChassisState = 0;
         commanded_chassis_state = 1;
         last_rebottom_chassis_state = reBottomdata.ChassisState;
         last_f_key_state = false;
