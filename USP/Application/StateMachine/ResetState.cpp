@@ -125,8 +125,8 @@ bool Manipulator_TorqueReset()
                      // J5与J6只要一个进行了标定，那么motor5与motor6都会进行标定，之后相关的映射与限位J5、J6都要重新设
                      joint[4].calibrate();
  
-                     joint[4].setJointMapping(-Reduction_ratio, -124.7);
-                     joint[4].setJointParam(-120, 63, -10, 10);
+                     joint[4].setJointMapping(-Reduction_ratio, -138);
+                     joint[4].setJointParam(-120, 65, -10, 10);
                      joint[5].setJointMapping(Reduction_ratio, 0);
                      joint[5].setJointParam(-168, 168, -10, 10);
  
