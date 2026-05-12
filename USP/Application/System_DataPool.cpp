@@ -59,6 +59,7 @@ __CCM FS_I6X_Classdef remote;
 
 #if USE_SRML_REFEREE
 __SRAM referee_Classdef Referee;
+SemaphoreHandle_t Referee_VT_mutex; //图传链路缓冲区 写锁
 #endif
 #if USE_SRML_BMI088
 /** TODO:  25赛季完全删除，停止对第二代解算库支持*/

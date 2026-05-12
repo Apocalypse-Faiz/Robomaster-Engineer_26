@@ -61,7 +61,7 @@ void System_Device_Init(void)
 #endif
 
 #if USE_SRML_REFEREE
-  Uart_Init(&huart6, NULL, UART6_RX_BUFFER_SIZE, Referee_recv_Callback);
+  Uart_Init(&huart3, NULL, UART6_RX_BUFFER_SIZE, Referee_recv_Callback);
 #else
   Uart_Init(&huart3, NULL, UART3_RX_BUFFER_SIZE, UART3_RxCpltCallback);
 #endif
@@ -70,7 +70,7 @@ void System_Device_Init(void)
 #if USE_SRML_VT13
   Uart_Init(&huart6, NULL, UART6_RX_BUFFER_SIZE, VT13_RxCpltCallback);
 #else
-  Uart_Init(&huart3, NULL, UART5_RX_BUFFER_SIZE, UART5_RxCpltCallback);
+  Uart_Init(&huart6, NULL, UART5_RX_BUFFER_SIZE, UART5_RxCpltCallback);
 #endif
 
   Uart_Init(&huart1, NULL, UART1_RX_BUFFER_SIZE, UART1_RxCpltCallback);
@@ -84,7 +84,7 @@ void System_Device_Init(void)
 #endif
 
 #if USE_SRML_REFEREE
-  Referee.Init(&huart6, Get_SystemTimer);
+  Referee.Init(&huart3, &huart6, Get_SystemTimer);
 #endif
 
 #if USE_SRML_MPU6050
@@ -130,6 +130,9 @@ void System_Task_Init(void)
 #endif
 #if USE_SRML_VT13
   VT13_mutex = xSemaphoreCreateMutex();
+#endif
+#if USE_SRML_REFEREE
+  Referee_VT_mutex = xSemaphoreCreateMutex();
 #endif
   /* Task Init */
   Service_Communication_Init();

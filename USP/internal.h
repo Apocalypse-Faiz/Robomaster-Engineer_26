@@ -133,6 +133,7 @@ extern FS_I6X_Classdef remote;
 
 #if USE_SRML_REFEREE
 extern referee_Classdef Referee;//裁判系统类
+extern  SemaphoreHandle_t Referee_VT_mutex; //图传链路 写锁
 #endif
 
 extern int debug_can_over1;

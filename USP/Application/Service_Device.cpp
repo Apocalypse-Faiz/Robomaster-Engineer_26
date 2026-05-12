@@ -32,6 +32,7 @@ TaskHandle_t DR16_Handle;
 TaskHandle_t VT13_Handle; // VT13遥控器任务，如果不用了可以删除掉
 TaskHandle_t FS_I6X_Handle;
 TaskHandle_t Rx_Referee_Handle;
+TaskHandle_t Sx_Referee_Handle;
 TaskHandle_t Log_Handle;
 TaskHandle_t tskBackpackdrive_Handle; // 杂项机构任务
 TaskHandle_t StateMachine_Handle;	  // 状态机任务
@@ -53,6 +54,7 @@ void tskIMU(void *arg);
 void tskDR16(void *arg);
 void tskVT13(void *arg); // VT13遥控器任务，如果不用了可以删除掉
 void Rx_Referee(void *arg);
+void Sx_Referee(void *arg);
 void tskLog(void *arg);
 void tskBackpackdrive(void *arg);
 void tskStateMachine(void *arg);
@@ -91,7 +93,9 @@ void Service_Devices_Init(void)
 #endif // !USE_SRML_FS_I6X
 
 #if USE_SRML_REFEREE
+	Referee.CC_Mutex_init(Referee_VT_mutex);
 	xTaskCreate(Rx_Referee, "Rx_Referee", Normal_Stack_Size, NULL, PriorityNormal, &Rx_Referee_Handle);
+	xTaskCreate(Sx_Referee, "Sx_Referee", Normal_Stack_Size, NULL, PriorityNormal, &Sx_Referee_Handle);
 #endif
 }
 
@@ -1061,6 +1065,80 @@ void Rx_Referee(void *arg)
 		}
 	}
 }
+
+// 需要1字节对齐
+#pragma pack(1)
+typedef struct
+{
+	/*机械臂*/
+	float J1_angle; // J1关节角度，单位：？
+	float J2_angle; // J2关节角度，单位：？
+	float J3_angle; // J3关节角度，单位：？
+	float J4_angle; // J4关节角度，单位：？
+	float J5_angle; // J5关节角度，单位：？
+	float J6_angle; // J6关节角度，单位：？
+
+	/*储存机构*/
+	uint8_t store_status; // 存储状态标志位
+
+	/*四轮腿*/
+	float LF_angle_1; // 左前大腿角度 单位：？
+	float LF_angle_2; // 左前小腿角度 单位：？
+	float RF_angle_1; // 右前大腿角度 单位：？
+	float RF_angle_2; // 右前小腿角度 单位：？
+	float LB_angle_1; // 左后大腿角度 单位：？
+	float LB_angle_2; // 左后小腿角度 单位：？
+	float RB_angle_1; // 右后大腿角度 单位：？
+	float RB_angle_2; // 右后小腿角度 单位：？
+
+	/*RFID伸缩机构*/
+	uint8_t RFID_flag;	  // RFID机构标志位
+	uint16_t RFID_length; // RFID伸缩长度，单位：？
+
+	uint8_t percentage_supercapacitors; // 超级电容百分比
+
+	uint32_t RFID_LEN;
+	uint8_t RFID_reserved;
+
+} __attribute__((packed)) self_engineer_data;
+#pragma pack()
+
+self_engineer_data engineer_data_2_cc;
+
+/**
+ * @brief  接受裁判系统数据
+ * @param  None.
+ * @return None.
+ */
+void Sx_Referee(void *arg)
+{
+	/* Preoad for task */
+	TickType_t xLastWakeTime_t = xTaskGetTickCount();
+
+	/* Infinite loop */
+	for (;;)
+	{
+
+		engineer_data_2_cc.J1_angle = joint[0].getCurrentAngle();
+		engineer_data_2_cc.J2_angle = joint[1].getCurrentAngle();
+		engineer_data_2_cc.J3_angle = joint[2].getCurrentAngle();
+		engineer_data_2_cc.J4_angle = joint[3].getCurrentAngle();
+		engineer_data_2_cc.J5_angle = joint[4].getCurrentAngle();
+		engineer_data_2_cc.J6_angle = joint[5].getCurrentAngle();
+		engineer_data_2_cc.RFID_flag = 7;
+		engineer_data_2_cc.percentage_supercapacitors = 6;
+		engineer_data_2_cc.RFID_LEN = 12345;
+		engineer_data_2_cc.RFID_reserved = 0;
+
+		// 具备自定义数据功能，如工程
+		Referee.CC_data_input(CC_ID_ENGINEER_V2, (uint8_t *)&engineer_data_2_cc, sizeof(engineer_data_2_cc), CC_MESSAGE_SELF, 0);
+
+		// 不具备自定义数据功能，如步兵
+		// Referee.InfantryInfo[0].gimbal_info.shooter_flag = 0;
+		// Referee.CC_data_input(CC_ID_INFANTRY_3_V1, NULL, 0, CC_MESSAGE_SELF, 0);
+	}
+}
+
 #endif
 
 #if USE_SRML_FS_I6X
