@@ -845,13 +845,13 @@ void tskBoardCom(void *arg)
 					}
 					vision_latest_frame.chassis_height_current = current_chassis_height;
 					vision_latest_frame.seq_num = seq_num++;
-					if (vision_comm_flag_override != 0U)
+					if (vision_comm_flag_override_valid)
 					{
 						vision_latest_frame.comm_flag = vision_comm_flag_override;
 					}
 					else
 					{
-						vision_latest_frame.comm_flag = reVisiondata.comm_flag;
+						vision_latest_frame.comm_flag = 0;
 					}
 
 					if (vision_pending_valid == 0U)

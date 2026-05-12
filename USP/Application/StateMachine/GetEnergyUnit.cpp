@@ -21,7 +21,7 @@ static constexpr float get_energy_unit_default_chassis_height_m = 0.441f;
 static bool mode_changing = false;
 static uint32_t mode_change_time = 0;
 static bool vision_takeover_requested = false;
-static bool vision_takeover_granted = false;
+static bool vision_takeover_acknowledged = false;
 static bool last_vt13_z_state = false;
 
 /**
@@ -89,8 +89,9 @@ void switchControlMode(ControlMode new_mode)
             vision_control_data.enable = false;
             vision_controller.reset();
             vision_takeover_requested = false;
-            vision_takeover_granted = false;
+            vision_takeover_acknowledged = false;
             vision_comm_flag_override = 0U;
+            vision_comm_flag_override_valid = false;
             break;
     }
     
@@ -111,8 +112,9 @@ void switchControlMode(ControlMode new_mode)
         case ControlMode::VISION_CONTROL:
             vision_control_data.enable = true;
             vision_takeover_requested = false;
-            vision_takeover_granted = false;
+            vision_takeover_acknowledged = false;
             vision_comm_flag_override = 0U;
+            vision_comm_flag_override_valid = false;
             break;
     }
 }
@@ -283,8 +285,9 @@ void GetEnergyUnit_enterAction()
     current_mode = ControlMode::ACTION_GROUP;
     mode_changing = false;
     vision_takeover_requested = false;
-    vision_takeover_granted = false;
+    vision_takeover_acknowledged = false;
     vision_comm_flag_override = 0U;
+    vision_comm_flag_override_valid = false;
 
     // 进入取能量单元状态时，默认将底盘高度目标设置为 0.441m
     toBottomdata.ChassisState = 2;
@@ -333,15 +336,17 @@ void GetEnergyUnit_action(Event_t **pEvent)
         if (z_triggered)
         {
             vision_takeover_requested = true;
-            vision_takeover_granted = false;
+            vision_takeover_acknowledged = false;
             vision_comm_flag_override = 9U;
+            vision_comm_flag_override_valid = true;
         }
 
         if (vision_takeover_requested && reVisiondata.comm_flag == 8U)
         {
             vision_takeover_requested = false;
-            vision_takeover_granted = true;
+            vision_takeover_acknowledged = true;
             vision_comm_flag_override = 0U;
+            vision_comm_flag_override_valid = true;
         }
     }
 
@@ -361,10 +366,7 @@ void GetEnergyUnit_action(Event_t **pEvent)
                 break;
                 
             case ControlMode::VISION_CONTROL:
-                if (vision_takeover_granted)
-                {
-                    executeVisionControlMode(vision_data_ready);
-                }
+                executeVisionControlMode(vision_data_ready);
                 executeJointTakeover();
                 break;
         }
@@ -403,7 +405,17 @@ void GetEnergyUnit_action(Event_t **pEvent)
             }
             else if (current_mode == ControlMode::VISION_CONTROL)
             {
-                if (vision_data_ready)
+                if (vision_takeover_requested)
+                {
+                    if (i == 0)
+                    WS_indicator[i] = WS_Blue;
+                }
+                else if (vision_takeover_acknowledged)
+                {
+                    if (i == 0)
+                    WS_indicator[i] = WS_Green;
+                }
+                else if (vision_data_ready)
                 {
                     WS_indicator[i] = WS_Purple;
                 }
@@ -522,6 +534,7 @@ void GetEnergyUnit_exitAction()
      current_mode = ControlMode::ACTION_GROUP;
      mode_changing = false;
     vision_takeover_requested = false;
-    vision_takeover_granted = false;
+    vision_takeover_acknowledged = false;
     vision_comm_flag_override = 0U;
+    vision_comm_flag_override_valid = false;
 }

@@ -165,6 +165,7 @@ ReBottomDataStructdef temp_reBottomdata; // 作为Buffer的底盘数据结构体
 ToVisionDataStruct toVisiondata;
 ReVisionDataStruct reVisiondata;
 uint8_t vision_comm_flag_override = 0U;
+bool vision_comm_flag_override_valid = false;
 
 // PID调参
 float speed_kp, speed_Out_Max, angle_kp, angle_ki, angle_kd, angle_Out_Max, angle_I_Max, debug_target_angle = 0.000f;
