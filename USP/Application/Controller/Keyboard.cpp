@@ -302,6 +302,12 @@ void VT13_KeyBoard_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
             }
         }
 
+        if (commanded_chassis_state == 4)
+        {
+            if (last_rebottom_chassis_state == 0)
+            commanded_chassis_state = 1;
+        }
+
         _ToBottomData.ChassisState = commanded_chassis_state;
 
         last_rebottom_chassis_state = reBottomdata.ChassisState;
