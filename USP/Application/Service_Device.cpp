@@ -558,6 +558,10 @@ void tskMotor(void *arg)
  
 	TickType_t xLastWakeTime_t;
 	xLastWakeTime_t = xTaskGetTickCount();
+	uint8_t last_cmd_chassis_state = 0U;
+	bool last_cmd_chassis_state_init = false;
+	float chassis_height_hold = chassis_height_min;
+	bool chassis_height_hold_valid = false;
 	for (;;)
 	{
 		/* wait for next circle */
@@ -566,6 +570,26 @@ void tskMotor(void *arg)
 		current_chassis_height = constrain(reBottomdata.chassis_height,
 												chassis_height_min,
 												chassis_height_max);
+
+		if (!last_cmd_chassis_state_init)
+		{
+			last_cmd_chassis_state = toBottomdata.ChassisState;
+			last_cmd_chassis_state_init = true;
+		}
+
+		// Remember height when leaving ChassisState=2 and restore on return.
+		if (last_cmd_chassis_state == 2 && toBottomdata.ChassisState == 0)
+		{
+			chassis_height_hold = current_chassis_height;
+			chassis_height_hold_valid = true;
+		}
+		else if (last_cmd_chassis_state == 0 && toBottomdata.ChassisState == 2 && chassis_height_hold_valid)
+		{
+			target_chassis_height = chassis_height_hold;
+			target_height_initialized = true;
+			align_to_target_active = true;
+		}
+		last_cmd_chassis_state = toBottomdata.ChassisState;
 
 		if (!target_height_initialized)
 		{
