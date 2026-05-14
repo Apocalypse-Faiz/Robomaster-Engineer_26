@@ -302,7 +302,7 @@ void VT13_KeyBoard_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
             }
         }
 
-        if (commanded_chassis_state == 4)
+        if (commanded_chassis_state == 4 || commanded_chassis_state == 3)
         {
             if (last_rebottom_chassis_state == 0)
             commanded_chassis_state = 1;
@@ -690,41 +690,41 @@ void VT13_Grip()
 
 void VT13_Store(ToBottomDataStructdef &_ToBottomData)
 {
-    if(VT13.GetModeSwitch() == MS_Status_Typedef::MS_S)
-    {
-        if(VT13.GetTrigger())
-        {
-           if(VT13.GetDial() > 1324)
-           {
-                _ToBottomData.L_Store = 1;
-           }
-           else if(VT13.GetDial() < 724)
-           {
-                _ToBottomData.L_Store = 0;
-           }
-           else
-           {
-                // _ToBottomData.L_Store = 0;
-           }
+    // if(VT13.GetModeSwitch() == MS_Status_Typedef::MS_S)
+    // {
+    //     if(VT13.GetTrigger())
+    //     {
+    //        if(VT13.GetDial() > 1324)
+    //        {
+    //             _ToBottomData.L_Store = 1;
+    //        }
+    //        else if(VT13.GetDial() < 724)
+    //        {
+    //             _ToBottomData.L_Store = 0;
+    //        }
+    //        else
+    //        {
+    //             // _ToBottomData.L_Store = 0;
+    //        }
           
-        }
-        else if(!VT13.GetTrigger())
-        {
-            if(VT13.GetDial() > 1324)
-           {
-                _ToBottomData.R_Store = 1;
-           }
-           else if(VT13.GetDial() < 724)
-           {
-                _ToBottomData.R_Store = 0;
-           }
-           else
-           {
-                // _ToBottomData.R_Store = 0;
-           }
+    //     }
+    //     else if(!VT13.GetTrigger())
+    //     {
+    //         if(VT13.GetDial() > 1324)
+    //        {
+    //             _ToBottomData.R_Store = 1;
+    //        }
+    //        else if(VT13.GetDial() < 724)
+    //        {
+    //             _ToBottomData.R_Store = 0;
+    //        }
+    //        else
+    //        {
+    //             // _ToBottomData.R_Store = 0;
+    //        }
           
-        }
-    }
+    //     }
+    // }
     
 }
 
@@ -767,64 +767,64 @@ void VT13_KeyBoard_Grip()
 void VT13_KeyboardStoreGrippers(ToBottomDataStructdef &_ToBottomData)
 {
     // VT13储存能量单元
-    if (VT13.GetModeSwitch() == MS_Status_Typedef::MS_S)
-    {
-        bool leftgripperchanged = false;
-        bool rightgripperchanged = false;
-        static uint8_t last_left_store_button_state = 0; // 0: 未按下，1: 按下
-        static uint8_t last_right_store_button_state = 0; // 0: 未按下，1: 按下
-        uint8_t current_left_store_button_state = VT13.Datapack_custom.L_Storage & 0x01; // 取最低位作为左侧储存按钮状态
-        uint8_t current_right_store_button_state = VT13.Datapack_custom.R_Storage & 0x01; // 取最低位作为右侧储存按钮状态
-        uint8_t left_store_button_state_changed = current_left_store_button_state ^ last_left_store_button_state;
-        uint8_t right_store_button_state_changed = current_right_store_button_state ^ last_right_store_button_state;
+    // if (VT13.GetModeSwitch() == MS_Status_Typedef::MS_S)
+    // {
+    //     bool leftgripperchanged = false;
+    //     bool rightgripperchanged = false;
+    //     static uint8_t last_left_store_button_state = 0; // 0: 未按下，1: 按下
+    //     static uint8_t last_right_store_button_state = 0; // 0: 未按下，1: 按下
+    //     uint8_t current_left_store_button_state = VT13.Datapack_custom.L_Storage & 0x01; // 取最低位作为左侧储存按钮状态
+    //     uint8_t current_right_store_button_state = VT13.Datapack_custom.R_Storage & 0x01; // 取最低位作为右侧储存按钮状态
+    //     uint8_t left_store_button_state_changed = current_left_store_button_state ^ last_left_store_button_state;
+    //     uint8_t right_store_button_state_changed = current_right_store_button_state ^ last_right_store_button_state;
 
-        if (VT13.IsKeyPress(VT13_KEY_E) && !lastGripperState[2] || right_store_button_state_changed)
-        {
-            GripperStates[2] = !GripperStates[2];
-            rightgripperchanged = true;
-        }
+    //     if (VT13.IsKeyPress(VT13_KEY_E) && !lastGripperState[2] || right_store_button_state_changed)
+    //     {
+    //         GripperStates[2] = !GripperStates[2];
+    //         rightgripperchanged = true;
+    //     }
 
-        lastGripperState[2] = VT13.IsKeyPress(VT13_KEY_E);
-        last_right_store_button_state = current_right_store_button_state;
+    //     lastGripperState[2] = VT13.IsKeyPress(VT13_KEY_E);
+    //     last_right_store_button_state = current_right_store_button_state;
         
-        if (rightgripperchanged)
-        {
-            if (reBottomdata.R_Store == 0)
-            {
-                _ToBottomData.R_Store = 1; // 打开电磁铁
-            }
-            else if (reBottomdata.R_Store == 1)
-            {
-                _ToBottomData.R_Store = 0; // 关闭电磁铁
-            }
-        }
+    //     if (rightgripperchanged)
+    //     {
+    //         if (reBottomdata.R_Store == 0)
+    //         {
+    //             _ToBottomData.R_Store = 1; // 打开电磁铁
+    //         }
+    //         else if (reBottomdata.R_Store == 1)
+    //         {
+    //             _ToBottomData.R_Store = 0; // 关闭电磁铁
+    //         }
+    //     }
 
-        if (VT13.IsKeyPress(VT13_KEY_Q) && !lastGripperState[1] || left_store_button_state_changed)
-        {
-            GripperStates[1] = !GripperStates[1];
-            leftgripperchanged = true;
-        }
+    //     if (VT13.IsKeyPress(VT13_KEY_Q) && !lastGripperState[1] || left_store_button_state_changed)
+    //     {
+    //         GripperStates[1] = !GripperStates[1];
+    //         leftgripperchanged = true;
+    //     }
 
-        lastGripperState[1] = VT13.IsKeyPress(VT13_KEY_Q);
-        last_left_store_button_state = current_left_store_button_state;
+    //     lastGripperState[1] = VT13.IsKeyPress(VT13_KEY_Q);
+    //     last_left_store_button_state = current_left_store_button_state;
 
-        if (leftgripperchanged)
-        {
-            if (reBottomdata.L_Store == 0)
-            {
-                _ToBottomData.L_Store = 1; // 打开电磁铁
-            }
-            else if (reBottomdata.L_Store == 1)
-            {
-                _ToBottomData.L_Store = 0; // 关闭电磁铁
-            }
-        }
-    }
-    else if(VT13.GetModeSwitch() == MS_Status_Typedef::MS_C)
-    {
-        _ToBottomData.L_Store = 0;
-        _ToBottomData.R_Store = 0;
-    }
+    //     if (leftgripperchanged)
+    //     {
+    //         if (reBottomdata.L_Store == 0)
+    //         {
+    //             _ToBottomData.L_Store = 1; // 打开电磁铁
+    //         }
+    //         else if (reBottomdata.L_Store == 1)
+    //         {
+    //             _ToBottomData.L_Store = 0; // 关闭电磁铁
+    //         }
+    //     }
+    // }
+    // else if(VT13.GetModeSwitch() == MS_Status_Typedef::MS_C)
+    // {
+    //     _ToBottomData.L_Store = 0;
+    //     _ToBottomData.R_Store = 0;
+    // }
 }
 
 #endif
@@ -1583,103 +1583,103 @@ void Keyboard_Grippers()
  */
 void DR16_Store(ToBottomDataStructdef &_ToBottomData)
 {
-    if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
-    {
-        if (DR16.GetS1() == 2 && DR16.GetS2() == 3)  // 左下右中
-        {
-            if (DR16.GetCh3() > 1324)
-            {
-                _ToBottomData.L_Store = 0; // 左电磁铁关
-            }
-            else if (DR16.GetCh3() < 724)
-            {
-                _ToBottomData.L_Store = 1; // 左电磁铁开
-            }
-            else
-            {
-                // _ToBottomData.L_Store = 0;
-            }
+    // if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
+    // {
+    //     if (DR16.GetS1() == 2 && DR16.GetS2() == 3)  // 左下右中
+    //     {
+    //         if (DR16.GetCh3() > 1324)
+    //         {
+    //             _ToBottomData.L_Store = 0; // 左电磁铁关
+    //         }
+    //         else if (DR16.GetCh3() < 724)
+    //         {
+    //             _ToBottomData.L_Store = 1; // 左电磁铁开
+    //         }
+    //         else
+    //         {
+    //             // _ToBottomData.L_Store = 0;
+    //         }
 
-            if (DR16.GetCh1() > 1324)
-            {
-                _ToBottomData.R_Store = 0; // 右电磁铁关
-            }
-            else if (DR16.GetCh1() < 724)
-            {
-                _ToBottomData.R_Store = 1; // 右电磁铁开
-            }
-            else
-            {
-                // _ToBottomData.R_Store = 0;
-            }
+    //         if (DR16.GetCh1() > 1324)
+    //         {
+    //             _ToBottomData.R_Store = 0; // 右电磁铁关
+    //         }
+    //         else if (DR16.GetCh1() < 724)
+    //         {
+    //             _ToBottomData.R_Store = 1; // 右电磁铁开
+    //         }
+    //         else
+    //         {
+    //             // _ToBottomData.R_Store = 0;
+    //         }
 
-        }
-        else
-        {
-            // _ToBottomData.L_Store = 0;
-            // _ToBottomData.R_Store = 0;
-        }
-    }
-    else
-    {
-        // _ToBottomData.L_Store = 0;
-        // _ToBottomData.R_Store = 0;
-    }
+    //     }
+    //     else
+    //     {
+    //         // _ToBottomData.L_Store = 0;
+    //         // _ToBottomData.R_Store = 0;
+    //     }
+    // }
+    // else
+    // {
+    //     // _ToBottomData.L_Store = 0;
+    //     // _ToBottomData.R_Store = 0;
+    // }
 }
 
 void Keyboard_Store(ToBottomDataStructdef &_ToBottomData)
 {
-    if(DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
-    {
-        if (DR16.GetS1() == 2 && DR16.GetS2() == 3)  // 左下右中
-        {
-            bool leftgripperchanged = false;
-            bool rightgripperchanged = false;
-            if (DR16.IsKeyPress(DR16_KEY_E) && !lastGripperState[2])
-            {
-                GripperStates[2] = !GripperStates[2];
-                rightgripperchanged = true;
-            }
+    // if(DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
+    // {
+    //     if (DR16.GetS1() == 2 && DR16.GetS2() == 3)  // 左下右中
+    //     {
+    //         bool leftgripperchanged = false;
+    //         bool rightgripperchanged = false;
+    //         if (DR16.IsKeyPress(DR16_KEY_E) && !lastGripperState[2])
+    //         {
+    //             GripperStates[2] = !GripperStates[2];
+    //             rightgripperchanged = true;
+    //         }
 
-            lastGripperState[2] = DR16.IsKeyPress(DR16_KEY_E);
+    //         lastGripperState[2] = DR16.IsKeyPress(DR16_KEY_E);
             
-            if (rightgripperchanged)
-            {
-                if (reBottomdata.R_Store == 0)
-                {
-                    _ToBottomData.R_Store = 1; // 打开电磁铁
-                }
-                else if (reBottomdata.R_Store == 1)
-                {
-                    _ToBottomData.R_Store = 0; // 关闭电磁铁
-                }
-            }
+    //         if (rightgripperchanged)
+    //         {
+    //             if (reBottomdata.R_Store == 0)
+    //             {
+    //                 _ToBottomData.R_Store = 1; // 打开电磁铁
+    //             }
+    //             else if (reBottomdata.R_Store == 1)
+    //             {
+    //                 _ToBottomData.R_Store = 0; // 关闭电磁铁
+    //             }
+    //         }
 
-            if (DR16.IsKeyPress(DR16_KEY_Q) && !lastGripperState[1])
-            {
-                GripperStates[1] = !GripperStates[1];
-                leftgripperchanged = true;
-            }
+    //         if (DR16.IsKeyPress(DR16_KEY_Q) && !lastGripperState[1])
+    //         {
+    //             GripperStates[1] = !GripperStates[1];
+    //             leftgripperchanged = true;
+    //         }
 
-            lastGripperState[1] = DR16.IsKeyPress(DR16_KEY_Q);
+    //         lastGripperState[1] = DR16.IsKeyPress(DR16_KEY_Q);
 
-            if (leftgripperchanged)
-            {
-                if (reBottomdata.L_Store == 0)
-                {
-                    _ToBottomData.L_Store = 1; // 打开电磁铁
-                }
-                else if (reBottomdata.L_Store == 1)
-                {
-                    _ToBottomData.L_Store = 0; // 关闭电磁铁
-                }
-            }
-        }    
+    //         if (leftgripperchanged)
+    //         {
+    //             if (reBottomdata.L_Store == 0)
+    //             {
+    //                 _ToBottomData.L_Store = 1; // 打开电磁铁
+    //             }
+    //             else if (reBottomdata.L_Store == 1)
+    //             {
+    //                 _ToBottomData.L_Store = 0; // 关闭电磁铁
+    //             }
+    //         }
+    //     }    
         
-    }
-    else
-    {
-        // _ToBottomData.L_Store = 0;
-        // _ToBottomData.R_Store = 0;
-    }
+    // }
+    // else
+    // {
+    //     // _ToBottomData.L_Store = 0;
+    //     // _ToBottomData.R_Store = 0;
+    // }
 }

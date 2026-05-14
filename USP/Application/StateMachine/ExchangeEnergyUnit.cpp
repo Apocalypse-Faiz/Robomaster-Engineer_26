@@ -248,12 +248,12 @@ void ExchangeEnergyUnit_enterAction()
     state_timeout = 0;
     current_retry = 0;
 
-    if(reBottomdata.L_Store == 1 && reBottomdata.R_Store == 1)
-    EnergyUnitCount =2;
-    else if((reBottomdata.L_Store == 0 && reBottomdata.R_Store == 1) || (reBottomdata.L_Store == 1 && reBottomdata.R_Store == 0))
-    EnergyUnitCount = 1;
-    else if(reBottomdata.L_Store == 0 && reBottomdata.R_Store == 0)
-    EnergyUnitCount = 0;
+    // if(reBottomdata.L_Store == 1 && reBottomdata.R_Store == 1)
+    // EnergyUnitCount =2;
+    // else if((reBottomdata.L_Store == 0 && reBottomdata.R_Store == 1) || (reBottomdata.L_Store == 1 && reBottomdata.R_Store == 0))
+    // EnergyUnitCount = 1;
+    // else if(reBottomdata.L_Store == 0 && reBottomdata.R_Store == 0)
+    // EnergyUnitCount = 0;
     
     // 初始化控制数据
     custom_control_data.enable = false;

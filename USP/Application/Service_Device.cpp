@@ -21,6 +21,7 @@
 #include "TopState.h"
 #include "Keyboard.h"
 #include "usbd_cdc_if.h"
+#include "ActionGroupController.h"
 
 /* Private define ------------------------------------------------------------*/
 #define ENABLE_J1_INERTIA_VALIDATION 0
@@ -1095,34 +1096,36 @@ void Rx_Referee(void *arg)
 typedef struct
 {
 	/*机械臂*/
-	float J1_angle; // J1关节角度，单位：？
+	float J1_angle; // J1关节角度，单位：度
 	float J2_angle; // J2关节角度，单位：？
 	float J3_angle; // J3关节角度，单位：？
 	float J4_angle; // J4关节角度，单位：？
 	float J5_angle; // J5关节角度，单位：？
 	float J6_angle; // J6关节角度，单位：？
 
-	/*储存机构*/
-	uint8_t store_status; // 存储状态标志位
-
 	/*四轮腿*/
-	float LF_angle_1; // 左前大腿角度 单位：？
-	float LF_angle_2; // 左前小腿角度 单位：？
-	float RF_angle_1; // 右前大腿角度 单位：？
-	float RF_angle_2; // 右前小腿角度 单位：？
-	float LB_angle_1; // 左后大腿角度 单位：？
-	float LB_angle_2; // 左后小腿角度 单位：？
-	float RB_angle_1; // 右后大腿角度 单位：？
-	float RB_angle_2; // 右后小腿角度 单位：？
+	float LF_pos_1; // 左前大腿位置 单位：m
+	float LF_pos_2; // 左前小腿位置 单位：？
+	float RF_pos_1; // 右前大腿位置 单位：？
+	float RF_pos_2; // 右前小腿位置 单位：？
+	float LB_pos_1; // 左后大腿位置 单位：？
+	float LB_pos_2; // 左后小腿位置 单位：？
+	float RB_pos_1; // 右后大腿位置 单位：？
+	float RB_pos_2; // 右后小腿位置 单位：？
 
-	/*RFID伸缩机构*/
-	uint8_t RFID_flag;	  // RFID机构标志位
-	uint16_t RFID_length; // RFID伸缩长度，单位：？
+	float chassis_height; // 底盘高度，单位：m
 
-	uint8_t percentage_supercapacitors; // 超级电容百分比
+	float RFID_length; // RFID伸缩长度，单位：m
+	
+	uint8_t RobotState;   // 0：失能  1：机动  2：复位  3：兑矿  4：急停复位
+	uint8_t ArmCtrlState; // 0：动作组  1：自定义控制器  2：视觉
+	uint8_t ChassisState; // 0: 失能  1：正常  2：兑矿  3：前腿  4：后腿
 
-	uint32_t RFID_LEN;
-	uint8_t RFID_reserved;
+	uint8_t EnergyUnit_index; // 能量单元索引
+
+	uint8_t MotorHighTempNum; // 高温电机数量
+	uint8_t OverTempFlag;     // 是否触发电机过温失能
+
 
 } __attribute__((packed)) self_engineer_data;
 #pragma pack()
@@ -1149,10 +1152,46 @@ void Sx_Referee(void *arg)
 		engineer_data_2_cc.J4_angle = joint[3].getCurrentAngle();
 		engineer_data_2_cc.J5_angle = joint[4].getCurrentAngle();
 		engineer_data_2_cc.J6_angle = joint[5].getCurrentAngle();
-		engineer_data_2_cc.RFID_flag = 7;
-		engineer_data_2_cc.percentage_supercapacitors = 6;
-		engineer_data_2_cc.RFID_LEN = 12345;
-		engineer_data_2_cc.RFID_reserved = 0;
+
+		engineer_data_2_cc.LF_pos_1 = reBottomdata.EndPosition[0];
+		engineer_data_2_cc.LF_pos_2 = reBottomdata.EndPosition[4];
+		engineer_data_2_cc.RF_pos_1 = reBottomdata.EndPosition[1];
+		engineer_data_2_cc.RF_pos_2 = reBottomdata.EndPosition[5];
+		engineer_data_2_cc.LB_pos_1 = reBottomdata.EndPosition[2];
+		engineer_data_2_cc.LB_pos_2 = reBottomdata.EndPosition[6];
+		engineer_data_2_cc.RB_pos_1 = reBottomdata.EndPosition[3];
+		engineer_data_2_cc.RB_pos_2 = reBottomdata.EndPosition[7];
+
+		engineer_data_2_cc.chassis_height = current_chassis_height;
+		engineer_data_2_cc.RFID_length = reBottomdata.rfid_height;
+		engineer_data_2_cc.ArmCtrlState = ArmMode;
+		engineer_data_2_cc.ChassisState = reBottomdata.ChassisState;
+
+		switch (g_top_state_id)
+		{
+		case TopStateId::Mobile:
+			engineer_data_2_cc.RobotState = 1;
+			break;
+		case TopStateId::Lost:
+			engineer_data_2_cc.RobotState = 0;
+			break;
+		case TopStateId::Reset:
+			engineer_data_2_cc.RobotState = 2;
+			break;
+		case TopStateId::GetEnergyUnit:
+			engineer_data_2_cc.RobotState = 3;
+			break;
+		case TopStateId::Emergency:
+			engineer_data_2_cc.RobotState = 4;
+			break;
+		default:
+			break;
+		}
+
+		engineer_data_2_cc.EnergyUnit_index = action_group_controller.getSelectedOre();
+
+		engineer_data_2_cc.MotorHighTempNum = reBottomdata.HighTempMotorNum;
+		engineer_data_2_cc.OverTempFlag = reBottomdata.OverTempFlag;
 
 		// 具备自定义数据功能，如工程
 		Referee.CC_data_input(CC_ID_ENGINEER_V2, (uint8_t *)&engineer_data_2_cc, sizeof(engineer_data_2_cc), CC_MESSAGE_SELF, 0);

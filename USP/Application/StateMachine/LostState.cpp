@@ -35,8 +35,8 @@ void Lost_action(Event_t **pEvent)
     toBottomdata.chassis_control_struct.x = 0;
     toBottomdata.chassis_control_struct.y = 0;
     toBottomdata.chassis_control_struct.z = 0;
-    toBottomdata.L_Store = 0; // 夹爪待命
-    toBottomdata.R_Store = 0; // 夹爪待命
+    // toBottomdata.L_Store = 0; // 夹爪待命
+    // toBottomdata.R_Store = 0; // 夹爪待命
 
     for (int i = 0; i < 6; i++)
     {

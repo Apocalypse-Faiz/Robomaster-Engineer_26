@@ -260,7 +260,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
             action_enum = ActionGroup_enum::StoreOre_L;
             add_once_flag = 1;
             ore_ing[0] = 1;
-            toBottomdata.L_Store = 0;
+            // toBottomdata.L_Store = 0;
             take_ore_state = TakeOre_enum::StoreOre_L;
         } 
         else if (/*OreBit[0] == 1 && OreBit[1] == 0*/DR16.IsKeyPress(DR16_KEY_SHIFT) || VT13.IsKeyPress(VT13_KEY_SHIFT)) 
@@ -268,7 +268,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
             action_enum = ActionGroup_enum::StoreOre_R;
             add_once_flag = 1;
             ore_ing[1] = 1;
-            toBottomdata.R_Store = 0;
+            // toBottomdata.R_Store = 0;
             take_ore_state = TakeOre_enum::StoreOre_R;
         }
     }
@@ -279,14 +279,14 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
         ore_ing[0] = 3;
         action_enum = ActionGroup_enum::ExitStoreOre_L;
         add_once_flag = 1;
-        toBottomdata.L_Store = 1;
+        // toBottomdata.L_Store = 1;
         take_ore_state = TakeOre_enum::Zero;
     } else if (action_free == true && ore_ing[1] == 2) 
     {
         ore_ing[1] = 3;
         action_enum = ActionGroup_enum::ExitStoreOre_R;
         add_once_flag = 1;
-        toBottomdata.R_Store = 1;
+        // toBottomdata.R_Store = 1;
         take_ore_state = TakeOre_enum::Zero;
     }
     
@@ -452,7 +452,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
             }
             action_enum = ActionGroup_enum::TakeInOre_L;
             add_once_flag = 1;
-            toBottomdata.L_Store = 0;
+            // toBottomdata.L_Store = 0;
             take_ore_state = TakeOre_enum::TakeInOre_L;
         } 
         else if (/*OreBit[0] == 0 && OreBit[1] == 1*/DR16.IsKeyPress(DR16_KEY_SHIFT) || VT13.IsKeyPress(VT13_KEY_SHIFT)) 
@@ -463,7 +463,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
             }
             action_enum = ActionGroup_enum::TakeInOre_R;
             add_once_flag = 1;
-            toBottomdata.R_Store = 0;
+            // toBottomdata.R_Store = 0;
             take_ore_state = TakeOre_enum::TakeInOre_R;
         } 
         // else if (OreBit[0] == 1 && OreBit[1] == 0) 

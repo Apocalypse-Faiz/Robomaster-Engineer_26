@@ -25,8 +25,8 @@ uint8_t Bottomdata_Transmit(float _x, float _y, float _z)
     // Final_toBottomdata.chassis_control_struct.y = _y;
     // Final_toBottomdata.chassis_control_struct.z = _z;
 
-    ToBottomData_temp.L_Store = toBottomdata.L_Store;
-    ToBottomData_temp.R_Store = toBottomdata.R_Store;
+    // ToBottomData_temp.L_Store = toBottomdata.L_Store;
+    // ToBottomData_temp.R_Store = toBottomdata.R_Store;
 
     ToBottomData_temp.UI_mode = (uint8_t)UI_Mode; // UI界面赋值
 

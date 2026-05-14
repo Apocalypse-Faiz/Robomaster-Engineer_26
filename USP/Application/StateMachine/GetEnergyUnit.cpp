@@ -356,16 +356,19 @@ void GetEnergyUnit_action(Event_t **pEvent)
         switch (current_mode) 
         {
             case ControlMode::ACTION_GROUP:
+                ArmMode = 0;
                 executeActionGroupMode();
 
                 break;
                 
             case ControlMode::CUSTOM_CONTROL:
+                ArmMode = 1;
                 executeCustomControlMode();
                 executeJointTakeover();
                 break;
                 
             case ControlMode::VISION_CONTROL:
+                ArmMode = 2;
                 executeVisionControlMode(vision_data_ready);
                 executeJointTakeover();
                 break;
