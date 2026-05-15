@@ -796,28 +796,28 @@ void tskBoardCom(void *arg)
 			.z = toBottomdata.chassis_control_struct.z};
 
 		/* VT13 Q key: 当检测到按下边沿时，触发接下来的5个周期 UI 模式为 1 */
-#if USE_SRML_VT13
-		uint8_t cur_q = VT13.IsKeyPress(VT13_KEY_Q) ? 1U : 0U;
+// #if USE_SRML_VT13
+// 		uint8_t cur_q = VT13.IsKeyPress(VT13_KEY_Q) ? 1U : 0U;
 
-		/* 检测按下边沿 */
-		if (cur_q && !last_vt13_q_state)
-		{
-			ui_mode_count = 5U; // 包含本周期在内的5个周期，每周期1ms，共5ms
-		}
+// 		/* 检测按下边沿 */
+// 		if (cur_q && !last_vt13_q_state)
+// 		{
+// 			ui_mode_count = 5U; // 包含本周期在内的5个周期，每周期1ms，共5ms
+// 		}
 
-		/* 更新UI_Mode状态 */
-		if (ui_mode_count > 0U)
-		{
-			UI_Mode = 1U;
-			ui_mode_count--;
-		}
-		else
-		{
-			UI_Mode = 0U;
-		}
+// 		/* 更新UI_Mode状态 */
+// 		if (ui_mode_count > 0U)
+// 		{
+// 			UI_Mode = 1U;
+// 			ui_mode_count--;
+// 		}
+// 		else
+// 		{
+// 			UI_Mode = 0U;
+// 		}
 
-		last_vt13_q_state = cur_q;
-#endif
+// 		last_vt13_q_state = cur_q;
+// #endif
 
 		bottom_period_tick++;
 		if ((bottom_period_tick >= 3U) || (bottom_pending_valid != 0U))
@@ -1113,6 +1113,8 @@ typedef struct
 	float RB_pos_1; // 右后大腿位置 单位：？
 	float RB_pos_2; // 右后小腿位置 单位：？
 
+	float chassis_pitch;
+	float chassis_roll;
 	float chassis_height; // 底盘高度，单位：m
 
 	float RFID_length; // RFID伸缩长度，单位：m
@@ -1162,6 +1164,8 @@ void Sx_Referee(void *arg)
 		engineer_data_2_cc.RB_pos_1 = reBottomdata.EndPosition[3];
 		engineer_data_2_cc.RB_pos_2 = reBottomdata.EndPosition[7];
 
+		engineer_data_2_cc.chassis_pitch = reBottomdata.chassis_angle[0];
+		engineer_data_2_cc.chassis_roll = reBottomdata.chassis_angle[1];
 		engineer_data_2_cc.chassis_height = current_chassis_height;
 		engineer_data_2_cc.RFID_length = reBottomdata.rfid_height;
 		engineer_data_2_cc.ArmCtrlState = ArmMode;

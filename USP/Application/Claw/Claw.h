@@ -43,10 +43,10 @@ public:
     Gripper(Servo_Classdef* servo): servo(servo)
     {
         state = GripperState::IDLE;
-        min_position = 0.0f;
-        max_position = 78.0f;
+        min_position = 15.0f;
+        max_position = 96.0f;
         angle_step = 3.0f;
-        current_position = 78.0f;
+        current_position = 96.0f;
         target_position = 0.0f;
         pwm_started = false;
     }
