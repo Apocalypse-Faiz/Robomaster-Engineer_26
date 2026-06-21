@@ -97,8 +97,8 @@ bool inverseKinematics(const EndEffectorPose& target_pose,
 bool calculateInsertionTrajectory(float insert_distance, float trajectory_angles[6][10]) 
 {
     // 获取当前关节角度
-    float current_angles[6];
-    for (int i = 0; i < 6; i++) 
+    float current_angles[7];
+    for (int i = 0; i < 7; i++) 
     {
         current_angles[i] = joint[i].getCurrentAngle();
     }
@@ -146,8 +146,8 @@ bool calculateInsertionTrajectory(float insert_distance, float trajectory_angles
 bool calculateTranslationTrajectory(float translation_distance, float trajectory_angles[6][10]) 
 {
     // 获取当前关节角度
-    float current_angles[6];
-    for (int i = 0; i < 6; i++) 
+    float current_angles[7];
+    for (int i = 0; i < 7; i++) 
     {
         current_angles[i] = joint[i].getCurrentAngle();
     }
@@ -180,7 +180,7 @@ bool calculateTranslationTrajectory(float translation_distance, float trajectory
             return false;
         }
         
-        for (int i = 0; i < 6; i++) 
+        for (int i = 0; i < 7; i++) 
         {
             trajectory_angles[i][point] = result[i];
         }
@@ -198,7 +198,7 @@ bool executeCalculatedTrajectory(float trajectory_angles[6][10], uint32_t durati
     uint32_t point_duration = duration_ms / 10;
     
     // 为每个关节规划轨迹
-    for (int i = 0; i < 6; i++) 
+    for (int i = 0; i < 7; i++) 
     {
         if (joint[i].isCalibrated()) 
         {
@@ -232,7 +232,7 @@ void ExchangeEnergyUnit_enterAction()
     g_top_state_id = TopStateId::ExchangeEnergyUnit;
 
     // 清理所有轨迹
-    for (uint8_t i = 0; i < 6; i++) 
+    for (uint8_t i = 0; i < 7; i++) 
     {
         joint_trajectory_point_array[i].clear();
         joint[i].stopTrajectoryPlanner();
@@ -277,7 +277,7 @@ void ExchangeEnergyUnit_enterAction()
  */
 bool checkActionGroupComplete() 
 {
-    for (uint8_t i = 0; i < 6; i++) 
+    for (uint8_t i = 0; i < 7; i++) 
     {
         if (!joint[i].isTrajectoryPlannerFree()) 
         {
@@ -313,7 +313,7 @@ void gotoNextState(ExchangeState next_state)
     uint32_t current_time = HAL_GetTick();
     if ((current_time - state_start_time) > 300)    return;
 
-    for (uint8_t i = 0; i < 6; i++) 
+    for (uint8_t i = 0; i < 7; i++) 
     {
         joint[i].stopTrajectoryPlanner();
         joint_trajectory_point_array[i].clear();
@@ -549,7 +549,7 @@ void handleCustomControlMode()
     // 接收自定义控制器数据
     if (VT13.GetStatus() == VT13_ESTABLISHED) 
     {
-        for (int i = 0; i < 6; i++) 
+        for (int i = 0; i < 7; i++) 
         {
             custom_control_data.joint_angle[i] = VT13.Datapack_custom.joint_angle[i];
         }
@@ -569,7 +569,7 @@ void handleCustomControlMode()
         case ExchangeState::INSERTING:
         case ExchangeState::TRANSLATING:
         case ExchangeState::ROTATING:
-            custom_controller.update(custom_control_data, joint, joint_trajectory_point_array, 6);
+            custom_controller.update(custom_control_data, joint, joint_trajectory_point_array, 7);
             if (DR16.IsKeyPress(DR16_KEY_B) || VT13.IsKeyPress(VT13_KEY_B))
             {
                 gotoNextState(ExchangeState::VERIFYING);
@@ -690,7 +690,7 @@ void handleVisionControlMode()
     // 接收视觉数据
    if (ulTaskNotifyTake(pdTRUE, 0) == 55)
    {
-        for (int i = 0; i < 6; i++)
+        for (int i = 0; i < 7; i++)
         {
             vision_control_data.joint_angle[i] = reVisiondata.joint_target[i];
         }
@@ -900,7 +900,7 @@ void executeJoint()
     if (current_mode == ExchangeMode::CUSTOM_CONTROL && custom_controller.isEnabled()) 
     {
         // 自定义控制模式
-        for (uint8_t i = 0; i < 6; i++) 
+        for (uint8_t i = 0; i < 7; i++) 
         {
             joint[i].takeOver(current_time);
         }
@@ -908,7 +908,7 @@ void executeJoint()
     else if (current_mode == ExchangeMode::VISION_CONTROL && vision_controller.isEnabled()) 
     {
         // 视觉控制模式
-        for (uint8_t i = 0; i < 6; i++) 
+        for (uint8_t i = 0; i < 7; i++) 
         {
             joint[i].takeOver(current_time);
         }
@@ -916,7 +916,7 @@ void executeJoint()
     else 
     {
         // 动作组模式
-        for (uint8_t i = 0; i < 6; i++) 
+        for (uint8_t i = 0; i < 7; i++) 
         {
             joint[i].takeOver(current_time);
         }
@@ -991,7 +991,7 @@ void handleModeSwitch()
         }
         
         // 停止所有关节轨迹规划
-        for (uint8_t i = 0; i < 6; i++) 
+        for (uint8_t i = 0; i < 7; i++) 
         {
             joint[i].stopTrajectoryPlanner();
             joint_trajectory_point_array[i].clear();
@@ -1104,7 +1104,7 @@ void ExchangeEnergyUnit_exitAction()
     vision_controller.reset();
     
     // 清理轨迹
-    for (uint8_t i = 0; i < 6; i++) 
+    for (uint8_t i = 0; i < 7; i++) 
     {
         joint_trajectory_point_array[i].clear();
         joint[i].stopTrajectoryPlanner();

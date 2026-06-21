@@ -11,7 +11,7 @@ bool VisionController::checkTargetsChanged(VisionData& data)
     bool changed = false;
     const float tolerance = 0.05f; // 容忍度0.1度
     
-    for (int i = 0; i < 6; i++) 
+    for (int i = 0; i < 7; i++) 
     {
         if (fabs(data.joint_angle[i] - previous_angles[i]) > tolerance) 
         {
@@ -63,13 +63,13 @@ bool VisionController::checkTargetsAllZero(VisionData& data)
     bool is_all_zero = false;
     uint8_t zero_count = 0;
 
-    for (int i = 0; i < 6; i++)
+    for (int i = 0; i < 7; i++)
     {
         if (data.joint_angle[i] == 0)
         zero_count++;
     }
 
-    if (zero_count == 6)
+    if (zero_count == 7)
     {
         is_all_zero = true;
     }
@@ -92,7 +92,7 @@ void VisionController::update(VisionData& data, Joint joints[], TrajectoryPointA
                 if (!first)
                 {
                     // 记录当前位置作为起始点
-                    for (int i = 0; i < 6; i++) 
+                    for (int i = 0; i < 7; i++) 
                     {
                         if (joints[i].isCalibrated()) 
                         {

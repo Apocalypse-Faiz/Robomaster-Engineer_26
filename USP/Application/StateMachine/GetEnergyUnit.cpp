@@ -44,7 +44,7 @@ void initControllers()
     action_group_controller.reset();
     
     // 设置为当前位置
-    for (int i = 0; i < 6; i++) 
+    for (int i = 0; i < 7; i++) 
     {
         if (joint[i].isCalibrated()) 
         {
@@ -62,7 +62,7 @@ void switchControlMode(ControlMode new_mode)
     if (current_mode == new_mode) return;
 
      // 停止所有关节轨迹规划
-     for (uint8_t i = 0; i < 6; i++) 
+     for (uint8_t i = 0; i < 7; i++) 
      {
          joint[i].stopTrajectoryPlanner();
          joint_trajectory_point_array[i].clear();
@@ -222,13 +222,13 @@ void executeCustomControlMode()
     if (VT13.Check_CustomController_Link()) 
     {
         // 接收自定义控制器数据
-        for (int i = 0; i < 6; i++) 
+        for (int i = 0; i < 7; i++) 
         {
             custom_control_data.joint_angle[i] = VT13.Datapack_custom.joint_angle[i];
         }
         
         // 更新自定义控制器
-        custom_controller.update(custom_control_data, joint, joint_trajectory_point_array, 6);
+        custom_controller.update(custom_control_data, joint, joint_trajectory_point_array, 7);
     }
     
     VT13_KeyBoard_Grip();
@@ -243,13 +243,13 @@ void executeVisionControlMode(bool vision_data_ready)
     // 检查是否收到小电脑数据
     if (vision_data_ready)
     {
-        for (int i = 0; i < 6; i++)
+        for (int i = 0; i < 7; i++)
         {
             vision_control_data.joint_angle[i] = reVisiondata.joint_target[i];
         }
 
         // 更新视觉控制
-        vision_controller.update(vision_control_data, joint, joint_trajectory_point_array, 6);
+        vision_controller.update(vision_control_data, joint, joint_trajectory_point_array, 7);
         SetTargetChassisHeight(reVisiondata.chassis_height_target);
     }
 }
@@ -262,7 +262,7 @@ void executeJointTakeover()
     uint32_t current_time = HAL_GetTick();
     
     // 所有模式都需要执行关节接管
-    for (uint8_t i = 0; i < 6; i++) 
+    for (uint8_t i = 0; i < 7; i++) 
     {
         joint[i].takeOver(current_time);
     }
@@ -272,7 +272,7 @@ void GetEnergyUnit_enterAction()
 {
     g_top_state_id = TopStateId::GetEnergyUnit;
 
-    for (uint8_t i = 0; i < 6; i++)
+    for (uint8_t i = 0; i < 7; i++)
     {
         joint_trajectory_point_array[i].clear();
         joint[i].stopTrajectoryPlanner();
@@ -376,7 +376,7 @@ void GetEnergyUnit_action(Event_t **pEvent)
         
     }
 
-    for (int i = 0; i < 6; i++)
+    for (int i = 0; i < 7; i++)
     {
         if (motor[i].getStatus() != MotorStatus::ready)
         {

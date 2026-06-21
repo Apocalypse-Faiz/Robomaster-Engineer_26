@@ -311,7 +311,7 @@ void CustomController::update(CustomData& data, Joint joints[], TrajectoryPointA
 /**
  * @brief 获取关节当前目标角度
  */
-void CustomController::getCurrentTargets(float targets[6]) const 
+void CustomController::getCurrentTargets(float targets[7]) const 
 {
     // 这里可以根据需要返回当前目标角度
     // 在实际应用中，可以从最新的CustomData中获取

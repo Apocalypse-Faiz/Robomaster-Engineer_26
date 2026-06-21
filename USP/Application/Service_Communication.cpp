@@ -215,21 +215,17 @@ void Task_CAN1Receive(void *arg)
     /* update motor data from CAN1_RxPort */
     if (xQueueReceive(CAN1_RxPort, &CAN_RxCOB, portMAX_DELAY) == pdPASS)
     {
-     if(CAN_RxCOB.ID == DM8009.ID)
+      if(CAN_RxCOB.ID == DM4340P.ID)
+     {
+      DM4340P.update(CAN_RxCOB.ID, CAN_RxCOB.Data);
+     }
+     else if(CAN_RxCOB.ID == DM8009.ID)
      {
       DM8009.update(CAN_RxCOB.ID, CAN_RxCOB.Data);
      }
-     else if(CAN_RxCOB.ID == DM10010.ID)
+     else if(CAN_RxCOB.ID == DM4340_1.ID)
      {
-      DM10010.update(CAN_RxCOB.ID, CAN_RxCOB.Data);
-     }
-     else if(CAN_RxCOB.ID == DM4340.ID)
-     {
-      DM4340.update(CAN_RxCOB.ID, CAN_RxCOB.Data);
-     }
-     else if(CAN_RxCOB.ID == DM4310.ID)
-     {
-      DM4310.update(CAN_RxCOB.ID, CAN_RxCOB.Data);
+      DM4340_1.update(CAN_RxCOB.ID, CAN_RxCOB.Data);
      }
     }
   }
@@ -248,13 +244,25 @@ void Task_CAN2Receive(void *arg)
     /* update motor data from CAN1_RxPort */
     if (xQueueReceive(CAN2_RxPort, &CAN_RxCOB, portMAX_DELAY) == pdPASS)
     {
-      if(CAN_RxCOB.ID == Dji2006_1.getRecID())
+      if(CAN_RxCOB.ID == DM4340_2.ID)
       {
-        Dji2006_1.update(CAN_RxCOB.ID, CAN_RxCOB.Data);
+        DM4340_2.update(CAN_RxCOB.ID, CAN_RxCOB.Data);
       }
-      else if(CAN_RxCOB.ID == Dji2006_2.getRecID())
+      else if(CAN_RxCOB.ID == DM4310_1.ID)
       {
-        Dji2006_2.update(CAN_RxCOB.ID, CAN_RxCOB.Data);
+        DM4310_1.update(CAN_RxCOB.ID, CAN_RxCOB.Data);
+      }
+      else if(CAN_RxCOB.ID == DM4340_1.ID)
+      {
+        DM4340_1.update(CAN_RxCOB.ID, CAN_RxCOB.Data);
+      }
+      else if(CAN_RxCOB.ID == DM4310_2.ID)
+      {
+        DM4310_2.update(CAN_RxCOB.ID, CAN_RxCOB.Data);
+      }
+      else if(CAN_RxCOB.ID == DM4310_3.ID)
+      {
+        DM4310_3.update(CAN_RxCOB.ID, CAN_RxCOB.Data);
       }
     }
   }

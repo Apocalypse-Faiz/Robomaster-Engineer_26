@@ -6,7 +6,7 @@ void Mobile_enterAction()
 {
     g_top_state_id = TopStateId::Mobile;
 
-    for (uint8_t i = 0; i < 6; i++)
+    for (uint8_t i = 0; i < 7; i++)
     {
         joint_trajectory_point_array[i].clear();
         joint[i].stopTrajectoryPlanner();
@@ -26,7 +26,7 @@ void Mobile_action(Event_t **pEvent)
         /*暂停真正执行的动作组*/
         if ((DR16.GetS1() == SW_DOWN && DR16.GetS2() == SW_UP) || VT13.GetPause())
         {
-            for (uint8_t i = 0; i < 6; i++)
+            for (uint8_t i = 0; i < 7; i++)
             {
                 joint[i].stopTrajectoryPlanner();
             }
@@ -59,10 +59,10 @@ void Mobile_action(Event_t **pEvent)
         ActionGroup_Choose(joint_trajectory_point_array, action_enum, Add_onlyOnce);
 
         /* 动作组执行 */
-        ActionGroup_Execute(joint, joint_trajectory_point_array, 6, Add_onlyOnce);
+        ActionGroup_Execute(joint, joint_trajectory_point_array, 7, Add_onlyOnce);
     }
 
-    for (int i = 0; i < 6; i++)
+    for (int i = 0; i < 7; i++)
     {
         if (motor[i].getStatus() != MotorStatus::ready)
         {
@@ -127,7 +127,7 @@ void Mobile_action(Event_t **pEvent)
 
 void Mobile_exitAction()
 {
-    for (uint8_t i = 0; i < 6; i++)
+    for (uint8_t i = 0; i < 7; i++)
     {
         joint_trajectory_point_array[i].clear();
         joint[i].stopTrajectoryPlanner();

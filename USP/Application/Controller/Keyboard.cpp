@@ -1192,7 +1192,7 @@ void DR16_Manipulater_JointCtrl()
         if (last_link_status == LinkageStatus_Typedef::LOST)
         {
             // 使能
-            for (uint8_t i = 0; i < 6; i++)
+            for (uint8_t i = 0; i < 7; i++)
             {
                 joint[i].setMode(JointMode::angle);
             }
@@ -1277,7 +1277,7 @@ void DR16_Manipulater_JointCtrl()
     }
     else
     {
-        for (uint8_t i = 0; i < 6; i++)
+        for (uint8_t i = 0; i < 7; i++)
         {
             joint[i].setMode(JointMode::disabled);
         }
@@ -1309,7 +1309,7 @@ void DR16_Debug_Ctrl()
         if (last_link_status == LinkageStatus_Typedef::LOST)
         {
             // 使能
-            for (uint8_t i = 0; i < 6; i++)
+            for (uint8_t i = 0; i < 7; i++)
             {
                 joint[i].setMode(JointMode::angle);
             }
@@ -1383,7 +1383,7 @@ void DR16_Debug_Ctrl()
     }
     else
     {
-        for (uint8_t i = 0; i < 6; i++)
+        for (uint8_t i = 0; i < 7; i++)
         {
             joint[i].setMode(JointMode::disabled);
         }

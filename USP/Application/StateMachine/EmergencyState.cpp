@@ -18,7 +18,7 @@ void Emergency_enterAction()
     emergencyTorqueResetDone = false;
     Robot_Prepared = 0;
     // 清除所有轨迹点
-    for (uint8_t i = 0; i < 6; i++)
+    for (uint8_t i = 0; i < 7; i++)
     {
         joint_trajectory_point_array[i].clear();
         joint[i].stopTrajectoryPlanner();
@@ -121,7 +121,7 @@ void Emergency_action(Event_t **pEvent)
         }
     }
 
-    for (int i = 0; i < 6; i++)
+    for (int i = 0; i < 7; i++)
     {
         if (motor[i].getStatus() != MotorStatus::ready)
         {
@@ -151,7 +151,7 @@ void Emergency_exitAction()
     emergencyTorqueResetDone = false;
 
     // 退出前再次做清理，避免残留轨迹
-    for (uint8_t i = 0; i < 6; i++)
+    for (uint8_t i = 0; i < 7; i++)
     {
         joint[i].stopTrajectoryPlanner();
         joint_trajectory_point_array[i].clear();

@@ -5,9 +5,9 @@ void Lost_enterAction()
 {
     g_top_state_id = TopStateId::Lost;
 
-    if (motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready && motor[3].getStatus() == MotorStatus::ready && motor[4].getStatus() == MotorStatus::ready && motor[5].getStatus() == MotorStatus::ready)
+    if (motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready && motor[3].getStatus() == MotorStatus::ready && motor[4].getStatus() == MotorStatus::ready && motor[5].getStatus() == MotorStatus::ready && motor[6].getStatus() == MotorStatus::ready)
     {
-        for (uint8_t i = 0; i < 6; i++)
+        for (uint8_t i = 0; i < 7; i++)
         {
             joint_trajectory_point_array[i].clear();
             joint[i].stopTrajectoryPlanner();
@@ -21,10 +21,10 @@ void Lost_action(Event_t **pEvent)
 {
 
 
-    if (motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready && motor[3].getStatus() == MotorStatus::ready && motor[4].getStatus() == MotorStatus::ready && motor[5].getStatus() == MotorStatus::ready)
+    if (motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready && motor[3].getStatus() == MotorStatus::ready && motor[4].getStatus() == MotorStatus::ready && motor[5].getStatus() == MotorStatus::ready && motor[6].getStatus() == MotorStatus::ready)
     {
         // 关节失能
-        for (uint8_t i = 0; i < 6; i++)
+        for (uint8_t i = 0; i < 7; i++)
         {
             joint[i].setMode(JointMode::disabled);
         }
@@ -38,7 +38,7 @@ void Lost_action(Event_t **pEvent)
     // toBottomdata.L_Store = 0; // 夹爪待命
     // toBottomdata.R_Store = 0; // 夹爪待命
 
-    for (int i = 0; i < 6; i++)
+    for (int i = 0; i < 7; i++)
     {
         if (motor[i].getStatus() != MotorStatus::ready)
         {
@@ -80,7 +80,7 @@ void Lost_exitAction()
     //     }
     // }
 
-    for (uint8_t i = 0; i < 6; i++)
+    for (uint8_t i = 0; i < 7; i++)
     {
         if (motor[i].getStatus() == MotorStatus::ready)
         {

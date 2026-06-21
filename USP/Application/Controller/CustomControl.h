@@ -1,6 +1,6 @@
 // /* 自定义控制数据结构 */
 // typedef struct {
-//     float joint_angle[6];      // 目标关节角度
+//     float joint_angle[7];      // 目标关节角度
 //     bool enable;               // 自定义控制使能
 //     uint32_t frequency;        // 控制频率（ms）
 // } CustomData;
@@ -60,7 +60,7 @@
 
 /* 自定义控制数据结构 */
 typedef struct {
-    float joint_angle[6];      // 目标关节角度
+    float joint_angle[7];      // 目标关节角度
     bool enable;               // 自定义控制使能
     uint32_t frequency;        // 控制频率（ms）
 } CustomData;
@@ -77,7 +77,7 @@ class CustomController {
 private:
     CustomState state;
     uint32_t last_update_time;
-    float start_angles[6];      // 缓启动起始角度
+    float start_angles[7];      // 缓启动起始角度
     
 public:
     CustomController() : state(CUSTOM_DISABLED), last_update_time(0) 
@@ -117,7 +117,7 @@ public:
     /**
      * @brief 获取关节当前目标角度
      */
-    void getCurrentTargets(float targets[6]) const;
+    void getCurrentTargets(float targets[7]) const;
     
 private:
     /**

@@ -250,11 +250,11 @@ void CheckMotorStatus()
 	static TickType_t last_dm_reconnect_tick = 0U;
 	static uint8_t dm_reconnect_rr_idx = 0U;
 	static uint8_t all_ready_stable_cnt = 0U;
-	static uint8_t dm_offline_latched[4] = {0U, 0U, 0U, 0U};
-	static uint8_t ready_init_done[6] = {0U};
+	static uint8_t dm_offline_latched[7] = {0U, 0U, 0U, 0U, 0U, 0U, 0U};
+	static uint8_t ready_init_done[7] = {0U};
 	static uint8_t mode_init_done = 0U;
 	static uint8_t dm_recover_pending = 0U;
-	static const uint8_t DM_MOTOR_COUNT = 4U;
+	static const uint8_t DM_MOTOR_COUNT = 7U;
 	static const uint8_t ALL_READY_STABLE_TICKS = 20U;
 	const TickType_t DM_RECONNECT_PERIOD_TICK = pdMS_TO_TICKS(100);
 #if ENABLE_J1_INERTIA_VALIDATION
@@ -266,32 +266,23 @@ void CheckMotorStatus()
 	bool all_ready = true;
 	bool dm_has_disconnect = false;
 
-	for (uint8_t i = 0; i < 6; i++)
+	for (uint8_t i = 0; i < DM_MOTOR_COUNT; i++)
 	{
 		if (motor[i].getStatus() != MotorStatus::ready)
 		{
 			all_ready = false;
 			ready_init_done[i] = 0U;
-			if (i < DM_MOTOR_COUNT)
+			dm_has_disconnect = true;
+			if (dm_offline_latched[i] == 0U)
 			{
-				dm_has_disconnect = true;
-				if (dm_offline_latched[i] == 0U)
-				{
-					motor[i].forceSetMode(MotorMode::disabled);
-					joint[i].setMode(JointMode::disabled);
-					dm_offline_latched[i] = 1U;
-				}
+				motor[i].forceSetMode(MotorMode::disabled);
+				joint[i].setMode(JointMode::disabled);
+				dm_offline_latched[i] = 1U;
 			}
 		}
-		else if (i < DM_MOTOR_COUNT)
+		else
 		{
 			dm_offline_latched[i] = 0U;
-		}
-		else if (ready_init_done[i] == 0U && i >= mode_set_start)
-		{
-			motor[i].setMode(MotorMode::angle);
-			joint[i].setMode(JointMode::angle);
-			ready_init_done[i] = 1U;
 		}
 	}
 
@@ -312,7 +303,7 @@ void CheckMotorStatus()
 		{
 			if (mode_init_done == 0U)
 			{
-				for (uint8_t i = mode_set_start; i < 6; i++)
+				for (uint8_t i = mode_set_start; i < DM_MOTOR_COUNT; i++)
 				{
 					if (ready_init_done[i] == 0U)
 					{
@@ -378,27 +369,27 @@ void Joint_limitSet()
 	if (Set_ok == 1)
 	{
 		// J3的动态限位仅依赖J2角度，且只在J2对应电机ready时更新
-		if (motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready)
-		{
-			joint[1].updateJointData();
-			float j2_angle = joint[1].getCurrentAngle();
-			if (j2_angle <= 90)
-			{
-				joint[2].setJointParam(-50, 50, -10, 10);
-			}
-			else if (j2_angle <= 180 && j2_angle > 90)
-			{
-				joint[2].setJointParam(-(180 - j2_angle + 50 - 90), 50, -10, 10);
-			}
-		}
+		// if (motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready)
+		// {
+		// 	joint[1].updateJointData();
+		// 	float j2_angle = joint[1].getCurrentAngle();
+		// 	if (j2_angle <= 90)
+		// 	{
+		// 		joint[2].setJointParam(-50, 50, -10, 10);
+		// 	}
+		// 	else if (j2_angle <= 180 && j2_angle > 90)
+		// 	{
+		// 		joint[2].setJointParam(-(180 - j2_angle + 50 - 90), 50, -10, 10);
+		// 	}
+		// }
 
 		return;
 	}
 
-	float Reduction_ratio = 0.0278 * 0.5; // 1/36 DJI2006的减速比再加上传动
-	float k1 = 6.28 / 12.5;
+	// float Reduction_ratio = 0.0278 * 0.5; // 1/36 DJI2006的减速比再加上传动
+	// float k1 = 6.28 / 12.5;
 
-	if (motor[2].getStatus() == MotorStatus::ready && motor[3].getStatus() == MotorStatus::ready && motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[4].getStatus() == MotorStatus::ready && motor[5].getStatus() == MotorStatus::ready)
+	if (motor[2].getStatus() == MotorStatus::ready && motor[3].getStatus() == MotorStatus::ready && motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[4].getStatus() == MotorStatus::ready && motor[5].getStatus() == MotorStatus::ready && motor[6].getStatus() == MotorStatus::ready)
 	{
 
 		// 以下设置映射中的偏置b是通过DM电机返回的多圈角度进行各种判断设置对应偏置（单圈内不同地方上电，同一地方反馈角度不同），实际正确方法应该是通过单圈角度来设置偏置，希望新赛季队员能够进行优化。
@@ -406,17 +397,21 @@ void Joint_limitSet()
 		// 只有初次上电的时候才会设置，复位之前暂时使用这些初始值，复位状态机中重新设置
 		// 对于DM电机初次上电时在这里就已经设置好了，DJI电机需要在复位状态机中设置
 		/*标定和极性设置*/
-		joint[0].setJointMapping(k1, 0);
+		joint[0].setJointMapping(1, 0);
 		joint[1].setJointMapping(1, 164);
 		joint[2].setJointMapping(1, 0);
 		joint[3].setJointMapping(-1, 0);
-		joint[4].setJointMapping(-Reduction_ratio, 0);
-		joint[5].setJointMapping(Reduction_ratio, 0);
+		joint[4].setJointMapping(-1, 0);
+		joint[5].setJointMapping(-1, 0);
+		joint[6].setJointMapping(-1, 0);
 
 		special_actuator3[0].calibrate();
 		special_actuator3[1].calibrate();
 		special_actuator3[2].calibrate();
 		special_actuator3[3].calibrate();
+		special_actuator3[4].calibrate();
+		special_actuator3[5].calibrate();
+		special_actuator3[6].calibrate();
 
 		/*关节软限位*/
 		joint[0].setJointParam(-170, 170, 10, -10);
@@ -425,6 +420,7 @@ void Joint_limitSet()
 		joint[3].setJointParam(-180, 180, -10, 10);
 		joint[4].setJointParam(-360, 360, -10, 10); // J5关节在力矩复位后还要重新再限位一下
 		joint[5].setJointParam(-360, 360, -10, 10);
+		joint[6].setJointParam(-360, 360, -10, 10);
 
 		Set_ok = 1;
 	}
@@ -521,7 +517,11 @@ void tskMotor(void *arg)
 	drive_dm_motor[0].bindTxQueueHandle(CAN1_TxPort);
 	drive_dm_motor[1].bindTxQueueHandle(CAN1_TxPort);
 	drive_dm_motor[2].bindTxQueueHandle(CAN1_TxPort);
-	drive_dm_motor[3].bindTxQueueHandle(CAN1_TxPort);
+
+	drive_dm_motor[3].bindTxQueueHandle(CAN2_TxPort);
+	drive_dm_motor[4].bindTxQueueHandle(CAN2_TxPort);
+	drive_dm_motor[5].bindTxQueueHandle(CAN2_TxPort);
+	drive_dm_motor[6].bindTxQueueHandle(CAN2_TxPort);
 
 	motor[0].setPidParameters({.v_Kp = 0, .v_Min = -20, .v_Max = 20, .a_Kp = 0, .a_Ki = 0, .a_Kd = 0, .a_Min = -10, .a_Max = 10, .a_IntSep = 0, .a_IntMax = 2});
 	motor[1].setPidParameters({.v_Kp = 2.4, .v_Min = -10, .v_Max = 10, .a_Kp = 0.3, .a_Ki = 0.02, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
@@ -529,17 +529,17 @@ void tskMotor(void *arg)
 	motor[3].setPidParameters({.v_Kp = 1.9f, .v_Min = -10, .v_Max = 10, .a_Kp = 0.726f, .a_Ki = 0.04f, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
 	motor[4].setPidParameters({.v_Kp = 10.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 10, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
 	motor[5].setPidParameters({.v_Kp = 10.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 10, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
-
+	motor[6].setPidParameters({.v_Kp = 10.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 10, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
 	vTaskDelay(1000);
-	for(int i = 0; i < 4; i++)
+	for(int i = 0; i < 7; i++)
 	{
 		drive_dm_motor[i].enableMotor();
 	}
 
-	DM8009.setEncoderOffset(0x7872);
-	DM10010.setEncoderOffset(0x60E7);
-	DM4340.setEncoderOffset(0x64FF);
-	DM4310.setEncoderOffset(0x9326);
+	// DM8009.setEncoderOffset(0x7872);
+	// DM10010.setEncoderOffset(0x60E7);
+	// DM4340.setEncoderOffset(0x64FF);
+	// DM4310.setEncoderOffset(0x9326);
 
 	angle_kp = 0.1f;
     angle_ki = 0.0f;
@@ -612,7 +612,7 @@ void tskMotor(void *arg)
 																		  chassis_height_min,
 																		  chassis_height_max);
 
-		for (uint8_t i = 0; i < 6; i++)
+		for (uint8_t i = 0; i < 7; i++)
 		{
 			motor[i].update(); // 更新电机数据
 		}
@@ -654,7 +654,7 @@ void tskMotor(void *arg)
 		{
 			// 加上全补偿
 			// 注意：当代码在某处进程中断停止运行，motor[i].getStatus()会变为error，导致在使用motor[i].getAngle()等函数时卡在死循环中！！！
-			for(int i = 0; i < 6; i++)
+			for(int i = 0; i < 7; i++)
 			{
 				joint[i].updateJointData();
 			}
@@ -680,7 +680,7 @@ void tskMotor(void *arg)
 
 			ViscousCompension_Calculate(motor[0].getSpeed(), motor[1].getSpeed(), motor[2].getSpeed(), motor[3].getSpeed(), motor[4].getSpeed(), motor[5].getSpeed(), &Viscous_feedforward[0], &Viscous_feedforward[1], &Viscous_feedforward[2], &Viscous_feedforward[3], &Viscous_feedforward[4], &Viscous_feedforward[5]);
 			
-			for(int i = 0; i < 6; i++)
+			for(int i = 0; i < 7; i++)
 			{
 				motor[i].setBackEMF_feedforward(BackEMF_feedforward[i]);
 				motor[i].setCoulomb_feedforward(Coulomb_feedforward[i]);
@@ -693,12 +693,13 @@ void tskMotor(void *arg)
 			motor[3].execute();
 			motor[4].execute();
 			motor[5].execute();
+			motor[6].execute();
 		}
 		else
 		{
 			if (Robot_Prepared)
 			{
-				for (int i = 0; i < 6; i++)
+				for (int i = 0; i < 7; i++)
 				{
 					if (motor[i].getStatus() == MotorStatus::ready)
 					{
@@ -732,7 +733,7 @@ void tskMotor(void *arg)
 
 			}
 
-			for (int i = 0; i < 6; i++)
+			for (int i = 0; i < 7; i++)
 			{
 				if (motor[i].getStatus() == MotorStatus::ready)
 				{
@@ -740,22 +741,13 @@ void tskMotor(void *arg)
 				}
 				else
 				{
-					if (i < 4)
-					{
-						drive_dm_motor[i].setTorque(0.0f);
-					}
-					else
-					{
-						drive_dji_motor_2006[i - 4].setTorque(0.0f);
-					}
+					drive_dm_motor[i].setTorque(0.0f);
 				}
 			}
 		}
 
 		gripper.executeOutput(); // 夹爪执行输出
 
-		motor_dji::MotorMsgPack(Tx_Buff_DJI_Can2, Dji2006_1, Dji2006_2);
-		xQueueSend(CAN2_TxPort, &Tx_Buff_DJI_Can2.Id200, 0);
 	}
 }
 
@@ -872,21 +864,10 @@ void tskBoardCom(void *arg)
 
 				if (vision_busy_hold_ticks == 0U)
 				{
-					for (int i = 0; i < 6; i++)
+					for (int i = 0; i < 7; i++)
 					{
 						vision_latest_frame.joint_current[i] = joint[i].getCurrentAngle();
-						if (i == 4)
-						{
-							vision_latest_frame.torque_current[i] = mfsJ5.f(joint[i].getCurrentTorque());
-						}
-						else if (i == 5)
-						{
-							vision_latest_frame.torque_current[i] = mfsJ6.f(joint[i].getCurrentTorque());
-						}
-						else
-						{
-							vision_latest_frame.torque_current[i] = joint[i].getCurrentTorque();
-						}
+						vision_latest_frame.torque_current[i] = joint[i].getCurrentTorque();
 					}
 					vision_latest_frame.chassis_height_current = current_chassis_height;
 					vision_latest_frame.seq_num = seq_num++;
@@ -1118,6 +1099,7 @@ typedef struct
 	float J4_angle; // J4关节角度，单位：？
 	float J5_angle; // J5关节角度，单位：？
 	float J6_angle; // J6关节角度，单位：？
+	float J7_angle; // J7关节角度，单位：？
 
 	/*四轮腿*/
 	float LF_pos_1; // 左前大腿位置 单位：m
@@ -1170,6 +1152,7 @@ void Sx_Referee(void *arg)
 		engineer_data_2_cc.J4_angle = joint[3].getCurrentAngle();
 		engineer_data_2_cc.J5_angle = joint[4].getCurrentAngle();
 		engineer_data_2_cc.J6_angle = joint[5].getCurrentAngle();
+		engineer_data_2_cc.J7_angle = joint[6].getCurrentAngle();
 
 		engineer_data_2_cc.LF_pos_1 = reBottomdata.EndPosition[0];
 		engineer_data_2_cc.LF_pos_2 = reBottomdata.EndPosition[4];

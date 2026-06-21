@@ -144,34 +144,33 @@ extern float gravity_J3;
 extern float gravity_J5;
 extern float inertia_J1;
 
-extern Motor_DM_classdef DM8009; // 达妙电机类，ID为1
-extern Motor_DM_classdef DM10010; // 达妙电机类，ID为2
-extern Motor_DM_classdef DM4340; // 达妙电机类，ID为3
-extern Motor_DM_classdef DM4310; // 达妙电机类，ID为4
-extern Motor_C610 Dji2006_1;
-extern Motor_C610 Dji2006_2;
+extern Motor_DM_classdef DM4340P;  // 达妙电机类，ID为3
+extern Motor_DM_classdef DM8009;   // 达妙电机类，ID为2
+extern Motor_DM_classdef DM4340_1; // 达妙电机类，ID为1
+extern Motor_DM_classdef DM4340_2; // 达妙电机类，ID为1
+extern Motor_DM_classdef DM4310_1; // 达妙电机类，ID为2
+extern Motor_DM_classdef DM4310_2; // 达妙电机类，ID为4
+extern Motor_DM_classdef DM4310_3; // 达妙电机类，ID为4
 
-extern DM_Motor drive_dm_motor[4]; // 达妙电机对象数组
-extern DJI_Motor_2006 drive_dji_motor_2006[2]; // 大疆2006电机对象数组
+extern DM_Motor drive_dm_motor[7]; // 达妙电机对象数组
+extern Motor motor[7];             // 电机对象数组
 extern Servo_Classdef servo_gripper; // 夹爪舵机对象
 
-extern Motor motor[6]; // 电机对象数组
-extern Special_Actuator2 special_actuator2; // 特殊执行器2对象对象
-extern Special_Actuator3 special_actuator3[4]; // 特殊执行器3对象数组
-extern JointActuator joint_actuator[5]; // 关节执行器对象数组
-extern TrajectoryPlanning joint_trajectory[6]; // 关节轨迹规划对象数组
-extern TrajectoryPointArray joint_trajectory_point_array[6]; // 关节轨迹点对象数组
-extern Joint joint[6]; // 关节对象数组
+extern Special_Actuator3 special_actuator3[7];             // 特殊执行器对象数组
+extern JointActuator joint_actuator[7];                    // 关节执行器对象数组
+extern TrajectoryPlanning joint_trajectory[7];             // 关节轨迹规划对象数组
+extern TrajectoryPointArray joint_trajectory_point_array[7]; // 关节轨迹点对象数组
+extern Joint joint[7];                                     // 关节对象数组
 extern Gripper gripper; // 夹爪对象
 
-extern float Gravity_feedforward[6]; // 重力前馈数组
-extern float BackEMF_feedforward[6]; // 反电动势前馈数组
-extern float Coulomb_feedforward[6]; // 库仑前馈数组
-extern float Viscous_feedforward[6]; // 黏性前馈数组
-extern float Inertia_feedforward[6]; // 惯量补偿数组
+extern float Gravity_feedforward[7]; // 重力前馈数组
+extern float BackEMF_feedforward[7]; // 反电动势前馈数组
+extern float Coulomb_feedforward[7]; // 库仑前馈数组
+extern float Viscous_feedforward[7]; // 黏性前馈数组
+extern float Inertia_feedforward[7]; // 惯量补偿数组
 
 extern bool all_motor_connected; // 所有电机连接状态
-extern uint8_t OreBit[2];                                                    // 初始矿石位为空，0为空，1为有矿，OreBit[0]为左矿石位，OreBit[1]为右矿石位
+extern uint8_t OreBit[4];                                                                                                        // 初始矿石位为空，0为空，1为有矿，OreBit[0]为左矿石位，OreBit[1]为右矿石位
 extern uint8_t UI_Mode;          // UI模式
 extern uint8_t Robot_Prepared; // 机器人准备状态，0：未准备好，1：准备好
 

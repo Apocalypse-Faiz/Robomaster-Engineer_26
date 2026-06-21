@@ -9,7 +9,7 @@
 
 /* 视觉控制数据结构 */
 typedef struct {
-    float joint_angle[6];      // 目标关节角度
+    float joint_angle[7];      // 目标关节角度
     bool enable;               // 视觉控制使能
     uint32_t frequency;        // 控制频率（ms）
     // uint32_t move_duration;    // 移动持续时间（ms）
@@ -27,8 +27,8 @@ class VisionController {
 private:
     VisionState state;
     uint32_t last_update_time;
-    float previous_angles[6];   // 之前的目标角度
-    float start_angles[6];      // 缓启动起始角度
+    float previous_angles[7];   // 之前的目标角度
+    float start_angles[7];      // 缓启动起始角度
     bool first;                 // 是否第一次进入视觉模式
     
 public:
@@ -41,6 +41,7 @@ public:
         start_angles[3] = 0;
         start_angles[4] = 0;
         start_angles[5] = 0;
+        start_angles[6] = 0;
         first = false;
     }
     

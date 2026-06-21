@@ -73,76 +73,88 @@ int debug_can_over1 = 0;
 int debug_can_over2 = 0;
 int debug_uart_over = 0;
 
-Motor_DM_classdef DM8009(1); // 达妙电机类，ID为1
-Motor_DM_classdef DM10010(2); // 达妙电机类，ID为2
-Motor_DM_classdef DM4340(3); // 达妙电机类，ID为3
-Motor_DM_classdef DM4310(4); // 达妙电机类，ID为4
+Motor_DM_classdef DM4340P(3); // 达妙电机类，ID为3
+Motor_DM_classdef DM8009(2); // 达妙电机类，ID为2
+Motor_DM_classdef DM4340_1(1); // 达妙电机类，ID为1
 
-Motor_C610 Dji2006_1(1); // 大疆2006电机，ID为1
-Motor_C610 Dji2006_2(2); // 大疆2006电机，ID为2
+Motor_DM_classdef DM4340_2(1); // 达妙电机类，ID为1
+Motor_DM_classdef DM4310_1(2); // 达妙电机类，ID为2
+Motor_DM_classdef DM4310_2(3); // 达妙电机类，ID为4
+Motor_DM_classdef DM4310_3(4); // 达妙电机类，ID为4
 
-DM_Motor drive_dm_motor[4] = {DM_Motor(&DM8009), DM_Motor(&DM10010), DM_Motor(&DM4340), DM_Motor(&DM4310)}; // 达妙电机对象数组
-DJI_Motor_2006 drive_dji_motor_2006[2] = {DJI_Motor_2006(&Dji2006_1), DJI_Motor_2006(&Dji2006_2)}; // 大疆2006电机对象数组
+DM_Motor drive_dm_motor[7] = {DM_Motor(&DM4340P), DM_Motor(&DM8009), DM_Motor(&DM4340_1), DM_Motor(&DM4340_2), DM_Motor(&DM4310_1), DM_Motor(&DM4310_2), DM_Motor(&DM4310_3)}; // 达妙电机对象数组
 
-Motor motor[6] = {
+Motor motor[7] = {
     Motor(&drive_dm_motor[0]),
     Motor(&drive_dm_motor[1]),
     Motor(&drive_dm_motor[2]),
     Motor(&drive_dm_motor[3]),
-    Motor(&drive_dji_motor_2006[0]),
-    Motor(&drive_dji_motor_2006[1])}; // 电机对象数组
+    Motor(&drive_dm_motor[4]),
+    Motor(&drive_dm_motor[5]),
+    Motor(&drive_dm_motor[6])}; // 电机对象数组
 
 Servo_Classdef servo_gripper(&htim2, TIM_CHANNEL_2, 20000, 0.025f, 0.125f, 360); // 夹爪舵机对象
 Gripper gripper(&servo_gripper); // 夹爪对象
 
 Special_Actuator2 special_actuator2(&motor[4], &motor[5]); // 双电机特殊执行器对象
 
-Special_Actuator3 special_actuator3[4] = {
+Special_Actuator3 special_actuator3[7] = {
     Special_Actuator3(&motor[0]),
     Special_Actuator3(&motor[1]),
     Special_Actuator3(&motor[2]),
-    Special_Actuator3(&motor[3])
+    Special_Actuator3(&motor[3]),
+    Special_Actuator3(&motor[4]),
+    Special_Actuator3(&motor[5]),
+    Special_Actuator3(&motor[6])
 };
 
-JointActuator joint_actuator[5] = {
+JointActuator joint_actuator[7] = {
     JointActuator(&special_actuator3[0]),
     JointActuator(&special_actuator3[1]),
     JointActuator(&special_actuator3[2]),
     JointActuator(&special_actuator3[3]),
-    JointActuator(&special_actuator2)}; // 关节执行器对象数组
+    JointActuator(&special_actuator3[4]),
+    JointActuator(&special_actuator3[5]),
+    JointActuator(&special_actuator3[6])}; // 关节执行器对象数组
 
-TrajectoryPlanning joint_trajectory[6] = {
+TrajectoryPlanning joint_trajectory[7] = {
     TrajectoryPlanning(new CQC()),
     TrajectoryPlanning(new CQC()),
     TrajectoryPlanning(new CQC()),
     TrajectoryPlanning(new CQC()),
     TrajectoryPlanning(new CQC()),
-    TrajectoryPlanning(new CQC())}; // 关节轨迹规划对象数组
+    TrajectoryPlanning(new CQC()),
+    TrajectoryPlanning(new CQC())
+}; // 关节轨迹规划对象数组
 
-TrajectoryPointArray joint_trajectory_point_array[6] = {
+TrajectoryPointArray joint_trajectory_point_array[7] = {
     TrajectoryPointArray(50),
     TrajectoryPointArray(50),
     TrajectoryPointArray(50),
     TrajectoryPointArray(50),
     TrajectoryPointArray(50),
-    TrajectoryPointArray(50)}; // 关节轨迹点对象数组
+    TrajectoryPointArray(50),
+    TrajectoryPointArray(50)
+}; // 关节轨迹点对象数组
 
-Joint joint[6] = {
+Joint joint[7] = {
     Joint(&joint_actuator[0], &joint_trajectory[0], 0),
     Joint(&joint_actuator[1], &joint_trajectory[1], 0),
     Joint(&joint_actuator[2], &joint_trajectory[2], 0),
     Joint(&joint_actuator[3], &joint_trajectory[3], 0),
     Joint(&joint_actuator[4], &joint_trajectory[4], 0),
-    Joint(&joint_actuator[4], &joint_trajectory[5], 1)}; // 关节对象数组
+    Joint(&joint_actuator[5], &joint_trajectory[5], 1),
+    Joint(&joint_actuator[6], &joint_trajectory[6], 2)
+}; // 关节对象数组
 
-float Gravity_feedforward[6] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; // 重力前馈数组
-float BackEMF_feedforward[6] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; // 电流前馈数组
-float Coulomb_feedforward[6] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; // 库仑前馈数组
-float Viscous_feedforward[6] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; // 黏性前馈数组
-float Inertia_feedforward[6] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; // 惯量补偿数组
+float Gravity_feedforward[7] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; // 重力前馈数组
+float BackEMF_feedforward[7] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; // 电流前馈数组
+float Coulomb_feedforward[7] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; // 库仑前馈数组
+float Viscous_feedforward[7] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; // 黏性前馈数组
+float Inertia_feedforward[7] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; // 惯量补偿数组
 
 bool all_motor_connected = false; // 所有电机连接状态
-uint8_t OreBit[2] = {0, 0};                                                    // 初始矿石位为空，0为空，1为有矿，OreBit[0]为左矿石位，OreBit[1]为右矿石位
+uint8_t OreBit[4] = {0, 0, 0, 0};                                                                                                        // 初始矿石位为空，0为空，1为有矿，OreBit[0]为左矿石位，OreBit[1]为右矿石位
 uint8_t UI_Mode;          // UI模式
 uint8_t Robot_Prepared = 0; // 机器人准备状态，0：未准备好，1：准备好
 Indicator_Classdef Indicator(&htim1, &hdma_tim1_ch1, TIM_CHANNEL_1);           // 指示灯

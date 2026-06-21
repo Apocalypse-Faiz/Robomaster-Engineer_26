@@ -225,7 +225,7 @@ void ActionGroupController::executeActionGroup(Joint joints[], TrajectoryPointAr
     ActionGroup_Choose(trajectory_arrays, action_enum, add_once_flag);
     
     // 执行动作组
-    ActionGroup_Execute(joints, trajectory_arrays, 6, add_once_flag);
+    ActionGroup_Execute(joints, trajectory_arrays, 7, add_once_flag);
     
 }
 
@@ -235,7 +235,7 @@ void ActionGroupController::executeActionGroup(Joint joints[], TrajectoryPointAr
 void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajectory_arrays[], Gripper& gripper, ToBottomDataStructdef& toBottomdata, ReBottomDataStructdef& reBottomdata) {
     // 检查动作组是否空闲
     bool action_free = true;
-    for (uint8_t i = 0; i < 6; i++) 
+    for (uint8_t i = 0; i < 7; i++) 
     {
         if (joints[i].isTrajectoryPlannerFree() == false) 
         {
