@@ -21,6 +21,7 @@
 #include "TopState.h"
 #include "Keyboard.h"
 #include "usbd_cdc_if.h"
+// #include "drv_VirtualCom.h"
 #include "ActionGroupController.h"
 
 /* Private define ------------------------------------------------------------*/
@@ -770,6 +771,9 @@ void tskBoardCom(void *arg)
 	uint16_t seq_num = 0;
 	ToVisionDataStruct vision_latest_frame;
 	uint8_t vision_pending_valid = 0;
+	uint8_t last_cdc_open = 1U;
+	TickType_t cdc_last_restart_tick = 0U;
+	const TickType_t cdc_restart_interval = pdMS_TO_TICKS(200);
 	Vec3 bottom_latest_speed = {0.0f, 0.0f, 0.0f};
 	Vec3 bottom_pending_speed = {0.0f, 0.0f, 0.0f};
 	uint8_t bottom_pending_valid = 0U;
@@ -844,11 +848,23 @@ void tskBoardCom(void *arg)
 			DTR_state = CDC_IsPortOpen();
 			if (CDC_IsPortOpen() == 0U)
 			{
+				// if (last_cdc_open != 0U)
+				// {
+				// 	cdc_last_restart_tick = xTaskGetTickCount();
+				// 	last_cdc_open = 0U;
+				// }
+				// else if ((xTaskGetTickCount() - cdc_last_restart_tick) >= cdc_restart_interval)
+				// {
+				// 	VirtualComRestart();
+				// 	cdc_last_restart_tick = xTaskGetTickCount();
+				// }
+
 				vision_pending_valid = 0U;
 				vision_busy_hold_ticks = 0U;
 			}
 			else
 			{
+				// last_cdc_open = 1U;
 				if (vision_busy_hold_ticks > 0U)
 				{
 					vision_busy_hold_ticks--;
