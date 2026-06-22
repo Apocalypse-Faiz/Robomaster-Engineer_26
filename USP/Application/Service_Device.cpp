@@ -1178,9 +1178,6 @@ void Sx_Referee(void *arg)
 		case TopStateId::GetEnergyUnit:
 			engineer_data_2_cc.RobotState = 3;
 			break;
-		case TopStateId::Emergency:
-			engineer_data_2_cc.RobotState = 4;
-			break;
 		default:
 			break;
 		}

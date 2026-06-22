@@ -5,7 +5,6 @@
 #include "LostState.h"
 #include "GetEnergyUnit.h"
 #include "ExchangeEnergyUnit.h"
-#include "EmergencyState.h"
 
 /* Private define ------------------------------------------------------------*/
 
@@ -16,14 +15,12 @@ State_t TopStateMachine;
 State_t MobileState;
 State_t LostState;
 State_t GetEnergyUintState;
-State_t ExchangeEnergyUnitState;       
-State_t EmergencyState;      
+State_t ExchangeEnergyUnitState;
 
 Event_t ToMobile;
 Event_t ToLost;
 Event_t ToGetEnergyUnit;
 Event_t ToExchangeEnergyUnit;
-Event_t ToEmergency;
 
 TopStateId g_top_state_id = TopStateId::None;
 
@@ -51,10 +48,6 @@ void Top_Action(Event_t **pEvent)
         {
             *pEvent = &ToExchangeEnergyUnit;
         }
-        else if((DR16.IsKeyPress(DR16_KEY_X) && DR16.IsKeyPress(DR16_KEY_CTRL)) || (VT13.IsKeyPress(VT13_KEY_X) && VT13.IsKeyPress(VT13_KEY_CTRL)))
-        {
-            *pEvent = &ToEmergency;
-        }
     }
     else
     {
@@ -70,13 +63,11 @@ void Total_init()
     TopStateMachine.addSon(&LostState);
     TopStateMachine.addSon(&GetEnergyUintState);
     TopStateMachine.addSon(&ExchangeEnergyUnitState);
-    TopStateMachine.addSon(&EmergencyState);
 
     TopStateMachine.addSonTrans(nullptr, &ToMobile, &MobileState);
     TopStateMachine.addSonTrans(nullptr, &ToLost, &LostState);
     TopStateMachine.addSonTrans(nullptr, &ToGetEnergyUnit, &GetEnergyUintState);
     TopStateMachine.addSonTrans(nullptr, &ToExchangeEnergyUnit, &ExchangeEnergyUnitState);
-    TopStateMachine.addSonTrans(nullptr, &ToEmergency, &EmergencyState);
 
     TopStateMachine.setInitialState(&LostState);
 
@@ -95,8 +86,4 @@ void Total_init()
     ExchangeEnergyUnitState.regisEnterAction(ExchangeEnergyUnit_enterAction);
     ExchangeEnergyUnitState.regisAction(ExchangeEnergyUnit_action);
     ExchangeEnergyUnitState.regisExitAction(ExchangeEnergyUnit_exitAction);
-
-    EmergencyState.regisEnterAction(Emergency_enterAction);
-    EmergencyState.regisAction(Emergency_action);
-    EmergencyState.regisExitAction(Emergency_exitAction);
 }

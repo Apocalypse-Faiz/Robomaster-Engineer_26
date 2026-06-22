@@ -15,8 +15,7 @@ enum class TopStateId : uint8_t
 	Mobile,
 	Lost,
 	GetEnergyUnit,
-	ExchangeEnergyUnit,
-	Emergency
+	ExchangeEnergyUnit
 };
 
 /* Exported macros -----------------------------------------------------------*/
