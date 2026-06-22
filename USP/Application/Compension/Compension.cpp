@@ -150,28 +150,34 @@ void GravityCompension_Calculate(float _J2, float _J3, float _J4, float _J5, flo
     // Link 4: 对 J2 的力臂 (= L₂ 全长投影 + L₃ 全长投影 + 对J4的力臂投影)
     const float arm4_J2 = L2 * c2 + L3 * c3 + arm4_J4;
 
-    // Wrist: 腕部质心在 wrist 系, 对 J6 的力臂
-    //      乘以 cp5 = cos(φ₅) 是 J5 roll 调制效应:
-    //      J5=0°  → cp5=1 → J6 俯仰全效 → 力矩最大
-    //      J5=90° → cp5=0 → J6 在水平面内摆动 → 无重力贡献
-    const float armW_J6 = (LCWX * c6 - LCWZ * s6) * cp5;
+    // Wrist: 腕部质心在 sagittal 平面内的投影力臂 (不受 J5 roll 影响)
+    //   armW_J6 = LCWX·cos(α₆) - LCWZ·sin(α₆)
+    //   此量描述腕部质心在世界系 X₀ 轴上的投影,
+    //   上游 pitch 关节 (J4/J3/J2) 的轴线始终 ∥ Y₀, 不受 J5 影响,
+    //   因此它们感知到的重力力臂应使用未调制的 armW_J6.
+    const float armW_J6 = LCWX * c6 - LCWZ * s6 * cp5;  // J5 roll 调制: cos(φ₅) 调制 J6 的有效俯仰分量
 
-    // Wrist: 对 J4 的力臂 (= L₄ 全长投影 + 对J6的力臂)
+    // J6 自身的有效力臂: 乘以 cos(φ₅) 调制
+    //   J6 pitch 轴的方向随 J5 roll 变化:
+    //     φ₅=0°  → J6轴∥Y₀ → 俯仰全效 → armW_J6_mod = armW_J6
+    //     φ₅=90° → J6轴∥Z₀ → 俯仰无效 → armW_J6_mod = 0
+    const float armW_J6_mod = armW_J6 * cp5;
+
+    // Wrist: 对 J4 的力臂 (= L₄ 全长投影 + 腕部未调制力臂)
     const float armW_J4 = L4 * c4 + armW_J6;
-    // Wrist: 对 J3 的力臂 (= L₃ 全长投影 + L₄ 全长投影 + 对J6的力臂)
+    // Wrist: 对 J3 的力臂
     const float armW_J3 = L3 * c3 + L4 * c4 + armW_J6;
-    // Wrist: 对 J2 的力臂 (= L₂ 全长投影 + L₃ 全长投影 + L₄ 全长投影 + 对J6的力臂)
+    // Wrist: 对 J2 的力臂
     const float armW_J2 = L2 * c2 + L3 * c3 + L4 * c4 + armW_J6;
 
     // ========================================================================
     // Step 4: 力矩合成 — τⱼ = Σ mᵢ · g · armᵢ_about_ⱼ
     // ========================================================================
     // 每个关节的力矩 = 该关节之后所有质量体的重力贡献之和
-    // 因为重力势能 U = Σ mᵢ·g·hᵢ(α₂,α₃,α₄,α₆), 而 τⱼ = ∂U/∂αⱼ = Σ mᵢ·g·(∂hᵢ/∂αⱼ)
-    // 其中 ∂hᵢ/∂αⱼ = armᵢ_about_ⱼ (链式法则: 每个力臂项都是其后的累积)
+    // 势能 U = Σ mᵢ·g·hᵢ, τⱼ = -∂U/∂αⱼ = Σ mᵢ·g·armᵢ_about_ⱼ
 
-    // J6 (腕部 pitch): 仅 wrist 自身有贡献
-    *tau_J6 = G * MW * armW_J6;
+    // J6 (腕部 pitch): 使用调制后的力臂, 因为 J6 轴方向随 J5 变化
+    *tau_J6 = G * MW * armW_J6_mod;
 
     // J4 (肘后 pitch): Link 4 + Wrist 的贡献
     *tau_J4 = G * (M4 * arm4_J4 + MW * armW_J4);
@@ -471,14 +477,19 @@ void InertiaCompension_Calculate(float _J2, float _J3, float _J4, float _J5, flo
     // J6: 绝对俯仰角 (wrist)
     const float abs_tw = (_J2 + _J3 + _J4 + _J6) * PI / 180.0f;
 
+    // Wrist 相对 Link 4 的俯仰角 Δ = α₆ - α₄
+    //   Δ > 0: wrist 相对 link 4 上仰
+    //   用于 wrist COM 在 {4} 系中的正交分解 (J5 roll 调制在此系内进行)
+    const float delta = abs_tw - abs_t4;
+
     // ========================================================================
     // Step 2: 预计算三角函数
     // ========================================================================
     const float c2  = cosf(abs_t2),  s2  = sinf(abs_t2);
     const float c3  = cosf(abs_t3),  s3  = sinf(abs_t3);
     const float c4  = cosf(abs_t4),  s4  = sinf(abs_t4);
-    const float cw  = cosf(abs_tw),  sw  = sinf(abs_tw);
-    const float sp5 = sinf(p5);   // J5 roll: sin(φ₅), 用于腕部 Y 偏移
+    const float cp5 = cosf(p5),      sp5 = sinf(p5);   // J5 roll
+    const float cd  = cosf(delta),   sd  = sinf(delta); // wrist 相对俯仰
 
     // ========================================================================
     // Step 3: 平动惯量 — 各质量体质心到 J1 轴 (Z₀) 的水平距离 ρ
@@ -504,11 +515,30 @@ void InertiaCompension_Calculate(float _J2, float _J3, float _J4, float _J5, flo
     //   = J2 全长投影 + J3 全长投影 + 质心在 {4} 系中的投影
     const float rho4 = I_L2 * c2 + I_L3 * c3 + I_XC4 * c4 - I_ZC4 * s4;
 
-    // Wrist: 质心到 J1 的水平距离 (含 J5 roll 调制)
-    //   Sagittal 平面内分量:
-    const float rhoW_x = I_L2 * c2 + I_L3 * c3 + I_L4 * c4 + I_XCW * cw - I_ZCW * sw;
-    //   J5 roll 引入的 Y 向偏移: 腕部质心 Z 分量经 roll 旋转后在 Y₀ 方向的投影
-    const float rhoW_y = I_ZCW * sp5;  // lcwz·sin(φ₅), 当 φ₅=0 时此项为 0
+    // Wrist: 质心到 J1 的水平距离 (含 J5 roll + J6 pitch 的 3D 耦合)
+    //
+    // 变换链: {4} → Rx(φ₅) → Ry(-Δ) → wrist 系
+    //   wrist COM 在 {4} 系中的坐标 = Rx(φ₅) · Ry(-Δ) · [I_XCW, 0, I_ZCW]ᵀ
+    //
+    //   展开:
+    //     w4_x = I_XCW·cosΔ - I_ZCW·sinΔ           (沿 link 4 纵轴)
+    //     w4_y = -sinφ₅·(I_XCW·sinΔ + I_ZCW·cosΔ)  (J5 roll → Y₄ 侧向)
+    //     w4_z = cosφ₅·(I_XCW·sinΔ + I_ZCW·cosΔ)   (J5 roll 后的 Z₄)
+    //
+    //   投影到世界系 X₀Y₀ 平面 (Ry(-α₄)):
+    //     X₀ = L_accum·c4 + w4_x·c4 - w4_z·s4
+    //     Y₀ = w4_y  (pitch 不改变 Y 分量)
+    //
+    //   注: 旧代码假定 wrist 始终在 sagittal 平面内 (cw,sw),
+    //       忽略了 J5≠0 时 J6 pitch 产生的 Y₀ 方向侧向偏移,
+    //       且丢失了 I_XCW 在 J5 roll 时对 Y₀ 的贡献.
+    const float w4_sincos = I_XCW * sd + I_ZCW * cd;  // sinΔ,cosΔ 混合项, 被 φ₅ 调制
+    const float w4_x = I_XCW * cd - I_ZCW * sd;
+    const float w4_z = cp5 * w4_sincos;               // cosφ₅ 调制 → Z₄
+
+    // 投影到世界系 X₀Y₀ 平面:
+    const float rhoW_x = I_L2*c2 + I_L3*c3 + I_L4*c4 + w4_x*c4 - w4_z*s4;
+    const float rhoW_y = - sp5 * w4_sincos;             // |Y₄| = |sinφ₅·w4_sincos|
     //   总水平距离平方: ρ² = ρ_x² + ρ_y²
     const float rhoW_sq = rhoW_x * rhoW_x + rhoW_y * rhoW_y;
 
@@ -544,9 +574,10 @@ void InertiaCompension_Calculate(float _J2, float _J3, float _J4, float _J5, flo
     const float I4_rot = I4_XX * s4 * s4 + I4_ZZ * c4 * c4 - 2.0f * I4_XZ * s4 * c4;
 
     // Wrist: 近似使用 wrist 系惯性张量 + 绝对俯仰角投影
-    //   (J5 roll 会改变 wrist 系相对于世界系的姿态, 使投影更复杂.
-    //    但因 wrist 本体惯量小, 且平动项 ρ² 占主导, 此近似误差可接受.)
-    const float IW_rot = IW_XX * sw * sw + IW_ZZ * cw * cw - 2.0f * IW_XZ * sw * cw;
+    //   严格来说 wrist 系的姿态受 J5 roll 影响, Z₀ 投影公式会变复杂.
+    //   但因 wrist 本体惯量小, 且平动项 ρ² 占主导, 用 abs_tw 近似.
+    const float sw_t = sinf(abs_tw), cw_t = cosf(abs_tw);
+    const float IW_rot = IW_XX*sw_t*sw_t + IW_ZZ*cw_t*cw_t - 2.0f*IW_XZ*sw_t*cw_t;
 
     // ========================================================================
     // Step 5: 总等效惯量 Ieq
