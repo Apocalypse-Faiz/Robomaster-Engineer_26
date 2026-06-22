@@ -60,5 +60,65 @@ void BackEMFCompension_Calculate(float speed0, float speed1, float speed2, float
 void CoulombCompension_Calculate(float speed0, float speed1, float speed2, float speed3, float speed4, float speed5, float *coulomb0, float *coulomb1, float *coulomb2, float *coulomb3, float *coulomb4, float *coulomb5);
 void ViscousCompension_Calculate(float speed0, float speed1, float speed2, float speed3, float speed4, float speed5, float *viscous0, float *viscous1, float *viscous2, float *viscous3, float *viscous4, float *viscous5);
 void GripperGravityCompension_Calculate(float _J5, float *torque_J5);
-void InertiaCompension_Calculate(float _J2, float _J3, float Motor_Rec_torque_J1, float motor_speed_j1, float *torque_J1);
-void InertiaCompension_ValidationStep(float _J1, float _J2, float _J3, float motor_speed_j1, float spring_k, float torque_limit, float speed_limit, float dt, uint8_t recenter_request, float *cmd_torque_j1, float *inertia_total_j1, float *k_dynamic_j1, float *theta1_center_deg);
+
+/**
+ * @brief 7-DOF J1 (Yaw) 转动惯量补偿计算（完整版）
+ *
+ * @param _J2  J2 电机当前角度 (度)
+ * @param _J3  J3 电机当前角度 (度)
+ * @param _J4  J4 电机当前角度 (度)
+ * @param _J5  J5 电机当前角度 (度)
+ * @param _J6  J6 电机当前角度 (度)
+ * @param Motor_Set_torque_J1 J1 电机当前 PID 输出的设定力矩 (Nm), 用于死区判断
+ * @param motor_speed_j1      J1 电机当前速度 (rad/s 或其他速度单位), 用于微分估计角加速度
+ * @param torque_J1           输出: J1 惯量补偿力矩 (Nm)
+ *
+ * @note 坐标系与角度参考方向
+ *   ========================
+ *   世界系 {0}:  Z₀ ↑ (竖直向上, J1 旋转轴)
+ *                X₀ → (前方, 当 J2=0° 时机械臂沿此方向伸展)
+ *                Y₀ ⊗ (垂直于 sagittal 平面)
+ *   J1 绕 Z₀ 旋转, 右手定则 (拇指向上, 四指逆时针).
+ *
+ *   绝对俯仰角 θᵢ: 连杆 i 绕 +Y 轴 (纸面内) 的旋转, 右手定则
+ *     θᵢ = 0°  → 连杆水平前伸 (∥ X₀Y₀ 平面)
+ *     θᵢ > 0°  → 上仰
+ *
+ *   J5 Roll 角 φ₅: 绕连杆 4 纵轴 (≈X₄) 旋转
+ *     φ₅ = 0°   → 腕部竖直, 末端在 sagittal 平面内
+ *     φ₅ = 90°  → 腕部水平侧向, 末端垂直于 sagittal 平面
+ *
+ * @note 惯量模型 — 平行轴定理
+ *   ==========================
+ *   绕 J1 (Z₀) 的总等效惯量 = Σ( I_i_trans + I_i_rot ), 其中:
+ *
+ *     I_trans = m · ρ²
+ *       平动项: 把质量视为质心处的质点, ρ 为质心到 Z₀ 轴的水平距离
+ *       ρ² = X₀² + Y₀² (世界系 XY 平面内的投影距离平方)
+ *
+ *     I_rot = [0,0,1] · R · I_local · Rᵀ · [0,0,1]ᵀ
+ *       转动项: 连杆自身惯性张量 I_local 经旋转矩阵 R 投影到 Z₀ 轴的分量
+ *       展开: I_rot = I_xx·sin²θ + I_zz·cos²θ - 2·I_xz·sinθ·cosθ
+ *       (θ 为该连杆的绝对俯仰角)
+ *
+ *   质量体划分 (4 个体):
+ *     Link 2   — J2 之后的结构件, 惯性张量在 {2} 系
+ *     Link 3   — J3 之后的结构件, 惯性张量在 {3} 系
+ *     Link 4   — J4 之后的结构件, 惯性张量在 {4} 系
+ *     Wrist    — J5~J7 电机 + 夹爪 + 负载, 惯性张量在 wrist 系 (与 {6} 系对齐)
+ *
+ *   J5 Roll 对 ρ_wrist 的影响:
+ *     腕部质心在 wrist 系中为 [lcwx, 0, lcwz] (Y 向对称, lcwy≈0).
+ *     经 J5 roll φ₅ 后, lcwz 分量在 YZ 平面内旋转,
+ *     在世界系产生 Y₀ 方向的偏移: ΔY = lcwz·sin φ₅.
+ *     因此: ρ²_wrist = (ρ_x)² + (lcwz·sin φ₅)²
+ *     其中 ρ_x 为 sagittal 平面内的水平距离 (由 J2~J6 pitch 决定).
+ *
+ * @note 惯量前馈力矩 = Ieq · α_J1
+ *   α_J1 为 J1 角加速度, 通过速度数值微分 + 低通滤波估计.
+ *   前馈力矩加到电机 PID 输出上, 乘以调参增益 inertia_J1.
+ */
+void InertiaCompension_Calculate(float _J2, float _J3, float _J4, float _J5, float _J6,
+                                  float Motor_Set_torque_J1, float motor_speed_j1, float *torque_J1);
+
+void InertiaCompension_ValidationStep(float _J1, float _J2, float _J3, float _J4, float _J5, float _J6, float motor_speed_j1, float spring_k, float torque_limit, float speed_limit, float dt, uint8_t recenter_request, float *cmd_torque_j1, float *inertia_total_j1, float *k_dynamic_j1, float *theta1_center_deg);

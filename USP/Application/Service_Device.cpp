@@ -676,8 +676,15 @@ void tskMotor(void *arg)
 				motor[3].setGravity_feedforward(Gravity_feedforward[3] * gravity_J4);
 				motor[5].setGravity_feedforward(Gravity_feedforward[5] * gravity_J6);
 
-				InertiaCompension_Calculate(joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), f_torque1.f(motor[0].v_pid.Out), f_omega1.f(motor[0].getSpeed()), &Inertia_feedforward[0]);
-				// 正常模式下，J1惯量补偿前馈由模型输出并乘总增益后注入。
+				// 7-DOF J1 惯量补偿: 姿态 (J2~J6) 决定等效惯量 Ieq
+				// Ieq 随臂伸展而增大, 折叠而减小
+				InertiaCompension_Calculate(
+				    joint[1].getCurrentAngle(), joint[2].getCurrentAngle(),
+				    joint[3].getCurrentAngle(), joint[4].getCurrentAngle(),
+				    joint[5].getCurrentAngle(),
+				    f_torque1.f(motor[0].v_pid.Out), f_omega1.f(motor[0].getSpeed()),
+				    &Inertia_feedforward[0]);
+				// 惯量前馈力矩 = Ieq · α_J1, 乘以调参增益后注入 motor[0]
 				motor[0].setInertia_feedforward(Inertia_feedforward[0] * inertia_J1);
 
 			BackEMFCompension_Calculate(motor[0].getSpeed(), motor[1].getSpeed(), motor[2].getSpeed(), motor[3].getSpeed(), motor[4].getSpeed(), motor[5].getSpeed(), &BackEMF_feedforward[0], &BackEMF_feedforward[1], &BackEMF_feedforward[2], &BackEMF_feedforward[3], &BackEMF_feedforward[4], &BackEMF_feedforward[5]);
@@ -738,7 +745,13 @@ void tskMotor(void *arg)
 
 			if (motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready)
 			{
-				InertiaCompension_Calculate(joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), f_torque1.f(motor[0].v_pid.Out), motor[0].getSpeed(), &Inertia_feedforward[0]);
+				// 7-DOF J1 惯量补偿 (部分电机就绪时仍启用)
+				InertiaCompension_Calculate(
+				    joint[1].getCurrentAngle(), joint[2].getCurrentAngle(),
+				    joint[3].getCurrentAngle(), joint[4].getCurrentAngle(),
+				    joint[5].getCurrentAngle(),
+				    f_torque1.f(motor[0].v_pid.Out), motor[0].getSpeed(),
+				    &Inertia_feedforward[0]);
 				motor[0].setInertia_feedforward(Inertia_feedforward[0] * inertia_J1);
 			}
 			else
