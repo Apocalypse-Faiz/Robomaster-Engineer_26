@@ -724,7 +724,7 @@ void tskMotor(void *arg)
 			float j1_validation_k_dynamic = j1_validation_k_dynamic_debug;
 			float j1_validation_theta_center = j1_validation_theta_center_debug;
 			uint8_t recenter_req = (j1_validation_recenter_req_debug != 0.0f) ? 1U : 0U;
-			InertiaCompension_ValidationStep(joint[0].getCurrentAngle(), joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), motor[0].getSpeed(), j1_validation_spring_k_debug, j1_validation_torque_limit_debug, j1_validation_speed_limit_debug, 0.001f, recenter_req, &j1_validation_cmd, &j1_validation_inertia_total, &j1_validation_k_dynamic, &j1_validation_theta_center);
+			InertiaCompension_ValidationStep(joint[0].getCurrentAngle(), joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), joint[3].getCurrentAngle(), joint[4].getCurrentAngle(), joint[5].getCurrentAngle(), j1_validation_spring_k_debug, j1_validation_torque_limit_debug, j1_validation_speed_limit_debug, 0.001f, recenter_req, &j1_validation_cmd, &j1_validation_inertia_total, &j1_validation_k_dynamic, &j1_validation_theta_center);
 			j1_validation_cmd_debug = j1_validation_cmd;
 			j1_validation_inertia_total_debug = j1_validation_inertia_total;
 			j1_validation_k_dynamic_debug = j1_validation_k_dynamic;
@@ -738,7 +738,10 @@ void tskMotor(void *arg)
 			}
 		}
 #endif
-		
+
+			// J1 角加速度估计: 每周期调用一次 (static 状态, 不能重入)
+			const float alpha_j1 = EstimateJ1Acceleration(f_omega1.f(motor[0].getSpeed()));
+
 		if(all_motor_connected)
 		{
 			// 加上全补偿
@@ -773,14 +776,15 @@ void tskMotor(void *arg)
 				// ============================================================
 				// 7-DOF J1 惯量补偿: 姿态 (J2~J6) 决定等效惯量 Ieq
 				// MDH 关节角 → 补偿角度: 见 MDH2Inertia_xxx() 函数
+				// α_J1 由 EstimateJ1Acceleration() 估计 (每周期一次, 避免重入)
 				// ============================================================
-				InertiaCompension_Calculate(
+					InertiaCompension_Calculate(
 				    MDH2Inertia_J2(joint[1].getCurrentAngle()),
 				    MDH2Inertia_J3(joint[2].getCurrentAngle()),
 				    MDH2Inertia_J4(joint[3].getCurrentAngle()),
 				    MDH2Inertia_J5(joint[4].getCurrentAngle()),
 				    MDH2Inertia_J6(joint[5].getCurrentAngle()),
-				    f_torque1.f(motor[0].v_pid.Out), f_omega1.f(motor[0].getSpeed()),
+				    alpha_j1, f_torque1.f(motor[0].v_pid.Out),
 				    &Inertia_feedforward[0]);
 				// 惯量前馈力矩 = Ieq · α_J1, 乘以调参增益后注入 motor[0]
 				motor[0].setInertia_feedforward(Inertia_feedforward[0] * inertia_J1);
@@ -852,7 +856,7 @@ void tskMotor(void *arg)
 				    MDH2Inertia_J4(joint[3].getCurrentAngle()),
 				    MDH2Inertia_J5(joint[4].getCurrentAngle()),
 				    MDH2Inertia_J6(joint[5].getCurrentAngle()),
-				    f_torque1.f(motor[0].v_pid.Out), motor[0].getSpeed(),
+				    alpha_j1, f_torque1.f(motor[0].v_pid.Out),
 				    &Inertia_feedforward[0]);
 				motor[0].setInertia_feedforward(Inertia_feedforward[0] * inertia_J1);
 			}

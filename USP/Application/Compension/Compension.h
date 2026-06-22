@@ -115,10 +115,22 @@ void GripperGravityCompension_Calculate(float _J5, float *torque_J5);
  *     其中 ρ_x 为 sagittal 平面内的水平距离 (由 J2~J6 pitch 决定).
  *
  * @note 惯量前馈力矩 = Ieq · α_J1
- *   α_J1 为 J1 角加速度, 通过速度数值微分 + 低通滤波估计.
+ *   α_J1 为 J1 角加速度, 由 EstimateJ1Acceleration() 单独估计 (每周期调用一次).
  *   前馈力矩加到电机 PID 输出上, 乘以调参增益 inertia_J1.
+ *
+ * @note 本函数为纯计算 (无 static 状态), 可安全多次调用.
  */
 void InertiaCompension_Calculate(float _J2, float _J3, float _J4, float _J5, float _J6,
-                                  float Motor_Set_torque_J1, float motor_speed_j1, float *torque_J1);
+                                  float alpha_J1,            // 预估计的 J1 角加速度
+                                  float Motor_Set_torque_J1,  // 用于死区判断
+                                  float *torque_J1);
 
-void InertiaCompension_ValidationStep(float _J1, float _J2, float _J3, float _J4, float _J5, float _J6, float motor_speed_j1, float spring_k, float torque_limit, float speed_limit, float dt, uint8_t recenter_request, float *cmd_torque_j1, float *inertia_total_j1, float *k_dynamic_j1, float *theta1_center_deg);
+/**
+ * @brief J1 角加速度估计 (速度数值微分 + 一阶低通滤波)
+ * @param motor_speed_j1  J1 电机当前速度
+ * @return 滤波后的 J1 角加速度估计值
+ * @note  含 static 状态, 每控制周期只能调用一次
+ */
+float EstimateJ1Acceleration(float motor_speed_j1);
+
+void InertiaCompension_ValidationStep(float _J1, float _J2, float _J3, float _J4, float _J5, float _J6, float spring_k, float torque_limit, float speed_limit, float dt, uint8_t recenter_request, float *cmd_torque_j1, float *inertia_total_j1, float *k_dynamic_j1, float *theta1_center_deg);

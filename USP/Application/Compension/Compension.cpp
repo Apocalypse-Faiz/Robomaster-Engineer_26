@@ -404,8 +404,61 @@ static const float MOTOR_I_J1 = 0.00256225f; // J1 电机转子惯量 (已含在
 // 注: MDH→本函数角度约定的转换全部由调用侧 MDH2xxx() 完成, 本函数不做偏置处理
 
 
+// ============================================================================
+// J1 角加速度估计 (速度数值微分 + 一阶低通滤波)
+// ============================================================================
+// 含 static 状态, 每控制周期只能调用一次.
+// 从 J1 电机速度通过数值微分得到角加速度 α_J1,
+// 再经一阶低通滤波抑制微分噪声.
+float EstimateJ1Acceleration(float motor_speed_j1)
+{
+    static uint8_t  speed_diff_inited = 0U;
+    static float    speed_prev       = 0.0f;
+    static float    alpha_lpf        = 0.0f;
+    static uint32_t speed_tick_prev_ms = 0U;
+
+    float speed_diff_dt  = 0.001f;           // 默认 1ms 控制周期
+    const float ALPHA_LPF_GAIN = 0.2f;       // 低通滤波增益 (0~1, 越小越平滑)
+    float alpha_raw  = 0.0f;
+    float alpha_j1   = 0.0f;
+    uint32_t speed_tick_now_ms = HAL_GetTick();
+
+    if (speed_diff_inited == 0U)
+    {
+        speed_prev = motor_speed_j1;
+        speed_diff_inited = 1U;
+        alpha_lpf = 0.0f;
+        speed_tick_prev_ms = speed_tick_now_ms;
+    }
+    else
+    {
+        uint32_t tick_delta_ms = 0U;
+        if (speed_tick_now_ms >= speed_tick_prev_ms)
+        {
+            tick_delta_ms = speed_tick_now_ms - speed_tick_prev_ms;
+        }
+        speed_tick_prev_ms = speed_tick_now_ms;
+
+        if (tick_delta_ms > 0U)
+        {
+            speed_diff_dt = (float)tick_delta_ms * 0.001f;
+        }
+
+        alpha_raw = (motor_speed_j1 - speed_prev) / speed_diff_dt;
+        speed_prev = motor_speed_j1;
+
+        // 一阶低通滤波: α_lpf ← α_lpf + gain · (α_raw - α_lpf)
+        alpha_lpf += ALPHA_LPF_GAIN * (alpha_raw - alpha_lpf);
+    }
+    alpha_j1 = alpha_lpf;
+    return alpha_j1;
+}
+
+// ============================================================================
+// 7-DOF J1 转动惯量补偿计算 (纯函数, 无内部状态)
+// ============================================================================
 void InertiaCompension_Calculate(float _J2, float _J3, float _J4, float _J5, float _J6,
-                                  float Motor_Set_torque_J1, float motor_speed_j1, float *torque_J1)
+                                  float alpha_J1, float Motor_Set_torque_J1, float *torque_J1)
 {
     if (torque_J1 == nullptr)
     {
@@ -590,69 +643,21 @@ void InertiaCompension_Calculate(float _J2, float _J3, float _J4, float _J5, flo
                     + IW_trans + IW_rot;
 
     // ========================================================================
-    // Step 6: J1 角加速度估计 (速度数值微分 + 低通滤波)
+    // Step 6: 死区保护 + 惯量前馈力矩输出
     // ========================================================================
-    // 从 J1 电机速度通过数值微分得到角加速度 α_J1,
-    // 再经一阶低通滤波抑制微分噪声.
-
-    static uint8_t  speed_diff_inited = 0U;
-    static float    speed_prev       = 0.0f;
-    static float    alpha_lpf        = 0.0f;
-    static uint32_t speed_tick_prev_ms = 0U;
-
-    float speed_diff_dt  = 0.001f;           // 默认 1ms 控制周期
-    const float ALPHA_LPF_GAIN = 0.2f;       // 低通滤波增益 (0~1, 越小越平滑)
-    float alpha_raw  = 0.0f;
-    float alpha_j1   = 0.0f;
-    uint32_t speed_tick_now_ms = HAL_GetTick();
-
-    if (speed_diff_inited == 0U)
-    {
-        // 首次调用: 初始化历史值, 不输出加速度
-        speed_prev = motor_speed_j1;
-        speed_diff_inited = 1U;
-        alpha_lpf = 0.0f;
-        speed_tick_prev_ms = speed_tick_now_ms;
-    }
-    else
-    {
-        // 计算实际时间间隔 (处理定时器溢出)
-        uint32_t tick_delta_ms = 0U;
-        if (speed_tick_now_ms >= speed_tick_prev_ms)
-        {
-            tick_delta_ms = speed_tick_now_ms - speed_tick_prev_ms;
-        }
-        speed_tick_prev_ms = speed_tick_now_ms;
-
-        if (tick_delta_ms > 0U)
-        {
-            speed_diff_dt = (float)tick_delta_ms * 0.001f;
-        }
-
-        // 数值微分
-        alpha_raw = (motor_speed_j1 - speed_prev) / speed_diff_dt;
-        speed_prev = motor_speed_j1;
-
-        // 一阶低通滤波: α_lpf ← α_lpf + gain · (α_raw - α_lpf)
-        alpha_lpf += ALPHA_LPF_GAIN * (alpha_raw - alpha_lpf);
-    }
-    alpha_j1 = alpha_lpf;
-
-    // ========================================================================
-    // Step 7: 死区保护 — 静止时关闭惯量前馈
-    // ========================================================================
+    // α_J1 由调用侧通过 EstimateJ1Acceleration() 预先估计 (每周期一次).
     // 当 J1 几乎静止且 PID 输出很小时, 关闭惯量前馈,
     // 避免速度微分噪声和极小转矩指令下的不必要补偿.
     //
     // 注意: 调用侧还会乘以调参增益 inertia_J1 (=0.5) 做最终缩放.
 
-    if (fabsf(Motor_Set_torque_J1) < 0.1f && fabsf(alpha_j1) < 1e-3f)
+    if (fabsf(Motor_Set_torque_J1) < 0.1f && fabsf(alpha_J1) < 1e-3f)
     {
         *torque_J1 = 0.0f;
     }
     else
     {
-        *torque_J1 = alpha_j1 * Ieq;
+        *torque_J1 = alpha_J1 * Ieq;
     }
 }
 
@@ -678,7 +683,7 @@ void InertiaCompension_Calculate(float _J2, float _J3, float _J4, float _J5, flo
  * @param k_dynamic_j1 输出：当前动态刚度 K_dynamic
  * @param theta1_center_deg 输出：当前弹簧中心角度（度）
  */
-void InertiaCompension_ValidationStep(float _J1, float _J2, float _J3, float _J4, float _J5, float _J6, float motor_speed_j1, float spring_k, float torque_limit, float speed_limit, float dt, uint8_t recenter_request, float *cmd_torque_j1, float *inertia_total_j1, float *k_dynamic_j1, float *theta1_center_deg)
+void InertiaCompension_ValidationStep(float _J1, float _J2, float _J3, float _J4, float _J5, float _J6, float spring_k, float torque_limit, float speed_limit, float dt, uint8_t recenter_request, float *cmd_torque_j1, float *inertia_total_j1, float *k_dynamic_j1, float *theta1_center_deg)
 {
     if (cmd_torque_j1 == nullptr || inertia_total_j1 == nullptr || k_dynamic_j1 == nullptr || theta1_center_deg == nullptr || dt <= 0.0f)
     {
@@ -699,7 +704,9 @@ void InertiaCompension_ValidationStep(float _J1, float _J2, float _J3, float _J4
     const float motor_i = 0.00256225f;
     const float probe_torque = 1.0f;
     float inertia_ff_probe = 0.0f;
-    InertiaCompension_Calculate(_J2, _J3, _J4, _J5, _J6, probe_torque, motor_speed_j1, &inertia_ff_probe);
+    // 探测模式: probe_torque=1.0 绕过死区, alpha 传 0 即可
+    InertiaCompension_Calculate(_J2, _J3, _J4, _J5, _J6,
+                                 0.0f, probe_torque, &inertia_ff_probe);
 
     const float inertia_link = inertia_ff_probe * motor_i / probe_torque;
     const float inertia_total = inertia_link + motor_i;
