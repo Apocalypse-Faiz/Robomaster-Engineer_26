@@ -141,7 +141,9 @@ extern int debug_can_over2;
 extern int debug_uart_over;
 extern float gravity_J2;
 extern float gravity_J3;
+extern float gravity_J4;
 extern float gravity_J5;
+extern float gravity_J6;
 extern float inertia_J1;
 
 extern Motor_DM_classdef DM4340P;  // 达妙电机类，ID为3

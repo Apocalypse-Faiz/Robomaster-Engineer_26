@@ -160,7 +160,9 @@ uint8_t Robot_Prepared = 1; // 机器人准备状态，DM电机无需力矩复�
 Indicator_Classdef Indicator(&htim1, &hdma_tim1_ch1, TIM_CHANNEL_1);           // 指示灯
 float gravity_J2 = 0.11f;
 float gravity_J3 = -0.8f;
+float gravity_J4 = 0.3f;   // J4 重力补偿增益 (TODO: 需实机调参, 初始建议 0.1~0.5)
 float gravity_J5 = 0.0f;
+float gravity_J6 = 0.15f;  // J6 重力补偿增益 (TODO: 需实机调参, 初始建议 0.05~0.3)
 float inertia_J1 = 0.5f;
 
 float chassis_height_min = 0.203f;

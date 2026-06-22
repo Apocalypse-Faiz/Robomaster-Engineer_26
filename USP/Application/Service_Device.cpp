@@ -663,9 +663,18 @@ void tskMotor(void *arg)
 			// DR16_Debug_Ctrl();
 			UpdateMotor0PidByPose();
 
-				GravityCompension_Calculate(joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), &Gravity_feedforward[1], &Gravity_feedforward[2]);
+				// 7-DOF 重力补偿: J2(肩), J3(肘), J4(肘后), J6(腕)
+				// J5 角度用于调制 J6 的有效俯仰分量 (cos φ₅)
+				GravityCompension_Calculate(
+				    joint[1].getCurrentAngle(), joint[2].getCurrentAngle(),
+				    joint[3].getCurrentAngle(), joint[4].getCurrentAngle(),
+				    joint[5].getCurrentAngle(),
+				    &Gravity_feedforward[1], &Gravity_feedforward[2],
+				    &Gravity_feedforward[3], &Gravity_feedforward[5]);
 				motor[1].setGravity_feedforward(Gravity_feedforward[1] * gravity_J2);
 				motor[2].setGravity_feedforward(Gravity_feedforward[2] * gravity_J3);
+				motor[3].setGravity_feedforward(Gravity_feedforward[3] * gravity_J4);
+				motor[5].setGravity_feedforward(Gravity_feedforward[5] * gravity_J6);
 
 				InertiaCompension_Calculate(joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), f_torque1.f(motor[0].v_pid.Out), f_omega1.f(motor[0].getSpeed()), &Inertia_feedforward[0]);
 				// 正常模式下，J1惯量补偿前馈由模型输出并乘总增益后注入。
@@ -707,14 +716,24 @@ void tskMotor(void *arg)
 			{
 				UpdateMotor0PidByPose();
 
-				GravityCompension_Calculate(joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), &Gravity_feedforward[1], &Gravity_feedforward[2]);
+				// 7-DOF 重力补偿: J2(肩), J3(肘), J4(肘后), J6(腕)
+				GravityCompension_Calculate(
+				    joint[1].getCurrentAngle(), joint[2].getCurrentAngle(),
+				    joint[3].getCurrentAngle(), joint[4].getCurrentAngle(),
+				    joint[5].getCurrentAngle(),
+				    &Gravity_feedforward[1], &Gravity_feedforward[2],
+				    &Gravity_feedforward[3], &Gravity_feedforward[5]);
 				motor[1].setGravity_feedforward(Gravity_feedforward[1] * gravity_J2);
 				motor[2].setGravity_feedforward(Gravity_feedforward[2] * gravity_J3);
+				motor[3].setGravity_feedforward(Gravity_feedforward[3] * gravity_J4);
+				motor[5].setGravity_feedforward(Gravity_feedforward[5] * gravity_J6);
 			}
 			else
 			{
 				motor[1].setGravity_feedforward(0.0f);
 				motor[2].setGravity_feedforward(0.0f);
+				motor[3].setGravity_feedforward(0.0f);
+				motor[5].setGravity_feedforward(0.0f);
 			}
 
 			if (motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready)
