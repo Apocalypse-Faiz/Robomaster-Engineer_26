@@ -1172,11 +1172,8 @@ void Sx_Referee(void *arg)
 		case TopStateId::Lost:
 			engineer_data_2_cc.RobotState = 0;
 			break;
-		case TopStateId::Reset:
-			engineer_data_2_cc.RobotState = 2;
-			break;
 		case TopStateId::GetEnergyUnit:
-			engineer_data_2_cc.RobotState = 3;
+			engineer_data_2_cc.RobotState = 2;
 			break;
 		default:
 			break;

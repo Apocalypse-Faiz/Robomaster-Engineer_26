@@ -44,13 +44,13 @@ struct EndEffectorPose {
  * @param joint_angles 6个关节角度
  * @return 末端执行器位姿
  */
-EndEffectorPose forwardKinematics(float joint_angles[6]) {
+EndEffectorPose forwardKinematics(float joint_angles[7]) {
     EndEffectorPose pose = {0};
-    
+
     // 简化计算：这里需要根据实际的机器人DH参数来实现
     // 这里只是一个示例，实际应用中需要根据机器人模型实现
-    
-    // 假设简单模型：前三个关节决定位置，后三个关节决定姿态
+
+    // 假设简单模型：前三个关节决定位置，后四个关节决定姿态
     pose.x = joint_angles[0] * 10.0f;  // 示例比例系数
     pose.y = joint_angles[1] * 10.0f;
     pose.z = joint_angles[2] * 10.0f;
@@ -68,14 +68,14 @@ EndEffectorPose forwardKinematics(float joint_angles[6]) {
  * @param result_angles 计算得到的关节角度
  * @return 是否成功
  */
-bool inverseKinematics(const EndEffectorPose& target_pose, 
-                      const float current_angles[6],
-                      float result_angles[6]) {
+bool inverseKinematics(const EndEffectorPose& target_pose,
+                      const float current_angles[7],
+                      float result_angles[7]) {
     // 简化计算：这里需要根据实际的机器人DH参数来实现
     // 这里只是一个示例，实际应用中需要根据机器人模型实现
-    
+
     // 简单假设：关节角度直接与末端位置成比例
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 7; i++) {
         // 保持当前角度作为基础，根据目标位姿调整
         result_angles[i] = current_angles[i];
     }
@@ -94,7 +94,7 @@ bool inverseKinematics(const EndEffectorPose& target_pose,
 /**
  * @brief 计算插入动作的关节角度
  */
-bool calculateInsertionTrajectory(float insert_distance, float trajectory_angles[6][10]) 
+bool calculateInsertionTrajectory(float insert_distance, float trajectory_angles[7][10])
 {
     // 获取当前关节角度
     float current_angles[7];
@@ -125,25 +125,25 @@ bool calculateInsertionTrajectory(float insert_distance, float trajectory_angles
         intermediate_pose.rz = current_pose.rz + t * (target_pose.rz - current_pose.rz);
         
         // 逆运动学计算
-        float result[6];
-        if (!inverseKinematics(intermediate_pose, current_angles, result)) 
+        float result[7];
+        if (!inverseKinematics(intermediate_pose, current_angles, result))
         {
             return false;
         }
-        
-        for (int i = 0; i < 6; i++) 
+
+        for (int i = 0; i < 7; i++)
         {
             trajectory_angles[i][point] = result[i];
         }
     }
-    
+
     return true;
 }
 
 /**
  * @brief 计算平移动作的关节角度
  */
-bool calculateTranslationTrajectory(float translation_distance, float trajectory_angles[6][10]) 
+bool calculateTranslationTrajectory(float translation_distance, float trajectory_angles[7][10])
 {
     // 获取当前关节角度
     float current_angles[7];
@@ -174,25 +174,25 @@ bool calculateTranslationTrajectory(float translation_distance, float trajectory
         intermediate_pose.rz = current_pose.rz + t * (target_pose.rz - current_pose.rz);
         
         // 逆运动学计算
-        float result[6];
-        if (!inverseKinematics(intermediate_pose, current_angles, result)) 
+        float result[7];
+        if (!inverseKinematics(intermediate_pose, current_angles, result))
         {
             return false;
         }
-        
-        for (int i = 0; i < 7; i++) 
+
+        for (int i = 0; i < 7; i++)
         {
             trajectory_angles[i][point] = result[i];
         }
     }
-    
+
     return true;
 }
 
 /**
  * @brief 执行计算得到的轨迹
  */
-bool executeCalculatedTrajectory(float trajectory_angles[6][10], uint32_t duration_ms) 
+bool executeCalculatedTrajectory(float trajectory_angles[7][10], uint32_t duration_ms) 
 {
     uint32_t current_time = HAL_GetTick();
     uint32_t point_duration = duration_ms / 10;
@@ -343,7 +343,7 @@ void handleActionGroupMode()
             if (!action_in_progress) 
             {
                 // 计算并执行插入轨迹
-                float trajectory_angles[6][10];
+                float trajectory_angles[7][10];
                 if (calculateInsertionTrajectory(exchange_params.insert_distance, trajectory_angles)) 
                 {
                     if (executeCalculatedTrajectory(trajectory_angles, 3000)) 
@@ -403,7 +403,7 @@ void handleActionGroupMode()
             if (!action_in_progress) 
             {
                 // 计算并执行平移轨迹
-                float trajectory_angles[6][10];
+                float trajectory_angles[7][10];
                 if (calculateTranslationTrajectory(exchange_params.translation_distance, trajectory_angles)) 
                 {
                     if (executeCalculatedTrajectory(trajectory_angles, 2000)) 
@@ -456,7 +456,7 @@ void handleActionGroupMode()
                 // ExchangeRotate动作组的设定是其他关节保持当前位置不变，末端旋转，需后续加上设定
                 
                 ActionGroup_Choose(joint_trajectory_point_array, current_action, add_once_flag);
-                ActionGroup_Execute(joint, joint_trajectory_point_array, 6, add_once_flag);
+                ActionGroup_Execute(joint, joint_trajectory_point_array, 7, add_once_flag);
                 // setStateTimeout(3000);
             }
             
@@ -710,7 +710,7 @@ void handleVisionControlMode()
         case ExchangeState::INSERTING:
         case ExchangeState::TRANSLATING:
         case ExchangeState::ROTATING:
-            vision_controller.update(vision_control_data, joint, joint_trajectory_point_array, 6);
+            vision_controller.update(vision_control_data, joint, joint_trajectory_point_array, 7);
             if (DR16.IsKeyPress(DR16_KEY_B) || VT13.IsKeyPress(VT13_KEY_B))
             {
                 gotoNextState(ExchangeState::VERIFYING);

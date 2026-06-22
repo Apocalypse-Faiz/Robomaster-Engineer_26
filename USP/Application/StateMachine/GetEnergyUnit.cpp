@@ -376,7 +376,7 @@ void GetEnergyUnit_action(Event_t **pEvent)
         
     }
 
-    for (int i = 0; i < 7; i++)
+    for (int i = 0; i < 6; i++)  // 硬件仅6个灯珠，对应motor[0]~motor[5]
     {
         if (motor[i].getStatus() != MotorStatus::ready)
         {

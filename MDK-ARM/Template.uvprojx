@@ -451,16 +451,6 @@
               <FilePath>..\USP\Application\StateMachine\MobileState.h</FilePath>
             </File>
             <File>
-              <FileName>ResetState.cpp</FileName>
-              <FileType>8</FileType>
-              <FilePath>..\USP\Application\StateMachine\ResetState.cpp</FilePath>
-            </File>
-            <File>
-              <FileName>ResetState.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\USP\Application\StateMachine\ResetState.h</FilePath>
-            </File>
-            <File>
               <FileName>TopState.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>..\USP\Application\StateMachine\TopState.cpp</FilePath>
@@ -489,16 +479,6 @@
               <FileName>GetEnergyUnit.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\USP\Application\StateMachine\GetEnergyUnit.h</FilePath>
-            </File>
-            <File>
-              <FileName>EmergencyState.cpp</FileName>
-              <FileType>8</FileType>
-              <FilePath>..\USP\Application\StateMachine\EmergencyState.cpp</FilePath>
-            </File>
-            <File>
-              <FileName>EmergencyState.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\USP\Application\StateMachine\EmergencyState.h</FilePath>
             </File>
           </Files>
         </Group>
