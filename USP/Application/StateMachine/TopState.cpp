@@ -3,7 +3,6 @@
 #include "TopState.h"
 #include "MobileState.h"
 #include "LostState.h"
-#include "ResetState.h"
 #include "GetEnergyUnit.h"
 #include "ExchangeEnergyUnit.h"
 #include "EmergencyState.h"
@@ -16,14 +15,12 @@ using namespace hfsm;
 State_t TopStateMachine;
 State_t MobileState;
 State_t LostState;
-State_t ResetState;
-State_t GetEnergyUintState;           
+State_t GetEnergyUintState;
 State_t ExchangeEnergyUnitState;       
 State_t EmergencyState;      
 
 Event_t ToMobile;
 Event_t ToLost;
-Event_t ToReset;
 Event_t ToGetEnergyUnit;
 Event_t ToExchangeEnergyUnit;
 Event_t ToEmergency;
@@ -41,29 +38,22 @@ void Top_Action(Event_t **pEvent)
 
     if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED || (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C && VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED))
     {
-        if (Robot_Prepared == 1) 
+        // DM电机无需力矩复位，Robot_Prepared默认为1，所有状态切换直接可用
+        if ((DR16.IsKeyPress(DR16_KEY_B) && DR16.IsKeyPress(DR16_KEY_CTRL)) || (VT13.IsKeyPress(VT13_KEY_B) && VT13.IsKeyPress(VT13_KEY_CTRL)))
         {
-            if ((DR16.IsKeyPress(DR16_KEY_B) && DR16.IsKeyPress(DR16_KEY_CTRL)) || (VT13.IsKeyPress(VT13_KEY_B) && VT13.IsKeyPress(VT13_KEY_CTRL)))
-            {
-                *pEvent = &ToMobile;
-            }
-            else if((DR16.IsKeyPress(DR16_KEY_Z) && DR16.IsKeyPress(DR16_KEY_CTRL)) || (VT13.IsKeyPress(VT13_KEY_Z) && VT13.IsKeyPress(VT13_KEY_CTRL)))
-            {
-                *pEvent = &ToGetEnergyUnit;
-            }
-            else if((DR16.IsKeyPress(DR16_KEY_V) && DR16.IsKeyPress(DR16_KEY_CTRL)) || (VT13.IsKeyPress(VT13_KEY_V) && VT13.IsKeyPress(VT13_KEY_CTRL)))
-            {
-                *pEvent = &ToExchangeEnergyUnit;
-            }
-            else if((DR16.IsKeyPress(DR16_KEY_X) && DR16.IsKeyPress(DR16_KEY_CTRL)) || (VT13.IsKeyPress(VT13_KEY_X) && VT13.IsKeyPress(VT13_KEY_CTRL)))
-            {
-                *pEvent = &ToEmergency;
-            }
+            *pEvent = &ToMobile;
         }
-        else
+        else if((DR16.IsKeyPress(DR16_KEY_Z) && DR16.IsKeyPress(DR16_KEY_CTRL)) || (VT13.IsKeyPress(VT13_KEY_Z) && VT13.IsKeyPress(VT13_KEY_CTRL)))
         {
-            if (*pEvent != &ToEmergency)
-            *pEvent = &ToReset;
+            *pEvent = &ToGetEnergyUnit;
+        }
+        else if((DR16.IsKeyPress(DR16_KEY_V) && DR16.IsKeyPress(DR16_KEY_CTRL)) || (VT13.IsKeyPress(VT13_KEY_V) && VT13.IsKeyPress(VT13_KEY_CTRL)))
+        {
+            *pEvent = &ToExchangeEnergyUnit;
+        }
+        else if((DR16.IsKeyPress(DR16_KEY_X) && DR16.IsKeyPress(DR16_KEY_CTRL)) || (VT13.IsKeyPress(VT13_KEY_X) && VT13.IsKeyPress(VT13_KEY_CTRL)))
+        {
+            *pEvent = &ToEmergency;
         }
     }
     else
@@ -78,14 +68,12 @@ void Total_init()
 
     TopStateMachine.addSon(&MobileState);
     TopStateMachine.addSon(&LostState);
-    TopStateMachine.addSon(&ResetState);
     TopStateMachine.addSon(&GetEnergyUintState);
     TopStateMachine.addSon(&ExchangeEnergyUnitState);
     TopStateMachine.addSon(&EmergencyState);
 
     TopStateMachine.addSonTrans(nullptr, &ToMobile, &MobileState);
     TopStateMachine.addSonTrans(nullptr, &ToLost, &LostState);
-    TopStateMachine.addSonTrans(nullptr, &ToReset, &ResetState);
     TopStateMachine.addSonTrans(nullptr, &ToGetEnergyUnit, &GetEnergyUintState);
     TopStateMachine.addSonTrans(nullptr, &ToExchangeEnergyUnit, &ExchangeEnergyUnitState);
     TopStateMachine.addSonTrans(nullptr, &ToEmergency, &EmergencyState);
@@ -111,8 +99,4 @@ void Total_init()
     EmergencyState.regisEnterAction(Emergency_enterAction);
     EmergencyState.regisAction(Emergency_action);
     EmergencyState.regisExitAction(Emergency_exitAction);
-
-    ResetState.regisEnterAction(Reset_enterAction);
-    ResetState.regisAction(Reset_action);
-    ResetState.regisExitAction(Reset_exitAction);
 }

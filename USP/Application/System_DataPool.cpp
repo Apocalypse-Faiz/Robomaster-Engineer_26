@@ -156,7 +156,7 @@ float Inertia_feedforward[7] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; // �
 bool all_motor_connected = false; // 所有电机连接状态
 uint8_t OreBit[4] = {0, 0, 0, 0};                                                                                                        // 初始矿石位为空，0为空，1为有矿，OreBit[0]为左矿石位，OreBit[1]为右矿石位
 uint8_t UI_Mode;          // UI模式
-uint8_t Robot_Prepared = 0; // 机器人准备状态，0：未准备好，1：准备好
+uint8_t Robot_Prepared = 1; // 机器人准备状态，DM电机无需力矩复位，默认已准备好
 Indicator_Classdef Indicator(&htim1, &hdma_tim1_ch1, TIM_CHANNEL_1);           // 指示灯
 float gravity_J2 = 0.11f;
 float gravity_J3 = -0.8f;
@@ -184,10 +184,7 @@ bool vision_comm_flag_override_valid = false;
 float speed_kp, speed_Out_Max, angle_kp, angle_ki, angle_kd, angle_Out_Max, angle_I_Max, debug_target_angle = 0.000f;
 float speed_kp1, speed_Out_Max1, angle_kp1, angle_ki1, angle_kd1, angle_Out_Max1, angle_I_Max1, debug_target_angle1 = 0.000f;
 
-MeanFilter<10> mfsL1, mfsL2;
 MeanFilter<50> f_torque1, f_omega1;
-MeanFilter<50> mfsJ5, mfsJ6;
-float j5_reset_target, j6_reset_target = 0.0f;
 
 uint8_t ArmMode;
 

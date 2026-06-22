@@ -59,14 +59,7 @@ void Lost_action(Event_t **pEvent)
     /* 如果重新建立联系*/
     if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED || (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C && VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED))
     {
-        if (Robot_Prepared == 1)
-        {
-            TopStateMachine.pSonEvent = &ToMobile; // 转到机动状态
-        }
-        else
-        {
-            TopStateMachine.pSonEvent = &ToReset;
-        }
+        TopStateMachine.pSonEvent = &ToMobile; // DM电机无需复位，直接转到机动状态
     }
 }
 

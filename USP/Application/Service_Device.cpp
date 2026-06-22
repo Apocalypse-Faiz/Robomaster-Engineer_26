@@ -659,10 +659,9 @@ void tskMotor(void *arg)
 				joint[i].updateJointData();
 			}
 
-			// if (Robot_Prepared)
-			// {
-				// DR16_Debug_Ctrl();
-				UpdateMotor0PidByPose();
+			// DM电机无需复位，Robot_Prepared默认为1，补偿始终启用
+			// DR16_Debug_Ctrl();
+			UpdateMotor0PidByPose();
 
 				GravityCompension_Calculate(joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), &Gravity_feedforward[1], &Gravity_feedforward[2]);
 				motor[1].setGravity_feedforward(Gravity_feedforward[1] * gravity_J2);
@@ -671,8 +670,6 @@ void tskMotor(void *arg)
 				InertiaCompension_Calculate(joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), f_torque1.f(motor[0].v_pid.Out), f_omega1.f(motor[0].getSpeed()), &Inertia_feedforward[0]);
 				// 正常模式下，J1惯量补偿前馈由模型输出并乘总增益后注入。
 				motor[0].setInertia_feedforward(Inertia_feedforward[0] * inertia_J1);
-
-			// }
 
 			BackEMFCompension_Calculate(motor[0].getSpeed(), motor[1].getSpeed(), motor[2].getSpeed(), motor[3].getSpeed(), motor[4].getSpeed(), motor[5].getSpeed(), &BackEMF_feedforward[0], &BackEMF_feedforward[1], &BackEMF_feedforward[2], &BackEMF_feedforward[3], &BackEMF_feedforward[4], &BackEMF_feedforward[5]);
 
@@ -697,40 +694,37 @@ void tskMotor(void *arg)
 		}
 		else
 		{
-			if (Robot_Prepared)
+			// DM电机无需复位，Robot_Prepared默认为1，部分补偿始终启用
+			for (int i = 0; i < 7; i++)
 			{
-				for (int i = 0; i < 7; i++)
+				if (motor[i].getStatus() == MotorStatus::ready)
 				{
-					if (motor[i].getStatus() == MotorStatus::ready)
-					{
-						joint[i].updateJointData();
-					}
+					joint[i].updateJointData();
 				}
+			}
 
-				if (motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready)
-				{
-					UpdateMotor0PidByPose();
+			if (motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready)
+			{
+				UpdateMotor0PidByPose();
 
-					GravityCompension_Calculate(joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), &Gravity_feedforward[1], &Gravity_feedforward[2]);
-					motor[1].setGravity_feedforward(Gravity_feedforward[1] * gravity_J2);
-					motor[2].setGravity_feedforward(Gravity_feedforward[2] * gravity_J3);
-				}
-				else
-				{
-					motor[1].setGravity_feedforward(0.0f);
-					motor[2].setGravity_feedforward(0.0f);
-				}
+				GravityCompension_Calculate(joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), &Gravity_feedforward[1], &Gravity_feedforward[2]);
+				motor[1].setGravity_feedforward(Gravity_feedforward[1] * gravity_J2);
+				motor[2].setGravity_feedforward(Gravity_feedforward[2] * gravity_J3);
+			}
+			else
+			{
+				motor[1].setGravity_feedforward(0.0f);
+				motor[2].setGravity_feedforward(0.0f);
+			}
 
-				if (motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready)
-				{
-					InertiaCompension_Calculate(joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), f_torque1.f(motor[0].v_pid.Out), motor[0].getSpeed(), &Inertia_feedforward[0]);
-					motor[0].setInertia_feedforward(Inertia_feedforward[0] * inertia_J1);
-				}
-				else
-				{
-					motor[0].setInertia_feedforward(0.0f);
-				}
-
+			if (motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready)
+			{
+				InertiaCompension_Calculate(joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), f_torque1.f(motor[0].v_pid.Out), motor[0].getSpeed(), &Inertia_feedforward[0]);
+				motor[0].setInertia_feedforward(Inertia_feedforward[0] * inertia_J1);
+			}
+			else
+			{
+				motor[0].setInertia_feedforward(0.0f);
 			}
 
 			for (int i = 0; i < 7; i++)
@@ -855,7 +849,7 @@ void tskBoardCom(void *arg)
 				vision_busy_hold_ticks = 0U;
 			}
 			else
-			{
+				{
 				// last_cdc_open = 1U;
 				if (vision_busy_hold_ticks > 0U)
 				{

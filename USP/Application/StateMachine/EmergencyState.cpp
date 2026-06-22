@@ -1,10 +1,7 @@
 #include "EmergencyState.h"
 #include "internal.h"
 #include "KeyBoard.h"
-#include "ResetState.h"
 
-static bool emergencyTorqueResetActive = false;
-static bool emergencyTorqueResetDone = false;
 static TopStateId emergency_entry_state = TopStateId::None;
 static bool emergency_use_energy_unit_move_ctrl = false;
 
@@ -14,9 +11,6 @@ void Emergency_enterAction()
     g_top_state_id = TopStateId::Emergency;
     emergency_use_energy_unit_move_ctrl = (emergency_entry_state == TopStateId::GetEnergyUnit);
 
-    emergencyTorqueResetActive = false;
-    emergencyTorqueResetDone = false;
-    Robot_Prepared = 0;
     // 清除所有轨迹点
     for (uint8_t i = 0; i < 7; i++)
     {
@@ -25,10 +19,10 @@ void Emergency_enterAction()
     }
     gripper.emergencyStop();
 
-    joint[4].setJointParam(-360, 360, -10, 10); // J5关节在力矩复位后还要重新再限位一下
+    // 紧急状态下放宽J5/J6限位，便于手动恢复
+    joint[4].setJointParam(-360, 360, -10, 10);
 	joint[5].setJointParam(-360, 360, -10, 10);
 
-    Manipulator_TorqueReset_Params_Reset();
 }
 
 void Emergency_action(Event_t **pEvent)
@@ -56,32 +50,15 @@ void Emergency_action(Event_t **pEvent)
         NVIC_SystemReset();
     }
 
-    // 力矩复位触发条件：沿用 Reset 模式
-    const bool torqueResetTrigger = (((DR16.GetS1() == 1 && DR16.GetS2() == 1) || DR16.IsKeyPress(DR16_KEY_F) || (VT13.GetModeSwitch() == MS_Status_Typedef::MS_N && VT13.GetTrigger())) && (Robot_Prepared == 0));
-
-    // 一旦触发，持续执行到完成，避免中途松键导致流程中断
-    if (torqueResetTrigger)
+    // DM电机无需力矩复位，紧急状态下直接允许手动控制
+    if (vt13Online)
     {
-        emergencyTorqueResetActive = true;
+        VT13_Manipulater_JointCtrl();
     }
 
-    if (emergencyTorqueResetActive && !emergencyTorqueResetDone)
+    if (dr16Online)
     {
-        emergencyTorqueResetDone = Manipulator_TorqueReset();
-    }
-
-    // 手动控制机械臂（在未执行力矩复位时允许）
-    if (!emergencyTorqueResetActive)
-    {
-        if (vt13Online)
-        {
-            VT13_Manipulater_JointCtrl();
-        }
-
-        if (dr16Online)
-        {
-            DR16_Manipulater_JointCtrl();
-        }
+        DR16_Manipulater_JointCtrl();
     }
 
     if (vt13Online)
@@ -127,29 +104,15 @@ void Emergency_action(Event_t **pEvent)
         {
             WS_indicator[i] = WS_Red;
         }
-        else if (emergencyTorqueResetActive)
-        {
-            WS_indicator[i] = WS_Blue;
-        }
         else
         {
             WS_indicator[i] = WS_Yellow;
         }
     }
-    
-    // 力矩复位完成后的状态转移
-    if (emergencyTorqueResetDone)
-    {
-        Robot_Prepared = 1;
-        Emergency_exitAction();
-    }
 }
 
 void Emergency_exitAction()
 {
-    emergencyTorqueResetActive = false;
-    emergencyTorqueResetDone = false;
-
     // 退出前再次做清理，避免残留轨迹
     for (uint8_t i = 0; i < 7; i++)
     {
@@ -167,10 +130,6 @@ void Emergency_exitAction()
     else if (emergency_entry_state == TopStateId::Lost)
     {
         resume_event = &ToLost;
-    }
-    else if (emergency_entry_state == TopStateId::Reset)
-    {
-        resume_event = &ToReset;
     }
     else if (emergency_entry_state == TopStateId::GetEnergyUnit)
     {

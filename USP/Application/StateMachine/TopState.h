@@ -14,7 +14,6 @@ enum class TopStateId : uint8_t
 	None = 0,
 	Mobile,
 	Lost,
-	Reset,
 	GetEnergyUnit,
 	ExchangeEnergyUnit,
 	Emergency
@@ -26,12 +25,9 @@ enum class TopStateId : uint8_t
 extern State_t TopStateMachine;
 extern State_t MobileState;
 extern State_t LostState;
-extern State_t ResetState;
-
 extern TopStateId g_top_state_id;
 
 extern Event_t ToMobile;
-extern Event_t ToReset;
 extern Event_t ToLost;
 extern Event_t ToGetEnergyUnit;
 extern Event_t ToExchangeEnergyUnit;
