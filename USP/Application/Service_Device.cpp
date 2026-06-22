@@ -511,14 +511,6 @@ static void UpdateMotor0PidByPose()
 // ============================================================================
 //
 // joint[i].getCurrentAngle() 返回的是 MDH 坐标系下的关节角:
-//   MDH_angle = motor_raw × joint[i].mapping.k + joint[i].mapping.b
-//
-// 当前 JointMapping:
-//   J2: k=1,  b=164  → MDH_J2 = motor_raw + 164°
-//   J3: k=1,  b=0    → MDH_J3 = motor_raw
-//   J4: k=-1, b=0    → MDH_J4 = -motor_raw        (方向反转)
-//   J5: k=-1, b=0    → MDH_J5 = -motor_raw        (方向反转)
-//   J6: k=-1, b=0    → MDH_J6 = -motor_raw        (方向反转)
 //
 // 补偿函数的角度约定 (详见 Compension.h):
 //   世界系: Z₀↑, X₀→前, Y₀⊗
@@ -526,7 +518,7 @@ static void UpdateMotor0PidByPose()
 //   roll 角:     0°=腕部竖直, >0°=从后方看顺时针
 //
 // 以下函数完成 MDH角度 → 补偿函数所需角度 的转换.
-// ⚠️ 零位偏置常量需根据 MDH 坐标系的精确定义校准.
+// 零位偏置常量需根据 MDH 坐标系的精确定义校准.
 
 // ── MDH 零位偏置 (度) ─────────────────────────────
 // 定义: 当补偿函数期望的角度 = 0° 时, 对应的 MDH 关节角的值.
@@ -537,88 +529,70 @@ static void UpdateMotor0PidByPose()
 static const float MDH_J2_ZERO_ABS = 164.0f;   // 假设 motor_raw=0° 时水平前伸, MDH=0+164=164°
                                                 // (TODO: 确认 motor_raw_J2=0 时是否确实水平前伸)
 
-// J3 相对俯仰零位: MDH J3 多少度 = Link3 与 Link2 共线
-static const float MDH_J3_ZERO_REL = -90.0f;    // 假设 motor_raw_J3=-90° 时共线
-                                                // (TODO: 确认 J3 共线位置对应的 MDH 角)
-
-// J4 相对俯仰零位: MDH J4 多少度 = Link4 与 Link3 共线
-static const float MDH_J4_ZERO_REL = 0.0f;      // (TODO: 需实测, 电机 k=-1)
-                                                //        compensation = -(MDH_J4 - MDH_J4_ZERO_REL)
-
-// J5 roll 角零位: MDH J5 多少度 = 腕部竖直
-static const float MDH_J5_ZERO_ROLL = 0.0f;     // (TODO: 需实测, 电机 k=-1)
-
-// J6 相对俯仰零位: MDH J6 多少度 = Wrist 与 Link4 共线
-static const float MDH_J6_ZERO_REL = 0.0f;      // (TODO: 需实测, 电机 k=-1)
+// 注: MDH→相对俯仰角的零位偏置由各 MDH2xxx() 函数内部处理,
+//     如需精细校准, 请在对应转换函数中增减常数.
 
 // ── 重力补偿用角度 ─────────────────────────────────
-// GravityCompension_Calculate 期望:
+// GravityCompension_Calculate 期望 (与惯量补偿完全一致):
 //   _J2: 绝对俯仰角 (度), 0°=水平前伸, >0°=上仰
-//   _J3: J3 电机等效值 (度), 内部 a3 = -(_J3 + 90°)·π/180
-//   _J4: 绝对俯仰角 (度), 0°=水平前伸
+//   _J3: 相对俯仰角 (度), 0°=Link3与Link2共线, >0°=Link3相对Link2上仰
+//   _J4: 相对俯仰角 (度), 0°=Link4与Link3共线, >0°=Link4相对Link3上仰
 //   _J5: roll 角 (度), 0°=腕部竖直
-//   _J6: 绝对俯仰角 (度), 0°=水平前伸
-//
-// 注意: J3 的重力补偿输入约定与惯量补偿不同 (重力有取反, 惯量不取反)
+//   _J6: 相对俯仰角 (度), 0°=Wrist与Link4共线, >0°=Wrist相对Link4上仰
 
 static inline float MDH2Gravity_J2(float mdh_j2) {
-    // MDH → 绝对俯仰: 假设 motor_raw=0 时水平前伸 → abs = MDH - 164°
+    // MDH_J2 = motor_raw + 164° (k=1,b=164)
+    // 绝对俯仰 = motor_raw (假设 motor_raw=0 时水平前伸)
     return mdh_j2 - MDH_J2_ZERO_ABS;
 }
 static inline float MDH2Gravity_J3(float mdh_j3) {
-    // MDH → J3等效值: 假设 MDH_J3=-90° 时共线 → 直接传入
-    // 重力函数内部: a3 = -((MDH_J3) + 90°)·π/180
-    //             当 MDH_J3=-90°: a3 = -(-90+90)·π/180 = 0° ✓
-    return mdh_j3;  // k=1,b=0, 电机方向和MDH一致
+    // 相对俯仰 = Link3绝对 - Link2绝对
+    // MDH_J3 = motor_raw (k=1,b=0)
+    // (TODO: 若 MDH 角即为两连杆间相对角, 则直通; 否则需换算)
+    return mdh_j3;
 }
 static inline float MDH2Gravity_J4(float mdh_j4) {
-    // MDH_J4 = -motor_raw → motor_raw = -MDH_J4
-    // 重力期望 _J4 = 绝对俯仰 = motor_raw (假设 motor_raw=0 时水平前伸)
-    return -mdh_j4;  // k=-1 方向反转
+    // 相对俯仰 = Link4绝对 - Link3绝对
+    // MDH_J4 = -motor_raw (k=-1, 方向反转)
+    return -mdh_j4;
 }
 static inline float MDH2Gravity_J5(float mdh_j5) {
-    // MDH_J5 = -motor_raw → motor_raw = -MDH_J5
-    // 重力期望 _J5 = roll 角 = motor_raw
-    return -mdh_j5;  // k=-1 方向反转
+    // roll 角, 0°=腕部竖直. MDH_J5 = -motor_raw (k=-1, 方向反转)
+    return -mdh_j5;
 }
 static inline float MDH2Gravity_J6(float mdh_j6) {
-    // 同 J4: k=-1, 方向反转
+    // 相对俯仰 = Wrist绝对 - Link4绝对. MDH_J6 = -motor_raw (k=-1, 方向反转)
     return -mdh_j6;
 }
 
 // ── 惯量补偿用角度 ─────────────────────────────────
-// InertiaCompension_Calculate 期望:
+// InertiaCompension_Calculate 期望 (与重力补偿完全一致):
 //   _J2: 绝对俯仰角 (度), 0°=水平前伸, >0°=上仰
-//   _J3: J3 等效值 (度), -90°=Link3 与 Link2 共线
-//   _J4: 相对俯仰角 (度), 0°=Link4 与 Link3 共线
+//   _J3: 相对俯仰角 (度), 0°=Link3与Link2共线, >0°=Link3相对Link2上仰
+//   _J4: 相对俯仰角 (度), 0°=Link4与Link3共线, >0°=Link4相对Link3上仰
 //   _J5: roll 角 (度), 0°=腕部竖直
-//   _J6: 相对俯仰角 (度), 0°=Wrist 与 Link4 共线
-//
-// 注意: 惯量补偿中 J3 不取反 (平方项对符号不敏感, 与重力不同)
+//   _J6: 相对俯仰角 (度), 0°=Wrist与Link4共线, >0°=Wrist相对Link4上仰
 
 static inline float MDH2Inertia_J2(float mdh_j2) {
     // 同重力: 绝对俯仰 = MDH - 164° (假设 motor_raw=0 时水平前伸)
     return mdh_j2 - MDH_J2_ZERO_ABS;
 }
 static inline float MDH2Inertia_J3(float mdh_j3) {
-    // 惯量期望 _J3=-90° 时 Link3 与 Link2 共线
-    // MDH_J3 本身 = motor_raw (k=1,b=0), 且 motor_raw=-90° 时共线
-    // → _J3 = MDH_J3 (直接传入, 惯量内部: t3_rel = (_J3+90°)·π/180)
+    // 相对俯仰 = Link3绝对 - Link2绝对. MDH_J3 = motor_raw (k=1,b=0)
+    // (TODO: 若 MDH 角即为两连杆间相对角, 则直通; 否则需换算)
     return mdh_j3;
 }
 static inline float MDH2Inertia_J4(float mdh_j4) {
-    // MDH_J4 = -motor_raw → motor_raw = -MDH_J4
-    // 惯量期望 _J4 = 相对俯仰 = motor_raw + offset
-    // J4_INERTIA_OFFSET 在补偿函数内部处理
-    return -mdh_j4;  // k=-1 方向反转
+    // 相对俯仰 = Link4绝对 - Link3绝对. MDH_J4 = -motor_raw (k=-1, 方向反转)
+    return -mdh_j4;
 }
 static inline float MDH2Inertia_J5(float mdh_j5) {
-    // 同重力: roll 角
-    return -mdh_j5;  // k=-1 方向反转
+    // roll 角, 同重力
+    return -mdh_j5;
 }
 static inline float MDH2Inertia_J6(float mdh_j6) {
-    // 同 J4
-    return -mdh_j6;  // k=-1 方向反转
+    // 相对俯仰 = Wrist绝对 - Link4绝对. MDH_J6 = -motor_raw (k=-1, 方向反转)
+    return -mdh_j6;
 }
 
 /**

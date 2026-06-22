@@ -56,8 +56,8 @@ static const float L4 = 0.15f;    // J4 → J5 距离, 连杆 4 长度 (TODO: �
 static const float M2 = 1.643f;   // 连杆 2 质量 (沿用实测值)
 static const float M3 = 1.50f;    // 连杆 3 质量 (TODO: 旧版等效质量为 3.846,
                                   //   现拆分为 M3 + wrist, 需实测分离)
-static const float M4 = 0.60f;    // 连杆 4 质量 (TODO: 需实测)
-static const float MW = 2.50f;    // 腕部等效质量, 含 J5~J7 电机 + 夹爪 + 典型负载
+static const float M4 = 0.60f;    // 连杆 4 质量: 结构件 4 + J5 电机 (TODO: 需实测)
+static const float MW = 2.50f;    // 腕部等效质量: J6电机 + J7电机 + 夹爪 + 负载 (不含J5, J5已归M4)
                                   //   (TODO: 需实测, 含不同负载时可能需要动态更新)
 
 // ── 质心位置 (m) ──────────────────────────────────
@@ -80,12 +80,7 @@ static const float LC4Z = 0.0f;      // Z 分量 (TODO: 需实测, 连杆 4 通�
 static const float LCWX = 0.08f;     // X 分量: 腕部质心沿末端纵轴前伸 (TODO: 需实测)
 static const float LCWZ = 0.02f;     // Z 分量: 腕部质心略高于末端中心线 (TODO: 需实测)
 
-// ── 角度零位偏置 (度) ─────────────────────────────
-// 电机读数 + 偏置 = 绝对俯仰角 (0° = 水平前伸)
-// (TODO: 均需根据实际机械零位标定)
-static const float J4_ZERO_OFFSET = 0.0f;   // J4: 电机角 → 绝对俯仰的偏置
-static const float J5_ZERO_OFFSET = 0.0f;   // J5: 电机角 → roll 角的偏置 (0° = 腕部竖直)
-static const float J6_ZERO_OFFSET = 0.0f;   // J6: 电机角 → 绝对俯仰的偏置
+// 注: MDH→本函数角度约定的转换全部由调用侧 MDH2xxx() 完成, 本函数不做偏置处理
 
 
 void GravityCompension_Calculate(float _J2, float _J3, float _J4, float _J5, float _J6,
@@ -97,24 +92,31 @@ void GravityCompension_Calculate(float _J2, float _J3, float _J4, float _J5, flo
     }
 
     // ========================================================================
-    // Step 1: 角度转换 — 电机读数 → 绝对俯仰角 / roll 角 (弧度)
+    // Step 1: 输入角度 → 绝对俯仰角 / roll 角 (弧度)
     // ========================================================================
+    //
+    // 角度约定 (与惯量补偿完全一致):
+    //   _J2: Link 2 的绝对俯仰角 (度), 0°=水平前伸, >0°=上仰
+    //   _J3: Link 3 相对 Link 2 的俯仰角 (度), 0°=共线, >0°=Link3相对Link2上仰
+    //   _J4: Link 4 相对 Link 3 的俯仰角 (度), 0°=共线, >0°=Link4相对Link3上仰
+    //   _J5: J5 的 roll 角 (度), 0°=腕部竖直, >0°=从后方看顺时针
+    //   _J6: Wrist 相对 Link 4 的俯仰角 (度), 0°=共线, >0°=Wrist相对Link4上仰
+    //
+    //   累加得绝对俯仰角 (相对于世界系 X₀Y₀ 平面):
+    //     abs_i = abs_{i-1} + rel_i
 
-    // J2: 直接对应 (假设机械零位 = 水平前伸)
+    // J2: 绝对俯仰角
     const float a2 = _J2 * PI / 180.0f;
 
-    // J3: 电机零位与水平前伸差 90°, 方向反转
-    //     _J3 = -90° → a3 = 0° (水平前伸), _J3 = 0° → a3 = -90° (竖直下垂)
-    const float a3 = -(_J3 + 90.0f) * PI / 180.0f;
+    // J3→J6: 相对角链式累加为绝对俯仰角
+    const float a3 = (_J2 + _J3) * PI / 180.0f;                   // Link 3 绝对
+    const float a4 = (_J2 + _J3 + _J4) * PI / 180.0f;             // Link 4 绝对
 
-    // J4: 绝对俯仰角 = 电机读数 + 零位偏置
-    const float a4 = (_J4 + J4_ZERO_OFFSET) * PI / 180.0f;
+    // J5: roll 角 (独立, 不参与 pitch 累加)
+    const float p5 = _J5 * PI / 180.0f;
 
-    // J5: Roll 角 = 电机读数 + 零位偏置
-    const float p5 = (_J5 + J5_ZERO_OFFSET) * PI / 180.0f;
-
-    // J6: 绝对俯仰角 = 电机读数 + 零位偏置
-    const float a6 = (_J6 + J6_ZERO_OFFSET) * PI / 180.0f;
+    // J6: 绝对俯仰角 (wrist)
+    const float a6 = (_J2 + _J3 + _J4 + _J6) * PI / 180.0f;
 
     // ========================================================================
     // Step 2: 预计算三角函数
@@ -128,21 +130,21 @@ void GravityCompension_Calculate(float _J2, float _J3, float _J4, float _J5, flo
     // ========================================================================
     // Step 3: 各质量体对自身关节的力臂
     // ========================================================================
-    // 力臂公式: arm = lcx·cos α + lcz·sin α
+    // 力臂公式: arm = lcx·cos α - lcz·sin α
     //   含义: 质心在世界系 X₀ 轴上的投影距离 = 重力力臂
     //   当 α=0° (水平前伸): cos=1, sin=0 → arm = lcx (全长)
-    //   当 α=90° (竖直向上): cos=0, sin=1 → arm = lcz (侧向偏移成为力臂)
+    //   当 α=90° (竖直向上): cos=0, sin=1 → arm = -lcz (lcz>0时质心在根部后方)
 
     // Link 2: 质心在 {2} 系, 对 J2 的力臂
-    const float arm2 = LC2X * c2 + LC2Z * s2;
+    const float arm2 = LC2X * c2 - LC2Z * s2;
 
     // Link 3: 质心在 {3} 系, 对 J3 的力臂
-    const float arm3_J3 = LC3X * c3 + LC3Z * s3;
+    const float arm3_J3 = LC3X * c3 - LC3Z * s3;
     // Link 3: 质心在 {3} 系, 对 J2 的力臂 (= L₂ 全长 + {3}系中质心投影)
     const float arm3_J2 = L2 * c2 + arm3_J3;
 
     // Link 4: 质心在 {4} 系, 对 J4 的力臂
-    const float arm4_J4 = LC4X * c4 + LC4Z * s4;
+    const float arm4_J4 = LC4X * c4 - LC4Z * s4;
     // Link 4: 对 J3 的力臂 (= L₃ 全长投影 + 对J4的力臂投影)
     const float arm4_J3 = L3 * c3 + arm4_J4;
     // Link 4: 对 J2 的力臂 (= L₂ 全长投影 + L₃ 全长投影 + 对J4的力臂投影)
@@ -152,7 +154,7 @@ void GravityCompension_Calculate(float _J2, float _J3, float _J4, float _J5, flo
     //      乘以 cp5 = cos(φ₅) 是 J5 roll 调制效应:
     //      J5=0°  → cp5=1 → J6 俯仰全效 → 力矩最大
     //      J5=90° → cp5=0 → J6 在水平面内摆动 → 无重力贡献
-    const float armW_J6 = (LCWX * c6 + LCWZ * s6) * cp5;
+    const float armW_J6 = (LCWX * c6 - LCWZ * s6) * cp5;
 
     // Wrist: 对 J4 的力臂 (= L₄ 全长投影 + 对J6的力臂)
     const float armW_J4 = L4 * c4 + armW_J6;
@@ -335,12 +337,11 @@ static const float I_L3 = 0.30f;     // J3 → J4 距离 (TODO: 需实测)
 static const float I_L4 = 0.15f;     // J4 → J5 距离 (TODO: 需实测)
 
 // ── 质量参数 (kg) ─────────────────────────────────
-// 旧版 6-DOF 模型: m2=0.552, m3=2.957 (m3 包含了 J3+之后的全部质量)
-// 新版 7-DOF 模型: 将旧版 m3 拆分为 link3 + link4 + wrist
+// 7-DOF 模型: 将 m3 拆分为 link3 + link4 + wrist
 static const float I_M2 = 0.552f;    // 连杆 2 质量 (沿用实测值)
 static const float I_M3 = 1.00f;     // 连杆 3 质量 (TODO: 需实测, 旧版等效 m3=2.957 拆分)
-static const float I_M4 = 0.50f;     // 连杆 4 质量 (TODO: 需实测)
-static const float I_MW = 1.457f;    // 腕部等效质量, 含 J5~J7 电机+夹爪+典型负载
+static const float I_M4 = 0.50f;     // 连杆 4 质量: 结构件 4 + J5 电机 (TODO: 需实测)
+static const float I_MW = 1.457f;    // 腕部等效质量: J6电机+J7电机+夹爪+负载 (不含J5)
                                       //   (TODO: 需实测, I_M3+I_M4+I_MW 应 ≈ 2.957)
 
 // ── 质心位置 (m), 在各连杆本地坐标系中 ─────────────
@@ -391,15 +392,10 @@ static const float IW_XZ = 0.0f;       // (TODO: 需实测, 近似对称)
 
 // ── J1 基座惯量 (kg·m²) ──────────────────────────
 // 包含 J1 电机转子 + 基座结构件绕 Z₀ 的固定惯量
-static const float I1_BASE = 0.010794353f;  // (沿用实测值)
-static const float MOTOR_I_J1 = 0.00256225f; // J1 电机转子惯量 (沿用实测值)
+static const float I1_BASE = 0.010794353f;  // J1基座惯量: J1转子 + 旋转结构件 + J2电机定子
+static const float MOTOR_I_J1 = 0.00256225f; // J1 电机转子惯量 (已含在 I1_BASE 中, 此处保留供 ValidationStep 使用)
 
-// ── 角度零位偏置 (度) ─────────────────────────────
-// 电机读数 + 偏置 = 绝对俯仰角 (0° = 水平前伸)
-// (TODO: 均需根据实际机械零位标定)
-static const float J4_INERTIA_OFFSET = 0.0f;  // J4 零位偏置
-static const float J5_INERTIA_OFFSET = 0.0f;  // J5 零位偏置 (0° = 腕部竖直)
-static const float J6_INERTIA_OFFSET = 0.0f;  // J6 零位偏置
+// 注: MDH→本函数角度约定的转换全部由调用侧 MDH2xxx() 完成, 本函数不做偏置处理
 
 
 void InertiaCompension_Calculate(float _J2, float _J3, float _J4, float _J5, float _J6,
@@ -427,19 +423,18 @@ void InertiaCompension_Calculate(float _J2, float _J3, float _J4, float _J5, flo
     // ║        转换: _J2 = abs_pitch_J2_deg                                ║
     // ║               (调用侧从 MDH J2 角换算得到)                          ║
     // ║                                                                    ║
-    // ║  _J3 — J3 电机原始角度等效值 (度), 用于计算 Link 3 的相对俯仰角     ║
-    // ║        _J3 = -90° → Link 3 与 Link 2 共线 (t3_rel = 0°)            ║
-    // ║        _J3 = 0°   → Link 3 相对 Link 2 上仰 90° (t3_rel = 90°)     ║
-    // ║        内部转换: t3_rel = (_J3 + 90°) · π/180                       ║
-    // ║        abs_t3 = abs_t2 + t3_rel                                    ║
-    // ║        注意: 惯量补偿中 _J3 不取反 (平方项对符号不敏感)              ║
-    // ║        转换: _J3 = raw_equiv_J3_deg                                ║
-    // ║               (调用侧从 MDH J3 角换算得到, 需保证 -90°=伸直共线)     ║
+    // ║  _J3 — Link 3 相对 Link 2 的俯仰角 (度), 与重力补偿的 _J3 约定一致   ║
+    // ║        0° = Link 3 与 Link 2 共线                                    ║
+    // ║        >0° = Link 3 相对 Link 2 上仰 (绕 +Y₀ 右手定则)               ║
+    // ║        内部: abs_t3 = (_J2 + _J3) · π/180                           ║
+    // ║        转换: _J3 = rel_pitch_J3_deg                                  ║
+    // ║               (调用侧从 MDH J3 角换算得到)                            ║
     // ║                                                                    ║
-    // ║  _J4 — J4 的相对俯仰角 (度), Link 4 相对于 Link 3 的上仰角          ║
-    // ║        _J4 = 0° → Link 4 与 Link 3 共线 (需调 J4_INERTIA_OFFSET)   ║
-    // ║        >0° → Link 4 相对 Link 3 上仰                                ║
-    // ║        转换: _J4 = rel_pitch_J4_deg                                 ║
+    // ║  _J4 — Link 4 相对 Link 3 的俯仰角 (度), 与重力补偿的 _J4 约定一致   ║
+    // ║        0° = Link 4 与 Link 3 共线                                    ║
+    // ║        >0° = Link 4 相对 Link 3 上仰 (绕 +Y₀ 右手定则)               ║
+    // ║        内部: abs_t4 = (_J2+_J3+_J4) · π/180                         ║
+    // ║        转换: _J4 = rel_pitch_J4_deg                                  ║
     // ║               (调用侧从 MDH J4 角换算得到, 注意 k=-1 方向反转)       ║
     // ║                                                                    ║
     // ║  _J5 — J5 的 roll 角 (度), 绕连杆纵轴 (≈X₄) 的旋转                  ║
@@ -449,37 +444,32 @@ void InertiaCompension_Calculate(float _J2, float _J3, float _J4, float _J5, flo
     // ║        转换: _J5 = roll_J5_deg                                      ║
     // ║               (调用侧从 MDH J5 角换算得到, 注意 k=-1 方向反转)       ║
     // ║                                                                    ║
-    // ║  _J6 — J6 的相对俯仰角 (度), Wrist 相对于 Link 4 的上仰角           ║
-    // ║        _J6 = 0° → Wrist 与 Link 4 共线 (需调 J6_INERTIA_OFFSET)    ║
-    // ║        >0° → Wrist 相对 Link 4 上仰                                 ║
-    // ║        转换: _J6 = rel_pitch_J6_deg                                 ║
+    // ║  _J6 — Wrist 相对 Link 4 的俯仰角 (度), 与重力补偿的 _J6 约定一致   ║
+    // ║        0° = Wrist 与 Link 4 共线                                     ║
+    // ║        >0° = Wrist 相对 Link 4 上仰 (绕 +Y₀ 右手定则)               ║
+    // ║        内部: abs_tw = (_J2+_J3+_J4+_J6) · π/180                     ║
+    // ║        转换: _J6 = rel_pitch_J6_deg                                  ║
     // ║               (调用侧从 MDH J6 角换算得到, 注意 k=-1 方向反转)       ║
     // ║                                                                    ║
-    // ║  ⚠️ 调用侧负责: MDH关节角 → 上述约定角度的转换                       ║
+    // ║     调用侧负责: MDH关节角 → 上述约定角度的转换                       ║
     // ║     本函数不做任何 MDH 相关的偏置处理                                ║
     // ╚══════════════════════════════════════════════════════════════════════╝
 
-    // _J2: 绝对俯仰角 → 弧度
-    const float t2 = _J2 * PI / 180.0f;
+    // 角度累加: J2 为绝对俯仰, J3/J4/J6 为相对俯仰 (与重力补偿完全一致)
+    //   abs_i = abs_{i-1} + rel_i
 
-    // _J3: 相对俯仰角 (J3 电机等效值), +90° 补偿机械零位偏置
-    //      _J3 = -90° → t3_rel = 0° → Link3 ∥ Link2
-    const float t3_rel = (_J3 + 90.0f) * PI / 180.0f;
+    // J2: 绝对俯仰角
+    const float abs_t2 = _J2 * PI / 180.0f;
 
-    // _J4: 相对俯仰角 + 零位偏置
-    const float t4_rel = (_J4 + J4_INERTIA_OFFSET) * PI / 180.0f;
+    // J3→J6: 相对角链式累加为绝对俯仰角
+    const float abs_t3 = (_J2 + _J3) * PI / 180.0f;                 // Link 3 绝对
+    const float abs_t4 = (_J2 + _J3 + _J4) * PI / 180.0f;           // Link 4 绝对
 
-    // _J5: roll 角 + 零位偏置
-    const float p5 = (_J5 + J5_INERTIA_OFFSET) * PI / 180.0f;
+    // J5: roll 角 (独立, 不参与 pitch 累加)
+    const float p5 = _J5 * PI / 180.0f;
 
-    // _J6: 相对俯仰角 + 零位偏置
-    const float t6_rel = (_J6 + J6_INERTIA_OFFSET) * PI / 180.0f;
-
-    // 合成各连杆的绝对俯仰角 (相对于世界系 X₀Y₀ 平面):
-    const float abs_t2  = t2;                                  // Link 2 绝对俯仰角
-    const float abs_t3  = t2 + t3_rel;                         // Link 3 绝对俯仰角
-    const float abs_t4  = t2 + t3_rel + t4_rel;                // Link 4 绝对俯仰角
-    const float abs_tw  = t2 + t3_rel + t4_rel + t6_rel;       // Wrist 绝对俯仰角
+    // J6: 绝对俯仰角 (wrist)
+    const float abs_tw = (_J2 + _J3 + _J4 + _J6) * PI / 180.0f;
 
     // ========================================================================
     // Step 2: 预计算三角函数
@@ -494,18 +484,17 @@ void InertiaCompension_Calculate(float _J2, float _J3, float _J4, float _J5, flo
     // Step 3: 平动惯量 — 各质量体质心到 J1 轴 (Z₀) 的水平距离 ρ
     // ========================================================================
     // 公式: ρ = |世界系 X₀ 分量|, 由旋转矩阵投影得到:
-    //   X₀ = 连杆长度累积投影 + 质心 X·cos(θ_abs) + 质心 Z·sin(θ_abs)
+    //   X₀ = 连杆长度累积投影 + 质心 X·cos(θ_abs) - 质心 Z·sin(θ_abs)
     //
-    // 符号约定: 对于质心 Z 分量, 当连杆上仰时 (θ>0),
-    //   正 Z (质心在连杆中心线上方) 使质心向根部方向回缩 → 用减号
-    //   负 Z (质心在连杆中心线下方) 使质心向外延伸 → 等效加号
+    // 符号约定: 力臂公式 arm = x·cosθ - z·sinθ 统一使用减号
+    //   (上仰为正, 旋转矩阵 Ry(-θ) 展开)
     //   代码: ρ = L_accum·cos + xc·cos - zc·sin
-    //     (与重力补偿一致: arm = lcx·cos α + lcz·sin α, 差一个减号源于 Z 定义方向)
+    //     (与重力补偿一致: arm = lcx·cos α - lcz·sin α)
 
     // Link 2: 质心到 J1 的水平距离
     const float rho2 = I_XC2 * c2 - I_ZC2 * s2;
     //   当 t2=0° (水平前伸): rho2 = xc2 (质心全在前方)
-    //   当 t2=90° (竖直向上): rho2 = -zc2 (质心仅有高度方向投影)
+    //   当 t2=90° (竖直向上): rho2 = -zc2 (zc2>0时质心在根部后方)
 
     // Link 3: 质心到 J1 的水平距离
     //   = J2 全长投影 + 质心在 {3} 系中的投影
