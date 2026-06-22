@@ -604,13 +604,15 @@ void InertiaCompension_Calculate(float _J2, float _J3, float _J4, float _J5, flo
     // ========================================================================
     // Step 4: 转动惯量 — 惯性张量向 Z₀ 轴投影
     // ========================================================================
-    // 公式: I_rot(θ) = I_xx·sin²θ + I_zz·cos²θ - 2·I_xz·sinθ·cosθ
+    // 公式: I_rot(θ) = I_xx·sin²θ + I_zz·cos²θ + 2·I_xz·sinθ·cosθ
     //
-    // 推导: 连杆本地惯性张量 I_local, 经 Ry(θ) 旋转到世界系后,
-    //       绕 Z₀ 轴的转动惯量 = e_zᵀ · (R·I·Rᵀ) · e_z
-    //       = [0,0,1] · [c 0 s; 0 1 0; -s 0 c] · [Ixx 0 Ixz; 0 Iyy 0; Ixz 0 Izz]
-    //         · [c 0 -s; 0 1 0; s 0 c] · [0,0,1]ᵀ
-    //       = I_xx·s² + I_zz·c² - 2·I_xz·s·c
+    // 推导: 上仰为正 → Ry(-θ) 旋转矩阵
+    //   Ry(-θ) = [c, 0, -s; 0, 1, 0; s, 0, c]
+    //   绕 Z₀ 投影: e_zᵀ·R·I·Rᵀ·e_z
+    //     = I_xx·s² + I_zz·c² + 2·I_xz·s·c
+    //
+    //   (标准 Ry(θ) 给出 Ixx·s²+Izz·c²-2·Ixz·s·c, 对应下俯为正;
+    //    我们上仰为正, 交叉项取 + 号)
     //
     // 物理含义:
     //   θ=0° (水平前伸): I_rot = I_zz (连杆 Z 轴正对世界 Z₀)
@@ -618,19 +620,19 @@ void InertiaCompension_Calculate(float _J2, float _J3, float _J4, float _J5, flo
     //   交叉项 I_xz 在中间姿态提供平滑过渡
 
     // Link 2
-    const float I2_rot = I2_XX * s2 * s2 + I2_ZZ * c2 * c2 - 2.0f * I2_XZ * s2 * c2;
+    const float I2_rot = I2_XX*s2*s2 + I2_ZZ*c2*c2 + 2.0f*I2_XZ*s2*c2;
 
     // Link 3
-    const float I3_rot = I3_XX * s3 * s3 + I3_ZZ * c3 * c3 - 2.0f * I3_XZ * s3 * c3;
+    const float I3_rot = I3_XX*s3*s3 + I3_ZZ*c3*c3 + 2.0f*I3_XZ*s3*c3;
 
     // Link 4
-    const float I4_rot = I4_XX * s4 * s4 + I4_ZZ * c4 * c4 - 2.0f * I4_XZ * s4 * c4;
+    const float I4_rot = I4_XX*s4*s4 + I4_ZZ*c4*c4 + 2.0f*I4_XZ*s4*c4;
 
     // Wrist: 近似使用 wrist 系惯性张量 + 绝对俯仰角投影
     //   严格来说 wrist 系的姿态受 J5 roll 影响, Z₀ 投影公式会变复杂.
     //   但因 wrist 本体惯量小, 且平动项 ρ² 占主导, 用 abs_tw 近似.
     const float sw_t = sinf(abs_tw), cw_t = cosf(abs_tw);
-    const float IW_rot = IW_XX*sw_t*sw_t + IW_ZZ*cw_t*cw_t - 2.0f*IW_XZ*sw_t*cw_t;
+    const float IW_rot = IW_XX*sw_t*sw_t + IW_ZZ*cw_t*cw_t + 2.0f*IW_XZ*sw_t*cw_t;
 
     // ========================================================================
     // Step 5: 总等效惯量 Ieq
@@ -699,36 +701,27 @@ void InertiaCompension_ValidationStep(float _J1, float _J2, float _J3, float _J4
         center_inited = 1U;
     }
 
-    // 利用惯量补偿函数反推出姿态相关惯量项，再加上电机转子惯量。
-    // 由于补偿函数有小力矩死区，这里使用 1.0Nm 探测力矩避免被死区截断。
-    const float motor_i = 0.00256225f;
-    const float probe_torque = 1.0f;
-    float inertia_ff_probe = 0.0f;
-    // 探测模式: probe_torque=1.0 绕过死区, alpha 传 0 即可
+    // 利用惯量补偿函数反推当前姿态的 J1 等效惯量 Ieq.
+    //   传入 alpha_J1=1.0, 输出 torque = 1.0 * Ieq = Ieq.
+    //   Motor_Set_torque=1.0 使死区 fabsf(1.0)<0.1 为 false, 绕过死区.
+    float ieq_probe = 0.0f;
     InertiaCompension_Calculate(_J2, _J3, _J4, _J5, _J6,
-                                 0.0f, probe_torque, &inertia_ff_probe);
+                                 1.0f, 1.0f, &ieq_probe);
 
-    const float inertia_link = inertia_ff_probe * motor_i / probe_torque;
-    const float inertia_total = inertia_link + motor_i;
+    // ieq_probe = Ieq = I1_BASE + Σ(I_trans + I_rot), 已含电机惯量
+    const float inertia_total = ieq_probe;
     const float k_dynamic = spring_k * inertia_total;
 
     const float theta_err_rad = (_J1 - theta1_center) * PI / 180.0f;
     float torque_out = -k_dynamic * theta_err_rad;
 
-    if (fabsf(motor_speed_j1) > speed_limit)
+    if (torque_out > torque_limit)
     {
-        torque_out = 0.0f;
+        torque_out = torque_limit;
     }
-    else
+    else if (torque_out < -torque_limit)
     {
-        if (torque_out > torque_limit)
-        {
-            torque_out = torque_limit;
-        }
-        else if (torque_out < -torque_limit)
-        {
-            torque_out = -torque_limit;
-        }
+        torque_out = -torque_limit;
     }
 
     *cmd_torque_j1 = torque_out;
