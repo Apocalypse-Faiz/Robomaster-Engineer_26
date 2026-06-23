@@ -3,7 +3,7 @@
 /**
  * @brief 关节坐标系的动作组执行函数
  * @param _tpa1 轨迹点组
- * @param _a 输入动作组，默认是六个关节+一个时间
+ * @param _a 输入动作组，默认是七个关节+一个时间
  * @param _Num 动作组的目标数量
  */
 void ActionGroup_WithJoint(TrajectoryPointArray _tpa1[7], float _a[][8], int _Num)
@@ -74,29 +74,59 @@ void ActionGroup_Choose(TrajectoryPointArray _tpa1[7], ActionGroup_enum _action_
         }
         break;
 
-     /*储存能量单元*/
-    case ActionGroup_enum::StoreOre_L: 
+    // ========================================================================
+    // 储矿槽动作组 — 4 槽 (LF=左前, RF=右前, LB=左后, RB=右后)
+    // ========================================================================
+    /*储存 (Store) */
+    case ActionGroup_enum::StoreOre_LF: case ActionGroup_enum::StoreOre_RF:
+    case ActionGroup_enum::StoreOre_LB: case ActionGroup_enum::StoreOre_RB:
         if (_Add_onlyOnce == 1)
         {
-            ActionGroup_WithJoint(_tpa1, StoreOre_L, 3);
+            // 根据枚举值选取对应数组 (利用枚举连续排列: LF,RF,LB,RB)
+            static float (*const store_tables[4])[8] = {
+                StoreOre_LF, StoreOre_RF, StoreOre_LB, StoreOre_RB
+            };
+            int idx = (int)_action_enum - (int)ActionGroup_enum::StoreOre_LF;
+            ActionGroup_WithJoint(_tpa1, store_tables[idx], 3);
         }
         break;
-    case ActionGroup_enum::StoreOre_R:  
+
+    /*退出储存 (ExitStore) */
+    case ActionGroup_enum::ExitStoreOre_LF: case ActionGroup_enum::ExitStoreOre_RF:
+    case ActionGroup_enum::ExitStoreOre_LB: case ActionGroup_enum::ExitStoreOre_RB:
         if (_Add_onlyOnce == 1)
         {
-            ActionGroup_WithJoint(_tpa1, StoreOre_R, 3);
+            static float (*const exit_tables[4])[8] = {
+                ExitStoreOre_LF, ExitStoreOre_RF, ExitStoreOre_LB, ExitStoreOre_RB
+            };
+            int idx = (int)_action_enum - (int)ActionGroup_enum::ExitStoreOre_LF;
+            ActionGroup_WithJoint(_tpa1, exit_tables[idx], 3);
         }
         break;
-    case ActionGroup_enum::ExitStoreOre_L: 
+
+    /*取出 (TakeIn) */
+    case ActionGroup_enum::TakeInOre_LF: case ActionGroup_enum::TakeInOre_RF:
+    case ActionGroup_enum::TakeInOre_LB: case ActionGroup_enum::TakeInOre_RB:
         if (_Add_onlyOnce == 1)
         {
-            ActionGroup_WithJoint(_tpa1, ExitStoreOre_L, 3);
+            static float (*const takein_tables[4])[8] = {
+                TakeInOre_LF, TakeInOre_RF, TakeInOre_LB, TakeInOre_RB
+            };
+            int idx = (int)_action_enum - (int)ActionGroup_enum::TakeInOre_LF;
+            ActionGroup_WithJoint(_tpa1, takein_tables[idx], 3);
         }
         break;
-    case ActionGroup_enum::ExitStoreOre_R: 
+
+    /*取出结束 (TakeIn_end) */
+    case ActionGroup_enum::TakeinOreLF_end: case ActionGroup_enum::TakeinOreRF_end:
+    case ActionGroup_enum::TakeinOreLB_end: case ActionGroup_enum::TakeinOreRB_end:
         if (_Add_onlyOnce == 1)
         {
-            ActionGroup_WithJoint(_tpa1, ExitStoreOre_R, 3);
+            static float (*const end_tables[4])[8] = {
+                TakeinOreLF_end, TakeinOreRF_end, TakeinOreLB_end, TakeinOreRB_end
+            };
+            int idx = (int)_action_enum - (int)ActionGroup_enum::TakeinOreLF_end;
+            ActionGroup_WithJoint(_tpa1, end_tables[idx], 3);
         }
         break;
     // 取能量单元
@@ -222,30 +252,7 @@ void ActionGroup_Choose(TrajectoryPointArray _tpa1[7], ActionGroup_enum _action_
     //     }
     //     break;
     /*取肚子内能量单元*/
-    case ActionGroup_enum::TakeInOre_R: // 取肚子内 右
-        if (_Add_onlyOnce == 1)
-        {
-             ActionGroup_WithJoint(_tpa1, TakeInOre_R, 3);
-        }
-        break;
-    case ActionGroup_enum::TakeInOre_L: // 取肚子内 左
-        if (_Add_onlyOnce == 1)
-        {
-            ActionGroup_WithJoint(_tpa1, TakeInOre_L, 3);
-        }
-        break;
-    case ActionGroup_enum::TakeinOreRight_end: 
-        if (_Add_onlyOnce == 1)
-        {
-            ActionGroup_WithJoint(_tpa1, TakeinOreRight_end, 3);
-        }
-        break;
-    case ActionGroup_enum::TakeinOreLeft_end: 
-        if (_Add_onlyOnce == 1)
-        {
-            ActionGroup_WithJoint(_tpa1, TakeinOreLeft_end, 3);
-        }
-        break;
+
 
     case ActionGroup_enum::Stop: // 紧急停止执行动作
 
@@ -488,47 +495,32 @@ float TakeOre6_end[3][8] =
     {0, 134.35, 42.62, 0, 41.7, 0, 600, 600}
 };
 
-/*储能量单元*/
-float StoreOre_R[3][8] = {
-    {-120, 97, 36, 0, -21.3, 0, 600, 600},
-    {-169.8, 73.86, 18.23, 0, -24.9, 0, 800, 800},
-    {-169.8, 49.45, 24.52, 0, -60.74, 0, 400, 400}
-};
+// ============================================================================
+// 储矿槽动作组 — 4 槽 (LF=左前, RF=右前, LB=左后, RB=右后)
+//   格式: [N][8] = { {J1,J2,J3,J4,J5,J6,J7,time_ms}, ... }
+//   TODO: 填入实际关节角度
+// ============================================================================
 
-float StoreOre_L[3][8] = {
-    {120, 97, 36, 0, -21.3, 0, 600, 600},
-    {158.71, 67.12, 23.36, 0, -51.51, 0, 700, 700},
-    {158.71, 49.74, 23.33, 0, -55.93, 0, 400, 400}};
+// ── 储存 (Store) ──────────────────────────────────
+float StoreOre_LF[3][8] = {0};
+float StoreOre_RF[3][8] = {0};
+float StoreOre_LB[3][8] = {0};
+float StoreOre_RB[3][8] = {0};
 
-float ExitStoreOre_L[3][8] = {
-    {157.41, 73.71, 43.73, 0, -54.22, 0, 400, 400},
-    {120, 97, 36, 0, -21.3, 0, 600, 600},
-    {0, 134.35, 42.62, 0, 41.7, 0, 600, 600}};
+// ── 退出储存 (ExitStore) ──────────────────────────
+float ExitStoreOre_LF[3][8] = {0};
+float ExitStoreOre_RF[3][8] = {0};
+float ExitStoreOre_LB[3][8] = {0};
+float ExitStoreOre_RB[3][8] = {0};
 
-float ExitStoreOre_R[3][8] = {
-    {-169.41, 55.91, 42.43, 0, -75.3, 0, 400, 400},
-    {-120, 97, 36, 0, -21.3, 0, 600, 600},
-    {0, 134.35, 42.62, 0, 41.7, 0, 600, 600}};
+// ── 取出 (TakeIn) ─────────────────────────────────
+float TakeInOre_LF[3][8] = {0};
+float TakeInOre_RF[3][8] = {0};
+float TakeInOre_LB[3][8] = {0};
+float TakeInOre_RB[3][8] = {0};
 
-// 取肚子内能量单元
-float TakeInOre_L[3][8] = {
-    {120, 97, 36, 0, -21.3, 0, 600, 600},
-    {157.41, 73.71, 43.73, 0, -54.22, 0, 600, 600},
-    {158.71, 49.74, 23.33, 0, -55.93, 0, 400, 400}};
-
-float TakeInOre_R[3][8] = {
-    {-120, 97, 36, 0, -21.3, 0, 600, 600},
-    {-169.41, 55.91, 42.43, 0, -75.3, 0, 600, 600},
-    {-169.8, 50.11, 25.31, 0, -61.74, 0, 400, 400}
-};
-
-float TakeinOreRight_end[3][8] = {
-    {-169.8, 70.11, 21.15, 0, -43.94, 0, 600, 600},
-    {-120, 97, 36, 0, -21.3, 0, 600, 600},
-    {0, 134.35, 42.62, 0, 41.7, 0, 600, 600}};
-
-float TakeinOreLeft_end[3][8] = {
-    {158.71, 67.12, 20.78, 0, -50.92, 0, 500, 500},
-    {120, 97, 36, 0, -21.3, 0, 600, 600},
-    {0, 134.35, 42.62, 0, 41.7, 0, 600, 600}
-};
+// ── 取出结束 (TakeIn_end) ─────────────────────────
+float TakeinOreLF_end[3][8] = {0};
+float TakeinOreRF_end[3][8] = {0};
+float TakeinOreLB_end[3][8] = {0};
+float TakeinOreRB_end[3][8] = {0};

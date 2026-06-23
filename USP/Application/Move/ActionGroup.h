@@ -15,14 +15,26 @@ enum class ActionGroup_enum
     Mobile_Ore,    // 机动状态 - 储矿
     Mobile_Tunnel, // 机动状态 - 隧道
 
-    StoreOre_L,     // 右储存
-    StoreOre_R,     // 左储存
-    ExitStoreOre_L, // 退出右储存
-    ExitStoreOre_R, // 退出左储存
-    TakeInOre_L,    // 取自身储存的 右
-    TakeInOre_R,    // 取自身储存的 左
-    TakeinOreRight_end,
-    TakeinOreLeft_end,
+    // 储矿槽 — 左前 (LF)
+    StoreOre_LF,        // 储存-左前
+    ExitStoreOre_LF,    // 退出储存-左前
+    TakeInOre_LF,       // 取出-左前
+    TakeinOreLF_end,    // 取出结束-左前
+    // 储矿槽 — 右前 (RF)
+    StoreOre_RF,        // 储存-右前
+    ExitStoreOre_RF,    // 退出储存-右前
+    TakeInOre_RF,       // 取出-右前
+    TakeinOreRF_end,    // 取出结束-右前
+    // 储矿槽 — 左后 (LB)
+    StoreOre_LB,        // 储存-左后
+    ExitStoreOre_LB,    // 退出储存-左后
+    TakeInOre_LB,       // 取出-左后
+    TakeinOreLB_end,    // 取出结束-左后
+    // 储矿槽 — 右后 (RB)
+    StoreOre_RB,        // 储存-右后
+    ExitStoreOre_RB,    // 退出储存-右后
+    TakeInOre_RB,       // 取出-右后
+    TakeinOreRB_end,    // 取出结束-右后
 
     TakeOre1_prepare,   // 准备
     TakeOre2_prepare,   // 准备
@@ -102,17 +114,25 @@ extern float TakeOre4_end[3][8];
 extern float TakeOre5_end[3][8];
 extern float TakeOre6_end[3][8];
 
-// 储存能量单元
-extern float StoreOre_R[3][8];
-extern float StoreOre_L[3][8];
-extern float ExitStoreOre_L[3][8];
-extern float ExitStoreOre_R[3][8];
+// 储存能量单元 — 4 储矿槽 (LF=左前, RF=右前, LB=左后, RB=右后)
+extern float StoreOre_LF[3][8];
+extern float StoreOre_RF[3][8];
+extern float StoreOre_LB[3][8];
+extern float StoreOre_RB[3][8];
+extern float ExitStoreOre_LF[3][8];
+extern float ExitStoreOre_RF[3][8];
+extern float ExitStoreOre_LB[3][8];
+extern float ExitStoreOre_RB[3][8];
 
-// 取肚子内能量单元
-extern float TakeInOre_L[3][8];
-extern float TakeInOre_R[3][8];
-extern float TakeinOreRight_end[3][8];
-extern float TakeinOreLeft_end[3][8];
+// 取肚子内能量单元 — 4 储矿槽
+extern float TakeInOre_LF[3][8];
+extern float TakeInOre_RF[3][8];
+extern float TakeInOre_LB[3][8];
+extern float TakeInOre_RB[3][8];
+extern float TakeinOreLF_end[3][8];
+extern float TakeinOreRF_end[3][8];
+extern float TakeinOreLB_end[3][8];
+extern float TakeinOreRB_end[3][8];
 
 /*世界坐标系下*/
 extern float TempAction_World[4][8];
