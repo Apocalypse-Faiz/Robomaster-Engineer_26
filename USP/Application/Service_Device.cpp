@@ -142,6 +142,12 @@ void tskBackpackdrive(void *arg)
 		vTaskDelayUntil(&xLastWakeTime_t, 10);
 
 		// 杂项机构运行代码放在这里
+		/* 矿石检测 (GPIO 低电平有效) */
+		OreBit[0] = (HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_1) == GPIO_PIN_RESET) ? 1 : 0;
+		OreBit[1] = (HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_2) == GPIO_PIN_RESET) ? 1 : 0;
+		OreBit[2] = (HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_8) == GPIO_PIN_RESET) ? 1 : 0;
+		OreBit[3] = (HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_9) == GPIO_PIN_RESET) ? 1 : 0;
+
 		/* 指示灯控制 */
 		// 末端夹爪状态观察（闭合指令态点亮）
 		// if (gripper.getState() == GripperState::CLOSING)
