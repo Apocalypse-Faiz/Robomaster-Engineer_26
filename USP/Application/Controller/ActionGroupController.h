@@ -19,10 +19,11 @@ enum class TakeOre_enum {
     TakeOre4_ing, TakeOre5_ing, TakeOre6_ing,
     TakeOre1_end, TakeOre2_end, TakeOre3_end,
     TakeOre4_end, TakeOre5_end, TakeOre6_end,
-    StoreOre_L, StoreOre_R,
-    ExitStoreOre_L, ExitStoreOre_R,
-    TakeInOre_L, TakeInOre_R,
-    TakeinOreRight_end, TakeinOreLeft_end
+    // 储矿槽 — 4 槽 (LF=左前, RF=右前, LB=左后, RB=右后)
+    StoreOre_LF, StoreOre_RF, StoreOre_LB, StoreOre_RB,
+    ExitStoreOre_LF, ExitStoreOre_RF, ExitStoreOre_LB, ExitStoreOre_RB,
+    TakeInOre_LF, TakeInOre_RF, TakeInOre_LB, TakeInOre_RB,
+    TakeinOreLF_end, TakeinOreRF_end, TakeinOreLB_end, TakeinOreRB_end
 };
 
 /* 动作组控制器类 - 专门处理动作组逻辑 */
@@ -30,7 +31,7 @@ class ActionGroupController {
 private:
     // 状态变量
     TakeOre_enum take_ore_state;
-    uint8_t ore_ing[2];
+    uint8_t ore_ing[4];
     uint8_t get_ore_num[6];
     uint8_t ore_index;
     

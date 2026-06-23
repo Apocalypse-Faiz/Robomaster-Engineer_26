@@ -64,39 +64,17 @@ void ActionGroupController::handleStoreOre(Joint joints[], Gripper& gripper, ToB
     {
         VT13_KeyBoard_Grip();
     }
-    // 只要按下按键，那么ore_ing的状态就会改变，不会再进入这个状态里了
+    // 检查储矿完成条件 — 4 槽 (0=LF,1=RF,2=LB,3=RB)
     if (gripper.getState() == GripperState::OPENING)
     {
-        // 检查储矿完成条件
-        if (ore_ing[0] == 1) 
-        { 
-            // 左储存矿石中
-            // toBottomdata.L_Store = 2;
-            // if (reBottomdata.L_Ore == 1) 
-            // { 
-                // 左储存位检测到矿石
-                ore_ing[0] = 2;
-                // OreBit[0] = 1;
-            // } else 
-            // {
-            //     gripper.close();
-            // }
-        } 
-        else if (ore_ing[1] == 1) 
-        { 
-            // 右储存矿石中
-            // toBottomdata.R_Store = 2;
-            // if (reBottomdata.R_Ore == 1) 
-            // { 
-            //     // 右储存位检测到矿石
-            //     gripper.open();
-                ore_ing[1] = 2;
-                // OreBit[1] = 1;
-            // } 
-            // else 
-            // {
-            //     gripper.close();
-            // }
+        for (int s = 0; s < 4; s++)
+        {
+            if (ore_ing[s] == 1)
+            {
+                ore_ing[s] = 2;
+                // OreBit[s] = 1;  // GPIO 读取自动更新, 此处注释
+                break;
+            }
         }
     }
 }
@@ -180,38 +158,33 @@ void ActionGroupController::handleTakeOre(Joint joints[], Gripper& gripper, ToBo
 /**
  * @brief 处理取肚矿逻辑
  */
-void ActionGroupController::handleTakeBellyOre(Joint joints[], Gripper& gripper, ToBottomDataStructdef& toBottomdata) 
+void ActionGroupController::handleTakeBellyOre(Joint joints[], Gripper& gripper, ToBottomDataStructdef& toBottomdata)
 {
-    if (take_ore_state == TakeOre_enum::TakeInOre_L) 
+    // 取肚矿逻辑 — 4 槽 (LF=左前, RF=右前, LB=左后, RB=右后)
+    static const TakeOre_enum takein_states[4] = {
+        TakeOre_enum::TakeInOre_LF, TakeOre_enum::TakeInOre_RF,
+        TakeOre_enum::TakeInOre_LB, TakeOre_enum::TakeInOre_RB
+    };
+    static const TakeOre_enum end_states[4] = {
+        TakeOre_enum::TakeinOreLF_end, TakeOre_enum::TakeinOreRF_end,
+        TakeOre_enum::TakeinOreLB_end, TakeOre_enum::TakeinOreRB_end  // 注意: RB 枚举名无下划线
+    };
+
+    for (int s = 0; s < 4; s++)
     {
-        if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
+        if (take_ore_state == takein_states[s])
         {
-            Keyboard_Grippers();
-        }
-        if (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C && VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
-        {
-            VT13_KeyBoard_Grip();
-        }
-        if (/*gripper.isObjectGripped() == true*/ gripper.getState() == GripperState::CLOSING) 
-        {
-            // OreBit[0] = 0;
-            take_ore_state = TakeOre_enum::TakeinOreLeft_end;
-        }
-    } 
-    else if (take_ore_state == TakeOre_enum::TakeInOre_R) 
-    {
-        if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
-        {
-            Keyboard_Grippers();
-        }
-        if (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C && VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
-        {
-            VT13_KeyBoard_Grip();
-        }
-        if (/*gripper.isObjectGripped() == true*/ gripper.getState() == GripperState::CLOSING) 
-        {
-            // OreBit[1] = 0;
-            take_ore_state = TakeOre_enum::TakeinOreRight_end;
+            if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
+                Keyboard_Grippers();
+            if (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C && VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
+                VT13_KeyBoard_Grip();
+
+            if (gripper.getState() == GripperState::CLOSING)
+            {
+                // OreBit[s] = 0;
+                take_ore_state = end_states[s];
+            }
+            return;
         }
     }
 }
@@ -245,49 +218,36 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
     }
     
     // 清除取矿状态标志
-    if ((DR16.GetS1() == SW_DOWN && DR16.GetS2() == SW_DOWN) || (VT13.GetFN1() && VT13.GetFN2())) 
+    if ((DR16.GetS1() == SW_DOWN && DR16.GetS2() == SW_DOWN) || (VT13.GetFN1() && VT13.GetFN2()))
     {
         take_ore_state = TakeOre_enum::Zero;
-        OreBit[0] = 0;
-        OreBit[1] = 0;
+        memset(OreBit, 0, sizeof(OreBit));
     }
-    
-    // 储矿逻辑
-    if (action_free == true && (DR16.IsKeyPress(DR16_KEY_F) || VT13.IsKeyPress(VT13_KEY_F)) && /*gripper.isObjectGripped() == true*/ gripper.getState() == GripperState::CLOSING && take_ore_state == TakeOre_enum::Zero) 
+
+    // 储矿逻辑 — 根据 OreBit 自动选空槽 (优先级: LF>RF>LB>RB)
+    //   F 键触发储存, 自动寻找第一个 OreBit[s]==0 的槽位
+    if (action_free == true && (DR16.IsKeyPress(DR16_KEY_F) || VT13.IsKeyPress(VT13_KEY_F)) && gripper.getState() == GripperState::CLOSING && take_ore_state == TakeOre_enum::Zero)
     {
-        if (/*OreBit[0] == 0 && OreBit[1] == 0*/DR16.IsKeyPress(DR16_KEY_CTRL) || VT13.IsKeyPress(VT13_KEY_CTRL)) 
-        { // 左储存位空
-            action_enum = ActionGroup_enum::StoreOre_L;
-            add_once_flag = 1;
-            ore_ing[0] = 1;
-            // toBottomdata.L_Store = 0;
-            take_ore_state = TakeOre_enum::StoreOre_L;
-        } 
-        else if (/*OreBit[0] == 1 && OreBit[1] == 0*/DR16.IsKeyPress(DR16_KEY_SHIFT) || VT13.IsKeyPress(VT13_KEY_SHIFT)) 
-        { // 右储存位空
-            action_enum = ActionGroup_enum::StoreOre_R;
-            add_once_flag = 1;
-            ore_ing[1] = 1;
-            // toBottomdata.R_Store = 0;
-            take_ore_state = TakeOre_enum::StoreOre_R;
+        static const ActionGroup_enum store_actions[4] = {
+            ActionGroup_enum::StoreOre_LF, ActionGroup_enum::StoreOre_RF,
+            ActionGroup_enum::StoreOre_LB, ActionGroup_enum::StoreOre_RB
+        };
+        static const TakeOre_enum store_states[4] = {
+            TakeOre_enum::StoreOre_LF, TakeOre_enum::StoreOre_RF,
+            TakeOre_enum::StoreOre_LB, TakeOre_enum::StoreOre_RB
+        };
+        // 按优先级 LF→RF→LB→RB 找第一个空槽
+        for (int s = 0; s < 4; s++)
+        {
+            if (OreBit[s] == 0)
+            {
+                action_enum = store_actions[s];
+                add_once_flag = 1;
+                ore_ing[s] = 1;
+                take_ore_state = store_states[s];
+                break;
+            }
         }
-    }
-    
-    // 退出储矿逻辑
-    else if (action_free == true && ore_ing[0] == 2) 
-    {
-        ore_ing[0] = 3;
-        action_enum = ActionGroup_enum::ExitStoreOre_L;
-        add_once_flag = 1;
-        // toBottomdata.L_Store = 1;
-        take_ore_state = TakeOre_enum::Zero;
-    } else if (action_free == true && ore_ing[1] == 2) 
-    {
-        ore_ing[1] = 3;
-        action_enum = ActionGroup_enum::ExitStoreOre_R;
-        add_once_flag = 1;
-        // toBottomdata.R_Store = 1;
-        take_ore_state = TakeOre_enum::Zero;
     }
     
             //取矿1
@@ -441,60 +401,75 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 // UI_Mode = 0;
             }
     
-    // 取肚矿逻辑
-    else if (action_free == true && (DR16.IsKeyPress(DR16_KEY_C) || VT13.IsKeyPress(VT13_KEY_C)) /*&& (OreBit[0] == 1 || OreBit[1] == 1) && gripper.isObjectGripped() == false*/) 
+    
+    // 取肚矿逻辑 — 根据 OreBit 自动选有矿槽 (优先级: LF>RF>LB>RB)
+    //   C 键触发取出, 自动寻找第一个 OreBit[s]==1 的槽位
+    else if (action_free == true && (DR16.IsKeyPress(DR16_KEY_C) || VT13.IsKeyPress(VT13_KEY_C)) && take_ore_state == TakeOre_enum::Zero)
     {
-        if (/*OreBit[0] == 1 && OreBit[1] == 1*/DR16.IsKeyPress(DR16_KEY_CTRL) || VT13.IsKeyPress(VT13_KEY_CTRL)) 
+        static const ActionGroup_enum takein_actions[4] = {
+            ActionGroup_enum::TakeInOre_LF, ActionGroup_enum::TakeInOre_RF,
+            ActionGroup_enum::TakeInOre_LB, ActionGroup_enum::TakeInOre_RB
+        };
+        static const TakeOre_enum takein_states[4] = {
+            TakeOre_enum::TakeInOre_LF, TakeOre_enum::TakeInOre_RF,
+            TakeOre_enum::TakeInOre_LB, TakeOre_enum::TakeInOre_RB
+        };
+        // 按优先级 LF→RF→LB→RB 找第一个有矿槽
+        for (int s = 0; s < 4; s++)
         {
-            if (gripper.getState() != GripperState::OPENING)
+            if (OreBit[s] == 1)
             {
-                gripper.open();
+                if (gripper.getState() != GripperState::OPENING)
+                    gripper.open();
+                action_enum = takein_actions[s];
+                add_once_flag = 1;
+                take_ore_state = takein_states[s];
+                break;
             }
-            action_enum = ActionGroup_enum::TakeInOre_L;
-            add_once_flag = 1;
-            // toBottomdata.L_Store = 0;
-            take_ore_state = TakeOre_enum::TakeInOre_L;
-        } 
-        else if (/*OreBit[0] == 0 && OreBit[1] == 1*/DR16.IsKeyPress(DR16_KEY_SHIFT) || VT13.IsKeyPress(VT13_KEY_SHIFT)) 
-        {
-            if (gripper.getState() != GripperState::OPENING)
-            {
-                gripper.open();
-            }
-            action_enum = ActionGroup_enum::TakeInOre_R;
-            add_once_flag = 1;
-            // toBottomdata.R_Store = 0;
-            take_ore_state = TakeOre_enum::TakeInOre_R;
-        } 
-        // else if (OreBit[0] == 1 && OreBit[1] == 0) 
-        // {
-        //     if (gripper.getState() != GripperState::OPENING)
-        //     {
-        //         gripper.open();
-        //     }
-        //     action_enum = ActionGroup_enum::TakeInOre_L;
-        //     add_once_flag = 1;
-        //     toBottomdata.L_Store = 1;
-        //     take_ore_state = TakeOre_enum::TakeInOre_L;
-        // }
-    }
-    else if(action_free == true && take_ore_state == TakeOre_enum::TakeinOreLeft_end)
-    {
-        action_enum = ActionGroup_enum::TakeinOreLeft_end;
-        add_once_flag= 1;
-        take_ore_state = TakeOre_enum::Zero;
-    }
-    else if(action_free == true && take_ore_state == TakeOre_enum::TakeinOreRight_end)
-    {
-        action_enum = ActionGroup_enum::TakeinOreRight_end;
-        add_once_flag = 1;
-        take_ore_state = TakeOre_enum::Zero;
+        }
     }
     else
     {
         action_enum = ActionGroup_enum::NuLLAction;
     }
     
+    // 退出储矿逻辑 — 4 槽
+    for (int s = 0; s < 4; s++)
+    {
+        if (action_free == true && ore_ing[s] == 2)
+        {
+            static const ActionGroup_enum exit_actions[4] = {
+                ActionGroup_enum::ExitStoreOre_LF, ActionGroup_enum::ExitStoreOre_RF,
+                ActionGroup_enum::ExitStoreOre_LB, ActionGroup_enum::ExitStoreOre_RB
+            };
+            ore_ing[s] = 3;
+            action_enum = exit_actions[s];
+            add_once_flag = 1;
+            take_ore_state = TakeOre_enum::Zero;
+            break;
+        }
+    }
+    
+    // 取肚矿结束 — 4 槽
+    for (int s = 0; s < 4; s++)
+    {
+        static const TakeOre_enum end_states[4] = {
+            TakeOre_enum::TakeinOreLF_end, TakeOre_enum::TakeinOreRF_end,
+            TakeOre_enum::TakeinOreLB_end, TakeOre_enum::TakeinOreRB_end
+        };
+        static const ActionGroup_enum end_actions[4] = {
+            ActionGroup_enum::TakeinOreLF_end, ActionGroup_enum::TakeinOreRF_end,
+            ActionGroup_enum::TakeinOreLB_end, ActionGroup_enum::TakeinOreRB_end
+        };
+        if (action_free == true && take_ore_state == end_states[s])
+        {
+            action_enum = end_actions[s];
+            add_once_flag = 1;
+            take_ore_state = TakeOre_enum::Zero;
+            break;
+        }
+    }
+
     // 执行动作组
     executeActionGroup(joints, trajectory_arrays);
     
