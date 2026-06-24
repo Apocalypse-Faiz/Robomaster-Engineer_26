@@ -155,18 +155,10 @@ void GravityCompension_Calculate(float _J2, float _J3, float _J4, float _J5, flo
     // Link 4: 对 J2 的力臂 (= L₂ 全长投影 + L₃ 全长投影 + 对J4的力臂投影)
     const float arm4_J2 = L2 * c2 + L3 * c3 + arm4_J4;
 
-    // Wrist: 腕部质心在 sagittal 平面内的投影力臂 (不受 J5 roll 影响)
-    //   armW_J6 = LCWX·cos(α₆) - LCWZ·sin(α₆)
-    //   此量描述腕部质心在世界系 X₀ 轴上的投影,
-    //   上游 pitch 关节 (J4/J3/J2) 的轴线始终 ∥ Y₀, 不受 J5 影响,
-    //   因此它们感知到的重力力臂应使用未调制的 armW_J6.
-    const float armW_J6 = LCWX * c6 - LCWZ * s6 * cp5;  // J5 roll 调制: cos(φ₅) 调制 J6 的有效俯仰分量
-
-    // J6 自身的有效力臂: 乘以 cos(φ₅) 调制
-    //   J6 pitch 轴的方向随 J5 roll 变化:
-    //     φ₅=0°  → J6轴∥Y₀ → 俯仰全效 → armW_J6_mod = armW_J6
-    //     φ₅=90° → J6轴∥Z₀ → 俯仰无效 → armW_J6_mod = 0
-    const float armW_J6_mod = armW_J6 * cp5;
+    // Wrist: 腕部质心在 sagittal 平面内的投影力臂 (供上游 J4/J3/J2 用, 不受 J5 影响)
+    //   armW_J6 = LCWX·cos(α₆) - LCWZ·sin(α₆), 是 wrist 质心在世界 X₀ 的投影.
+    //   上游 pitch 关节轴线始终 ∥ Y₀, 感知的是这个未调制的水平力臂.
+    const float armW_J6 = LCWX * c6 - LCWZ * s6;
 
     // Wrist: 对 J4 的力臂 (= L₄ 全长投影 + 腕部未调制力臂)
     const float armW_J4 = L4 * c4 + armW_J6;
@@ -181,8 +173,15 @@ void GravityCompension_Calculate(float _J2, float _J3, float _J4, float _J5, flo
     // 每个关节的力矩 = 该关节之后所有质量体的重力贡献之和
     // 势能 U = Σ mᵢ·g·hᵢ, τⱼ = -∂U/∂αⱼ = Σ mᵢ·g·armᵢ_about_ⱼ
 
-    // J6 (腕部 pitch): 使用调制后的力臂, 因为 J6 轴方向随 J5 变化
-    *tau_J6 = G * MW * armW_J6_mod;
+    // J6 (腕部 pitch): 完整 ∂h_wrist/∂Δ, 不能简单用 cp5 调制
+    //   wrist 质心经 J6 pitch(Δ) → J5 roll(φ₅) → link4 俯仰(α₄) 变换:
+    //     wmid_x = LCWX·cosΔ − LCWZ·sinΔ   (J5 前中间系 x)
+    //     wmid_z = LCWX·sinΔ + LCWZ·cosΔ   (J5 前中间系 z)
+    //   τ_J6 = MW·g·[ wmid_x·cosφ₅·cosα₄ − wmid_z·sinα₄ ]
+    //   第二项 (−wmid_z·sinα₄) 不含 cosφ₅, 故 J5=±90° 且 link4 倾斜时仍有力矩.
+    const float wmid_x = LCWX * cd - LCWZ * sd;
+    const float wmid_z = LCWX * sd + LCWZ * cd;
+    *tau_J6 = G * MW * (wmid_x * cp5 * c4 - wmid_z * s4);
 
     // J5 (腕部 roll): 仅当 wrist 质心偏离 J5 轴线时才有重力力矩
     //   主导项 LCWY (J6 电机外置的 Y 偏置), 经 J5 roll 摆到重力力臂上.
