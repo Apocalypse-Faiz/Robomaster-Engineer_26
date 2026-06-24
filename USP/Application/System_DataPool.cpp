@@ -143,8 +143,8 @@ Joint joint[7] = {
     Joint(&joint_actuator[2], &joint_trajectory[2], 0),
     Joint(&joint_actuator[3], &joint_trajectory[3], 0),
     Joint(&joint_actuator[4], &joint_trajectory[4], 0),
-    Joint(&joint_actuator[5], &joint_trajectory[5], 1),
-    Joint(&joint_actuator[6], &joint_trajectory[6], 2)
+    Joint(&joint_actuator[5], &joint_trajectory[5], 0),
+    Joint(&joint_actuator[6], &joint_trajectory[6], 0)
 }; // 关节对象数组
 
 float Gravity_feedforward[7] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; // 重力前馈数组
@@ -158,12 +158,11 @@ uint8_t OreBit[4] = {0, 0, 0, 0};                                               
 uint8_t UI_Mode;          // UI模式
 uint8_t Robot_Prepared = 1; // 机器人准备状态，DM电机无需力矩复位，默认已准备好
 Indicator_Classdef Indicator(&htim1, &hdma_tim1_ch1, TIM_CHANNEL_1);           // 指示灯
-float gravity_J2 = 0.11f;
-float gravity_J3 = -0.8f;
-float gravity_J4 = 0.3f;   // J4 重力补偿增益 (TODO: 需实机调参, 初始建议 0.1~0.5)
-float gravity_J5 = 0.0f;
-float gravity_J6 = 0.15f;  // J6 重力补偿增益 (TODO: 需实机调参, 初始建议 0.05~0.3)
-float inertia_J1 = 0.5f;
+float gravity_J2 = 0.5f;
+float gravity_J3 = -1.7f;
+float gravity_J4 = 1.7f;   // J4 重力补偿增益 (TODO: 需实机调参, 初始建议 0.1~0.5)
+float gravity_J6 = 1.7f;  // J6 重力补偿增益 (TODO: 需实机调参, 初始建议 0.05~0.3)
+float inertia_J1 = 0.0f;
 
 float chassis_height_min = 0.203f;
 float chassis_height_max = 0.458f;

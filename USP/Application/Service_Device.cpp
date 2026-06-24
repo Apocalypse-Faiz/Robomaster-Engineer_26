@@ -69,7 +69,7 @@ void tskBoardCom(void *arg);
  */
 void Service_Devices_Init(void)
 {
-	xTaskCreate(tskMotor, "App.Motor", Huge_Stack_Size + Small_Stack_Size, NULL, PrioritySuperHigh, &Motor_Handle);
+	xTaskCreate(tskMotor, "App.Motor", Huge_Stack_Size + Huge_Stack_Size, NULL, PrioritySuperHigh, &Motor_Handle);
 	xTaskCreate(tskStateMachine, "App.StateMachine", Huge_Stack_Size + Normal_Stack_Size, NULL, PriorityNormal, &StateMachine_Handle);
 	xTaskCreate(tskBackpackdrive, "App.Backpackdrive", Normal_Stack_Size, NULL, PriorityNormal, &tskBackpackdrive_Handle);
 	xTaskCreate(tskBoardCom, "App.BoardCom", Normal_Stack_Size, NULL, PriorityNormal, &BoardCom_Handle);
@@ -404,9 +404,9 @@ void Joint_limitSet()
 		// 对于DM电机初次上电时在这里就已经设置好了，DJI电机需要在复位状态机中设置
 		/*标定和极性设置*/
 		joint[0].setJointMapping(1, 0);
-		joint[1].setJointMapping(1, 164);
-		joint[2].setJointMapping(1, 0);
-		joint[3].setJointMapping(-1, 0);
+		joint[1].setJointMapping(1, 158);
+		joint[2].setJointMapping(1, 34);
+		joint[3].setJointMapping(-1, -79);
 		joint[4].setJointMapping(-1, 0);
 		joint[5].setJointMapping(-1, 0);
 		joint[6].setJointMapping(-1, 0);
@@ -421,12 +421,12 @@ void Joint_limitSet()
 
 		/*关节软限位*/
 		joint[0].setJointParam(-170, 170, 10, -10);
-		joint[1].setJointParam(35, 160, -10, 10);	
-		joint[2].setJointParam(-180, 180, -10, 10);
-		joint[3].setJointParam(-180, 180, -10, 10);
-		joint[4].setJointParam(-360, 360, -10, 10); // J5关节在力矩复位后还要重新再限位一下
-		joint[5].setJointParam(-360, 360, -10, 10);
-		joint[6].setJointParam(-360, 360, -10, 10);
+		joint[1].setJointParam(40, 155, -10, 10);	
+		joint[2].setJointParam(34, 150, -10, 10);
+		joint[3].setJointParam(-77, 20, -10, 10);
+		joint[4].setJointParam(-165, 165, -10, 10); // J5关节在力矩复位后还要重新再限位一下
+		joint[5].setJointParam(-105, 105, -10, 10);
+		joint[6].setJointParam(-150, 167, -10, 10);
 
 		Set_ok = 1;
 	}
@@ -549,18 +549,18 @@ static const float MDH_J2_ZERO_ABS = 164.0f;   // 假设 motor_raw=0° 时水平
 static inline float MDH2Gravity_J2(float mdh_j2) {
     // MDH_J2 = motor_raw + 164° (k=1,b=164)
     // 绝对俯仰 = motor_raw (假设 motor_raw=0 时水平前伸)
-    return mdh_j2 - MDH_J2_ZERO_ABS;
+    return mdh_j2;
 }
 static inline float MDH2Gravity_J3(float mdh_j3) {
     // 相对俯仰 = Link3绝对 - Link2绝对
     // MDH_J3 = motor_raw (k=1,b=0)
     // (TODO: 若 MDH 角即为两连杆间相对角, 则直通; 否则需换算)
-    return mdh_j3;
+    return -mdh_j3;
 }
 static inline float MDH2Gravity_J4(float mdh_j4) {
     // 相对俯仰 = Link4绝对 - Link3绝对
     // MDH_J4 = -motor_raw (k=-1, 方向反转)
-    return -mdh_j4;
+    return -mdh_j4 - 90.0f;
 }
 static inline float MDH2Gravity_J5(float mdh_j5) {
     // roll 角, 0°=腕部竖直. MDH_J5 = -motor_raw (k=-1, 方向反转)
@@ -581,16 +581,16 @@ static inline float MDH2Gravity_J6(float mdh_j6) {
 
 static inline float MDH2Inertia_J2(float mdh_j2) {
     // 同重力: 绝对俯仰 = MDH - 164° (假设 motor_raw=0 时水平前伸)
-    return mdh_j2 - MDH_J2_ZERO_ABS;
+    return mdh_j2;
 }
 static inline float MDH2Inertia_J3(float mdh_j3) {
     // 相对俯仰 = Link3绝对 - Link2绝对. MDH_J3 = motor_raw (k=1,b=0)
     // (TODO: 若 MDH 角即为两连杆间相对角, 则直通; 否则需换算)
-    return mdh_j3;
+    return -mdh_j3;
 }
 static inline float MDH2Inertia_J4(float mdh_j4) {
     // 相对俯仰 = Link4绝对 - Link3绝对. MDH_J4 = -motor_raw (k=-1, 方向反转)
-    return -mdh_j4;
+    return -mdh_j4 - 90.0f;
 }
 static inline float MDH2Inertia_J5(float mdh_j5) {
     // roll 角, 同重力
@@ -618,31 +618,38 @@ void tskMotor(void *arg)
 	drive_dm_motor[5].bindTxQueueHandle(CAN2_TxPort);
 	drive_dm_motor[6].bindTxQueueHandle(CAN2_TxPort);
 
-	motor[0].setPidParameters({.v_Kp = 0, .v_Min = -20, .v_Max = 20, .a_Kp = 0, .a_Ki = 0, .a_Kd = 0, .a_Min = -10, .a_Max = 10, .a_IntSep = 0, .a_IntMax = 2});
-	motor[1].setPidParameters({.v_Kp = 2.4, .v_Min = -10, .v_Max = 10, .a_Kp = 0.3, .a_Ki = 0.02, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
-	motor[2].setPidParameters({.v_Kp = 3.5f, .v_Min = -20, .v_Max = 20, .a_Kp = 1.25f, .a_Ki = 0.15f, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 5});
-	motor[3].setPidParameters({.v_Kp = 1.9f, .v_Min = -10, .v_Max = 10, .a_Kp = 0.726f, .a_Ki = 0.04f, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
-	motor[4].setPidParameters({.v_Kp = 10.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 10, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
-	motor[5].setPidParameters({.v_Kp = 10.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 10, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
-	motor[6].setPidParameters({.v_Kp = 10.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 10, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
+	// motor[0].setPidParameters({.v_Kp = 0, .v_Min = -20, .v_Max = 20, .a_Kp = 0, .a_Ki = 0, .a_Kd = 0, .a_Min = -10, .a_Max = 10, .a_IntSep = 0, .a_IntMax = 2});
+	// motor[1].setPidParameters({.v_Kp = 2.4, .v_Min = -10, .v_Max = 10, .a_Kp = 0.3, .a_Ki = 0.02, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
+	// motor[2].setPidParameters({.v_Kp = 3.5f, .v_Min = -20, .v_Max = 20, .a_Kp = 1.25f, .a_Ki = 0.15f, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 5});
+	// motor[3].setPidParameters({.v_Kp = 1.9f, .v_Min = -10, .v_Max = 10, .a_Kp = 0.726f, .a_Ki = 0.04f, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
+	// motor[4].setPidParameters({.v_Kp = 10.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 10, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
+	// motor[5].setPidParameters({.v_Kp = 10.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 10, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
+	// motor[6].setPidParameters({.v_Kp = 10.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 10, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
 	vTaskDelay(1000);
 	for(int i = 0; i < 7; i++)
 	{
 		drive_dm_motor[i].enableMotor();
 	}
 
+	DM4340P.setEncoderOffset(0x767F);
+	DM8009.setEncoderOffset(0x7370);
+	DM4340_1.setEncoderOffset(0x8FD9);
+	DM4340_2.setEncoderOffset(0x9ECF);
+	DM4310_1.setEncoderOffset(0x720F);
+	DM4310_2.setEncoderOffset(0x5C67);
+	DM4310_3.setEncoderOffset(0x7516);
 	// DM8009.setEncoderOffset(0x7872);
 	// DM10010.setEncoderOffset(0x60E7);
 	// DM4340.setEncoderOffset(0x64FF);
 	// DM4310.setEncoderOffset(0x9326);
 
-	angle_kp = 0.1f;
+	angle_kp = 0.0f;
     angle_ki = 0.0f;
     angle_kd = 0.0f;
     angle_Out_Max = 20.0f;
-    angle_I_Max = 2.0f;
-    speed_kp = 1.0f;
-    speed_Out_Max = 10.0f;
+    angle_I_Max = 0.0f;
+    speed_kp = 0.0f;
+    speed_Out_Max = 20.0f;
 
     // angle_kp1 = 10.0f;
     // angle_ki1 = 0.0f;
@@ -758,8 +765,8 @@ void tskMotor(void *arg)
 			}
 
 			// DM电机无需复位，Robot_Prepared默认为1，补偿始终启用
-			// DR16_Debug_Ctrl();
-			UpdateMotor0PidByPose();
+			DR16_Debug_Ctrl();
+			// UpdateMotor0PidByPose();
 
 				// ============================================================
 				// 7-DOF 重力补偿: J2(肩), J3(肘), J4(肘后), J6(腕)
@@ -829,7 +836,7 @@ void tskMotor(void *arg)
 
 			if (motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready)
 			{
-				UpdateMotor0PidByPose();
+				// UpdateMotor0PidByPose();
 
 				// 7-DOF 重力补偿 (部分电机就绪时仍启用, MDH→补偿角度转换)
 				GravityCompension_Calculate(

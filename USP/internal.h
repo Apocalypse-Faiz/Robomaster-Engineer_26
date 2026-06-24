@@ -142,7 +142,6 @@ extern int debug_uart_over;
 extern float gravity_J2;
 extern float gravity_J3;
 extern float gravity_J4;
-extern float gravity_J5;
 extern float gravity_J6;
 extern float inertia_J1;
 

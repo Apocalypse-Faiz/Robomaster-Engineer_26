@@ -48,16 +48,16 @@ static const float G = 9.81f;
 
 // ── 长度参数 (m) ──────────────────────────────────
 // 坐标系: 在对应连杆的本地坐标系中测量, Z 沿竖直, X 沿纵轴向前
-static const float L2 = 0.3185f;  // J2 → J3 距离, 连杆 2 长度 (沿用实测值)
-static const float L3 = 0.30f;    // J3 → J4 距离, 连杆 3 长度 (TODO: 需实测)
-static const float L4 = 0.15f;    // J4 → J5 距离, 连杆 4 长度 (TODO: 需实测)
+static const float L2 = 0.3f;  // J2 → J3 距离, 连杆 2 长度 (沿用实测值)
+static const float L3 = 0.15f;    // J3 → J4 距离, 连杆 3 长度 (TODO: 需实测)
+static const float L4 = 0.097f;    // J4 → J5 距离, 连杆 4 长度 (TODO: 需实测)
 
 // ── 质量参数 (kg) ─────────────────────────────────
-static const float M2 = 1.643f;   // 连杆 2 质量 (沿用实测值)
-static const float M3 = 1.50f;    // 连杆 3 质量 (TODO: 旧版等效质量为 3.846,
+static const float M2 = 0.846f;   // 连杆 2 质量 (沿用实测值)
+static const float M3 = 0.558f;    // 连杆 3 质量 (TODO: 旧版等效质量为 3.846,
                                   //   现拆分为 M3 + wrist, 需实测分离)
-static const float M4 = 0.60f;    // 连杆 4 质量: 结构件 4 + J5 电机 (TODO: 需实测)
-static const float MW = 2.50f;    // 腕部等效质量: J6电机 + J7电机 + 夹爪 + 负载 (不含J5, J5已归M4)
+static const float M4 = 1.068f;    // 连杆 4 质量: 结构件 4 + J5 电机 (TODO: 需实测)
+static const float MW = 1.258f;    // 腕部等效质量: J6电机 + J7电机 + 夹爪 + 负载 (不含J5, J5已归M4)
                                   //   (TODO: 需实测, 含不同负载时可能需要动态更新)
 
 // ── 质心位置 (m) ──────────────────────────────────
@@ -65,20 +65,20 @@ static const float MW = 2.50f;    // 腕部等效质量: J6电机 + J7电机 + �
 // X 沿连杆纵轴向前 (远离关节), Z 向上 (垂直于连杆纵轴)
 //
 // Link 2 质心 (在 {2} 系中):
-static const float LC2X = 0.16f;     // X 分量: 沿连杆 2 纵轴, 距 J2 轴的距离 (沿用实测值)
+static const float LC2X = 0.23893f;     // X 分量: 沿连杆 2 纵轴, 距 J2 轴的距离 (沿用实测值)
 static const float LC2Z = 0.0f;      // Z 分量: 连杆 2 通常对称, Z 偏移 ≈ 0
 
 // Link 3 质心 (在 {3} 系中):
-static const float LC3X = 0.12f;     // X 分量 (TODO: 沿用旧版 lc3x=0.119194 的近似值)
-static const float LC3Z = -0.009f;   // Z 分量 (沿用旧版实测值, 质心略低于连杆中心线)
+static const float LC3X = 0.13063f;     // X 分量 (TODO: 沿用旧版 lc3x=0.119194 的近似值)
+static const float LC3Z = 0.0f;   // Z 分量 (沿用旧版实测值, 质心略低于连杆中心线)
 
 // Link 4 质心 (在 {4} 系中):
-static const float LC4X = 0.07f;     // X 分量 (TODO: 需实测, 暂取 L4 的一半)
-static const float LC4Z = 0.0f;      // Z 分量 (TODO: 需实测, 连杆 4 通常较对称)
+static const float LC4X = 0.04208f;     // X 分量 (TODO: 需实测, 暂取 L4 的一半)
+static const float LC4Z = 0.0f;   //0.05779f   // Z 分量 (TODO: 需实测, 连杆 4 通常较对称)
 
 // Wrist 质心 (在 wrist 系中, wrist 系与 {6} 系对齐, 位于 J6 之后):
-static const float LCWX = 0.08f;     // X 分量: 腕部质心沿末端纵轴前伸 (TODO: 需实测)
-static const float LCWZ = 0.02f;     // Z 分量: 腕部质心略高于末端中心线 (TODO: 需实测)
+static const float LCWX = 0.05944f;     // X 分量: 腕部质心沿末端纵轴前伸 (TODO: 需实测)
+static const float LCWZ = -0.00531f;     // Z 分量: 腕部质心略高于末端中心线 (TODO: 需实测)
 
 // 注: MDH→本函数角度约定的转换全部由调用侧 MDH2xxx() 完成, 本函数不做偏置处理
 
@@ -191,12 +191,13 @@ void GravityCompension_Calculate(float _J2, float _J3, float _J4, float _J5, flo
 
 void BackEMFCompension_Calculate(float speed0, float speed1, float speed2, float speed3, float speed4, float speed5, float *backEMF0, float *backEMF1, float *backEMF2, float *backEMF3, float *backEMF4, float *backEMF5)
 {
-    float _ke0;
-    float _ke1;
-    float _ke2;
-    float _ke3;
-    float _ke4;
-    float _ke5;
+    // TODO: 反电动势补偿系数 _ke 需实测标定, 暂置 0 (禁用该补偿)
+    float _ke0 = 0.0f;
+    float _ke1 = 0.0f;
+    float _ke2 = 0.0f;
+    float _ke3 = 0.0f;
+    float _ke4 = 0.0f;
+    float _ke5 = 0.0f;
 
     *backEMF0 = _ke0 * speed0;
     *backEMF1 = _ke1 * speed1;
@@ -208,12 +209,13 @@ void BackEMFCompension_Calculate(float speed0, float speed1, float speed2, float
 
 void CoulombCompension_Calculate(float speed0, float speed1, float speed2, float speed3, float speed4, float speed5, float *coulomb0, float *coulomb1, float *coulomb2, float *coulomb3, float *coulomb4, float *coulomb5)
 {
-    float _coulomb0;
-    float _coulomb1;
-    float _coulomb2;
-    float _coulomb3;
-    float _coulomb4;
-    float _coulomb5;
+    // TODO: 库仑摩擦补偿系数 _coulomb 需实测标定, 暂置 0 (禁用该补偿)
+    float _coulomb0 = 0.0f;
+    float _coulomb1 = 0.0f;
+    float _coulomb2 = 0.0f;
+    float _coulomb3 = 0.0f;
+    float _coulomb4 = 0.0f;
+    float _coulomb5 = 0.0f;
 
     if(speed0 > 0)
         *coulomb0 = _coulomb0;
@@ -261,12 +263,13 @@ void CoulombCompension_Calculate(float speed0, float speed1, float speed2, float
 
 void ViscousCompension_Calculate(float speed0, float speed1, float speed2, float speed3, float speed4, float speed5, float *viscous0, float *viscous1, float *viscous2, float *viscous3, float *viscous4, float *viscous5)
 {
-    float _viscous0;
-    float _viscous1;
-    float _viscous2;
-    float _viscous3;
-    float _viscous4;
-    float _viscous5;
+    // TODO: 黏性摩擦补偿系数 _viscous 需实测标定, 暂置 0 (禁用该补偿)
+    float _viscous0 = 0.0f;
+    float _viscous1 = 0.0f;
+    float _viscous2 = 0.0f;
+    float _viscous3 = 0.0f;
+    float _viscous4 = 0.0f;
+    float _viscous5 = 0.0f;
 
     *viscous0 = _viscous0 * speed0;
     *viscous1 = _viscous1 * speed1;

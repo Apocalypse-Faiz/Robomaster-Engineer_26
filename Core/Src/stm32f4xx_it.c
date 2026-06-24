@@ -104,10 +104,35 @@ void NMI_Handler(void)
 /**
   * @brief This function handles Hard fault interrupt.
   */
+/* HardFault 调试: 故障寄存器 + 栈帧捕获 */
+__attribute__((used)) static volatile uint32_t _fault_regs[8]; // [CFSR,HFSR,MMFAR,BFAR,PC,LR,SP,SP_xPSR]
+__attribute__((used)) static volatile uint32_t _fault_dbg = 0;  // 断点锚点, 设为非0时用调试器看
+
 void HardFault_Handler(void)
 {
   /* USER CODE BEGIN HardFault_IRQn 0 */
+  _fault_regs[0] = (*((volatile uint32_t *)0xE000ED28));  // CFSR
+  _fault_regs[1] = (*((volatile uint32_t *)0xE000ED2C));  // HFSR
+  _fault_regs[2] = (*((volatile uint32_t *)0xE000ED34));  // MMFAR
+  _fault_regs[3] = (*((volatile uint32_t *)0xE000ED38));  // BFAR
 
+  /* 从 MSP 栈帧提取 PC / LR / 入栈前的 xPSR (Cortex-M4 自动入栈 8 字) */
+  __asm volatile (
+    "  tst lr, #4        \n"  // 判断入栈用的是 MSP 还是 PSP
+    "  ite eq            \n"
+    "  mrseq r0, msp     \n"
+    "  mrsne r0, psp     \n"
+    "  ldr r1, =_fault_regs\n"
+    "  ldr r2, [r0, #24] \n"  // PC   (栈帧偏移 24)
+    "  str r2, [r1, #16] \n"
+    "  ldr r2, [r0, #20] \n"  // LR   (栈帧偏移 20)
+    "  str r2, [r1, #20] \n"
+    "  str r0, [r1, #24] \n"  // SP   (栈帧基地址)
+    "  ldr r2, [r0, #28] \n"  // xPSR (栈帧偏移 28)
+    "  str r2, [r1, #28] \n"
+  );
+
+  _fault_dbg = 1;  // ← 在这里设断点, 暂停后看 _fault_regs[0..7]
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
   {
