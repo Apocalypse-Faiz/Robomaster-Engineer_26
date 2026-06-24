@@ -158,7 +158,7 @@ uint8_t OreBit[4] = {0, 0, 0, 0};                                               
 uint8_t UI_Mode;          // UI模式
 uint8_t Robot_Prepared = 1; // 机器人准备状态，DM电机无需力矩复位，默认已准备好
 Indicator_Classdef Indicator(&htim1, &hdma_tim1_ch1, TIM_CHANNEL_1);           // 指示灯
-float gravity_J2 = 0.55f;
+float gravity_J2 = 0.56f;
 float gravity_J3 = -1.7f;
 float gravity_J4 = 1.7f;   // J4 重力补偿增益 (TODO: 需实机调参, 初始建议 0.1~0.5)
 float gravity_J5 = 1.2f;   // J5 roll 重力补偿增益 (J6电机外置Y偏置产生, TODO: 实机调参)

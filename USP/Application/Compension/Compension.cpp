@@ -353,68 +353,68 @@ void GripperGravityCompension_Calculate(float _J5, float *torque_J5)
 
 // ── 长度参数 (m) ──────────────────────────────────
 // 坐标系: 沿连杆纵轴 (Xᵢ 方向) 测量
-static const float I_L2 = 0.3185f;   // J2 → J3 距离 (沿用实测值)
-static const float I_L3 = 0.30f;     // J3 → J4 距离 (TODO: 需实测)
-static const float I_L4 = 0.15f;     // J4 → J5 距离 (TODO: 需实测)
+static const float I_L2 = 0.3f;   // J2 → J3 距离 (沿用实测值)
+static const float I_L3 = 0.15f;     // J3 → J4 距离 (TODO: 需实测)
+static const float I_L4 = 0.097f;     // J4 → J5 距离 (TODO: 需实测)
 
 // ── 质量参数 (kg) ─────────────────────────────────
 // 7-DOF 模型: 将 m3 拆分为 link3 + link4 + wrist
-static const float I_M2 = 0.552f;    // 连杆 2 质量 (沿用实测值)
-static const float I_M3 = 1.00f;     // 连杆 3 质量 (TODO: 需实测, 旧版等效 m3=2.957 拆分)
-static const float I_M4 = 0.50f;     // 连杆 4 质量: 结构件 4 + J5 电机 (TODO: 需实测)
-static const float I_MW = 1.457f;    // 腕部等效质量: J6电机+J7电机+夹爪+负载 (不含J5)
+static const float I_M2 = 0.846f;    // 连杆 2 质量 (沿用实测值)
+static const float I_M3 = 0.558f;     // 连杆 3 质量 (TODO: 需实测, 旧版等效 m3=2.957 拆分)
+static const float I_M4 = 1.068f;     // 连杆 4 质量: 结构件 4 + J5 电机 (TODO: 需实测)
+static const float I_MW = 1.258f;    // 腕部等效质量: J6电机+J7电机+夹爪+负载 (不含J5)
                                       //   (TODO: 需实测, I_M3+I_M4+I_MW 应 ≈ 2.957)
 
 // ── 质心位置 (m), 在各连杆本地坐标系中 ─────────────
 // X 沿连杆纵轴向前 (远离关节), Z 垂直于连杆纵轴向上
 //
 // Link 2 质心 (在 {2} 系中):
-static const float I_XC2 = 0.212567f;  // X₂: 距 J2 轴沿连杆方向 (沿用实测值)
-static const float I_ZC2 = 0.013110f;  // Z₂: 垂直于连杆, 质心略偏上 (沿用实测值)
+static const float I_XC2 = 0.23893f;  // X₂: 距 J2 轴沿连杆方向 (沿用实测值)
+static const float I_ZC2 = 0.0f;  // Z₂: 垂直于连杆, 质心略偏上 (沿用实测值)
 
 // Link 3 质心 (在 {3} 系中):
-static const float I_XC3 = 0.12f;      // X₃: 距 J3 轴沿连杆方向 (TODO: 沿用旧版近似值 0.128812)
-static const float I_ZC3 = -0.0097f;   // Z₃: 质心略偏下 (沿用旧版实测值 -0.009699)
+static const float I_XC3 = 0.13063f;      // X₃: 距 J3 轴沿连杆方向 (TODO: 沿用旧版近似值 0.128812)
+static const float I_ZC3 = 0.0f;   // Z₃: 质心略偏下 (沿用旧版实测值 -0.009699)
 
 // Link 4 质心 (在 {4} 系中):
-static const float I_XC4 = 0.07f;      // X₄: 距 J4 轴 (TODO: 需实测, 暂取 L4/2)
+static const float I_XC4 = 0.04208f;      // X₄: 距 J4 轴 (TODO: 需实测, 暂取 L4/2)
 static const float I_ZC4 = 0.0f;       // Z₄: 连杆 4 通常对称 (TODO: 需实测)
 
 // Wrist 质心 (在 wrist 系中, 与 {6} 系对齐, 位于 J6 之后):
-static const float I_XCW = 0.08f;      // Xw: 腕部质心沿末端纵轴前伸 (TODO: 需实测)
-static const float I_ZCW = 0.02f;      // Zw: 腕部质心略高于末端中心线 (TODO: 需实测)
+static const float I_XCW = 0.05944f;      // Xw: 腕部质心沿末端纵轴前伸 (TODO: 需实测)
+static const float I_ZCW = -0.00531f;      // Zw: 腕部质心略高于末端中心线 (TODO: 需实测)
 
 // ── 惯性张量 (kg·m²), 在各连杆本地坐标系中 ─────────
 // 格式: [I_xx, 0, I_xz; 0, I_yy, 0; I_xz, 0, I_zz]
 // Y 向对称 → I_xy = I_yz = 0, I_yy 对绕 Z₀ 投影无贡献
 //
 // Link 2 惯性张量 (在 {2} 系中, 沿用实测值):
-static const float I2_XX = 0.001098159f;
-static const float I2_ZZ = 0.007049618f;
-static const float I2_XZ = 0.000378630f;
+static const float I2_XX = 0.000996685f;
+static const float I2_ZZ = 0.057547900f;
+static const float I2_XZ = 0.000076674f;
 
 // Link 3 惯性张量 (在 {3} 系中):
 //   (TODO: 旧版等效张量 I3_xx=0.018639, I3_zz=0.043605, I3_xz=-0.007312
 //    含后续所有质量. 新版应为仅连杆 3 本体的张量, 需重新测量)
-static const float I3_XX = 0.008f;     // (TODO: 需实测, 暂取旧版 ~40%)
-static const float I3_ZZ = 0.020f;     // (TODO: 需实测)
-static const float I3_XZ = -0.003f;    // (TODO: 需实测)
+static const float I3_XX = 0.000247072f;     // (TODO: 需实测, 暂取旧版 ~40%)
+static const float I3_ZZ = 0.010836520f;     // (TODO: 需实测)
+static const float I3_XZ = 0.000003571f;    // (TODO: 需实测)
 
 // Link 4 惯性张量 (在 {4} 系中):
-static const float I4_XX = 0.003f;     // (TODO: 需实测, 连杆 4 较短, 惯量较小)
-static const float I4_ZZ = 0.008f;     // (TODO: 需实测)
-static const float I4_XZ = 0.0f;       // (TODO: 需实测, 近似对称)
+static const float I4_XX = 0.011331379f;     // (TODO: 需实测, 连杆 4 较短, 惯量较小)
+static const float I4_ZZ = 0.013285528f;     // (TODO: 需实测)
+static const float I4_XZ = 0.000336204f;       // (TODO: 需实测, 近似对称)
 
 // Wrist 惯性张量 (在 wrist 系中):
 //   (TODO: 需实测, 腕部质量集中, 惯量主要由夹爪+负载的延伸决定)
-static const float IW_XX = 0.005f;     // (TODO: 需实测)
-static const float IW_ZZ = 0.012f;     // (TODO: 需实测)
-static const float IW_XZ = 0.0f;       // (TODO: 需实测, 近似对称)
+static const float IW_XX = 0.002578596f;     // (TODO: 需实测)
+static const float IW_ZZ = 0.002558227f;     // (TODO: 需实测)
+static const float IW_XZ = -0.000091242f;       // (TODO: 需实测, 近似对称)
 
 // ── J1 基座惯量 (kg·m²) ──────────────────────────
 // 包含 J1 电机转子 + 基座结构件绕 Z₀ 的固定惯量
-static const float I1_BASE = 0.010794353f;  // J1基座惯量: J1转子 + 旋转结构件 + J2电机定子
-static const float MOTOR_I_J1 = 0.00256225f; // J1 电机转子惯量 (已含在 I1_BASE 中, 此处保留供 ValidationStep 使用)
+static const float I1_BASE = 0.00248767f;  // J1基座惯量: J1转子 + 旋转结构件 + J2电机定子
+static const float MOTOR_I_J1 = 0.0000198638f; // J1 电机转子惯量 (已含在 I1_BASE 中, 此处保留供 ValidationStep 使用)
 
 // 注: MDH→本函数角度约定的转换全部由调用侧 MDH2xxx() 完成, 本函数不做偏置处理
 
