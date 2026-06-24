@@ -780,10 +780,11 @@ void tskMotor(void *arg)
 				    MDH2Gravity_J5(joint[4].getCurrentAngle()),
 				    MDH2Gravity_J6(joint[5].getCurrentAngle()),
 				    &Gravity_feedforward[1], &Gravity_feedforward[2],
-				    &Gravity_feedforward[3], &Gravity_feedforward[5]);
+				    &Gravity_feedforward[3], &Gravity_feedforward[4], &Gravity_feedforward[5]);
 				motor[1].setGravity_feedforward(Gravity_feedforward[1] * gravity_J2);
 				motor[2].setGravity_feedforward(Gravity_feedforward[2] * gravity_J3);
 				motor[3].setGravity_feedforward(Gravity_feedforward[3] * gravity_J4);
+				motor[4].setGravity_feedforward(Gravity_feedforward[4] * gravity_J5);
 				motor[5].setGravity_feedforward(Gravity_feedforward[5] * gravity_J6);
 
 				// ============================================================
@@ -846,10 +847,11 @@ void tskMotor(void *arg)
 				    MDH2Gravity_J5(joint[4].getCurrentAngle()),
 				    MDH2Gravity_J6(joint[5].getCurrentAngle()),
 				    &Gravity_feedforward[1], &Gravity_feedforward[2],
-				    &Gravity_feedforward[3], &Gravity_feedforward[5]);
+				    &Gravity_feedforward[3], &Gravity_feedforward[4], &Gravity_feedforward[5]);
 				motor[1].setGravity_feedforward(Gravity_feedforward[1] * gravity_J2);
 				motor[2].setGravity_feedforward(Gravity_feedforward[2] * gravity_J3);
 				motor[3].setGravity_feedforward(Gravity_feedforward[3] * gravity_J4);
+				motor[4].setGravity_feedforward(Gravity_feedforward[4] * gravity_J5);
 				motor[5].setGravity_feedforward(Gravity_feedforward[5] * gravity_J6);
 			}
 			else
@@ -857,6 +859,7 @@ void tskMotor(void *arg)
 				motor[1].setGravity_feedforward(0.0f);
 				motor[2].setGravity_feedforward(0.0f);
 				motor[3].setGravity_feedforward(0.0f);
+				motor[4].setGravity_feedforward(0.0f);
 				motor[5].setGravity_feedforward(0.0f);
 			}
 

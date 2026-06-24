@@ -78,15 +78,16 @@ static const float LC4Z = 0.0f;   //0.05779f   // Z 分量 (TODO: 需实测, 连
 
 // Wrist 质心 (在 wrist 系中, wrist 系与 {6} 系对齐, 位于 J6 之后):
 static const float LCWX = 0.05944f;     // X 分量: 腕部质心沿末端纵轴前伸 (TODO: 需实测)
-static const float LCWZ = -0.00531f;     // Z 分量: 腕部质心略高于末端中心线 (TODO: 需实测)
+static const float LCWY = 0.01156f;         // Y 分量: J6 电机外置导致质心偏离 sagittal 平面 (TODO: 需实测)
+static const float LCWZ = -0.00531f;    // Z 分量: 腕部质心略高于末端中心线 (TODO: 需实测)
 
 // 注: MDH→本函数角度约定的转换全部由调用侧 MDH2xxx() 完成, 本函数不做偏置处理
 
 
 void GravityCompension_Calculate(float _J2, float _J3, float _J4, float _J5, float _J6,
-                                  float *tau_J2, float *tau_J3, float *tau_J4, float *tau_J6)
+                                  float *tau_J2, float *tau_J3, float *tau_J4, float *tau_J5, float *tau_J6)
 {
-    if (tau_J2 == nullptr || tau_J3 == nullptr || tau_J4 == nullptr || tau_J6 == nullptr)
+    if (tau_J2 == nullptr || tau_J3 == nullptr || tau_J4 == nullptr || tau_J5 == nullptr || tau_J6 == nullptr)
     {
         return;
     }
@@ -125,7 +126,11 @@ void GravityCompension_Calculate(float _J2, float _J3, float _J4, float _J5, flo
     const float c3 = cosf(a3), s3 = sinf(a3);
     const float c4 = cosf(a4), s4 = sinf(a4);
     const float c6 = cosf(a6), s6 = sinf(a6);
-    const float cp5 = cosf(p5);   // J5 roll 调制因子: cos(φ₅)
+    const float cp5 = cosf(p5), sp5 = sinf(p5);   // J5 roll: cos/sin(φ₅)
+
+    // J6 相对 link4 的俯仰角 Δ = α₆ - α₄ (用于 wrist 质心的 3D 分解)
+    const float delta = a6 - a4;
+    const float cd = cosf(delta), sd = sinf(delta);
 
     // ========================================================================
     // Step 3: 各质量体对自身关节的力臂
@@ -178,6 +183,13 @@ void GravityCompension_Calculate(float _J2, float _J3, float _J4, float _J5, flo
 
     // J6 (腕部 pitch): 使用调制后的力臂, 因为 J6 轴方向随 J5 变化
     *tau_J6 = G * MW * armW_J6_mod;
+
+    // J5 (腕部 roll): 仅当 wrist 质心偏离 J5 轴线时才有重力力矩
+    //   主导项 LCWY (J6 电机外置的 Y 偏置), 经 J5 roll 摆到重力力臂上.
+    //   τ_J5 = MW·g·∂h_wrist/∂φ₅
+    //        = MW·g·cosα₄·[ LCWY·cosφ₅ − (LCWX·sinΔ + LCWZ·cosΔ)·sinφ₅ ]
+    //   φ₅=0 且腕部水平(α₄=0): τ_J5 = MW·g·LCWY (外置电机翻转力矩最大)
+    *tau_J5 = G * MW * c4 * (LCWY * cp5 - (LCWX * sd + LCWZ * cd) * sp5);
 
     // J4 (肘后 pitch): Link 4 + Wrist 的贡献
     *tau_J4 = G * (M4 * arm4_J4 + MW * armW_J4);

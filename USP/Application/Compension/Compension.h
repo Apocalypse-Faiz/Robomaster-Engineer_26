@@ -13,6 +13,7 @@
  * @param tau_J2 输出: J2 肩关节重力力矩 (Nm)
  * @param tau_J3 输出: J3 肘关节重力力矩 (Nm)
  * @param tau_J4 输出: J4 pitch 关节重力力矩 (Nm)
+ * @param tau_J5 输出: J5 roll 关节重力力矩 (Nm, 由 wrist 质心 Y 偏置 LCWY 产生)
  * @param tau_J6 输出: J6 腕部 pitch 关节重力力矩 (Nm)
  *
  * @note 坐标系与角度参考方向
@@ -40,7 +41,7 @@
  *   所有参数值需实机测量标定 (当前为估算值).
  */
 void GravityCompension_Calculate(float _J2, float _J3, float _J4, float _J5, float _J6,
-                                  float *tau_J2, float *tau_J3, float *tau_J4, float *tau_J6);
+                                  float *tau_J2, float *tau_J3, float *tau_J4, float *tau_J5, float *tau_J6);
 
 void BackEMFCompension_Calculate(float speed0, float speed1, float speed2, float speed3, float speed4, float speed5, float *backEMF0, float *backEMF1, float *backEMF2, float *backEMF3, float *backEMF4, float *backEMF5);
 void CoulombCompension_Calculate(float speed0, float speed1, float speed2, float speed3, float speed4, float speed5, float *coulomb0, float *coulomb1, float *coulomb2, float *coulomb3, float *coulomb4, float *coulomb5);
