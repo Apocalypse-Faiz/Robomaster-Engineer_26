@@ -154,8 +154,8 @@ float Viscous_feedforward[7] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; // �
 float Inertia_feedforward[7] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; // 惯量补偿数组
 
 // 轨迹前馈调参增益 (每关节单独调, 从0开始慢慢加)
-float speed_ff_gain[7] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; // 速度前馈增益
-float acc_ff_gain[7]   = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; // 加速度前馈增益 (含等效惯量换算)
+float speed_ff_gain[7] = {2.6f, 0.5f, 1.7f, 1.2f, 0.0f, 0.0f, 0.0f}; // 速度前馈增益
+float acc_ff_gain[7]   = {0.2f, 0.25f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; // 加速度前馈增益 (含等效惯量换算)
 
 bool all_motor_connected = false; // 所有电机连接状态
 uint8_t OreBit[4] = {0, 0, 0, 0};                                                                                                        // 初始矿石位为空，0为空，1为有矿，OreBit[0]为左矿石位，OreBit[1]为右矿石位
@@ -167,7 +167,7 @@ float gravity_J3 = -1.7f;
 float gravity_J4 = 1.7f;   // J4 重力补偿增益 (TODO: 需实机调参, 初始建议 0.1~0.5)
 float gravity_J5 = 1.2f;   // J5 roll 重力补偿增益 (J6电机外置Y偏置产生, TODO: 实机调参)
 float gravity_J6 = 1.7f;  // J6 重力补偿增益 (TODO: 需实机调参, 初始建议 0.05~0.3)
-float inertia_J1 = 0.18f;
+float inertia_J1 = 0.0f;
 
 float chassis_height_min = 0.203f;
 float chassis_height_max = 0.458f;

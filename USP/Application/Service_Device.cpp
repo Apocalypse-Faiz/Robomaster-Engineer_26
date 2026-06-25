@@ -424,7 +424,7 @@ void Joint_limitSet()
 		joint[0].setJointParam(-170, 170, 10, -10);
 		joint[1].setJointParam(40, 155, -10, 10);	
 		joint[2].setJointParam(34, 150, -10, 10);
-		joint[3].setJointParam(-77, 20, -10, 10);
+		joint[3].setJointParam(-77, 17, -10, 10);
 		joint[4].setJointParam(-165, 165, -10, 10); // J5关节在力矩复位后还要重新再限位一下
 		joint[5].setJointParam(-105, 105, -10, 10);
 		joint[6].setJointParam(-150, 167, -10, 10);
@@ -619,10 +619,10 @@ void tskMotor(void *arg)
 	drive_dm_motor[5].bindTxQueueHandle(CAN2_TxPort);
 	drive_dm_motor[6].bindTxQueueHandle(CAN2_TxPort);
 	
-	motor[0].setPidParameters({.v_Kp = 5, .v_Min = -25, .v_Max = 25, .a_Kp = 0.47, .a_Ki = 0.03, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
-	motor[1].setPidParameters({.v_Kp = 6.3, .v_Min = -30, .v_Max = 30, .a_Kp = 0.257, .a_Ki = 0.01, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
-	motor[2].setPidParameters({.v_Kp = 7, .v_Min = -25, .v_Max = 25, .a_Kp = 1, .a_Ki = 0.04, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 5});
-	motor[3].setPidParameters({.v_Kp = 2, .v_Min = -20, .v_Max = 20, .a_Kp = 1.7, .a_Ki = 0.03, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
+	motor[0].setPidParameters({.v_Kp = 4.4, .v_Min = -25, .v_Max = 25, .a_Kp = 0.5, .a_Ki = 0.03, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
+	motor[1].setPidParameters({.v_Kp = 6.3, .v_Min = -30, .v_Max = 30, .a_Kp = 0.26, .a_Ki = 0.01, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
+	motor[2].setPidParameters({.v_Kp = 7, .v_Min = -25, .v_Max = 25, .a_Kp = 0.9, .a_Ki = 0.04, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 5});
+	motor[3].setPidParameters({.v_Kp = 2, .v_Min = -20, .v_Max = 20, .a_Kp = 1.4, .a_Ki = 0.03, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
 	motor[4].setPidParameters({.v_Kp = 1.2, .v_Min = -20, .v_Max = 20, .a_Kp = 0.75, .a_Ki = 0.01, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
 	motor[5].setPidParameters({.v_Kp = 1.5, .v_Min = -20, .v_Max = 20, .a_Kp = 0.8, .a_Ki = 0, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
 	motor[6].setPidParameters({.v_Kp = 0.5, .v_Min = -20, .v_Max = 20, .a_Kp = 0.95, .a_Ki = 0, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
@@ -792,17 +792,24 @@ void tskMotor(void *arg)
 
 				// ============================================================
 				// 7-DOF J1 惯量补偿: 姿态 (J2~J6) 决定等效惯量 Ieq
-				// MDH 关节角 → 补偿角度: 见 MDH2Inertia_xxx() 函数
-				// α_J1 由 EstimateJ1Acceleration() 估计 (每周期一次, 避免重入)
+				// 加速度优先取轨迹规划目标值 (开环,无正反馈), 无轨迹时回退速度微分
 				// ============================================================
+				{
+					// 优先: 轨迹规划目标的 J1 角加速度 (度/s² → rad/s², k=1)
+					const float a_traj = joint[0].getTrajectoryAcceleration(HAL_GetTick() + 1);
+					const float alpha_use = (fabsf(a_traj) > 1e-6f)
+						? a_traj * (3.14159265f / 180.0f)  // 轨迹有效, 用开环目标
+						: alpha_j1;                         // 无轨迹, 回退速度微分
+
 					InertiaCompension_Calculate(
-				    MDH2Inertia_J2(joint[1].getCurrentAngle()),
-				    MDH2Inertia_J3(joint[2].getCurrentAngle()),
-				    MDH2Inertia_J4(joint[3].getCurrentAngle()),
-				    MDH2Inertia_J5(joint[4].getCurrentAngle()),
-				    MDH2Inertia_J6(joint[5].getCurrentAngle()),
-				    alpha_j1, f_torque1.f(motor[0].v_pid.Out),
-				    &Inertia_feedforward[0]);
+					    MDH2Inertia_J2(joint[1].getCurrentAngle()),
+					    MDH2Inertia_J3(joint[2].getCurrentAngle()),
+					    MDH2Inertia_J4(joint[3].getCurrentAngle()),
+					    MDH2Inertia_J5(joint[4].getCurrentAngle()),
+					    MDH2Inertia_J6(joint[5].getCurrentAngle()),
+					    alpha_use, f_torque1.f(motor[0].v_pid.Out),
+					    &Inertia_feedforward[0]);
+				}
 				// 惯量前馈力矩 = Ieq · α_J1, 乘以调参增益后注入 motor[0]
 				motor[0].setInertia_feedforward(Inertia_feedforward[0] * inertia_J1);
 
@@ -868,16 +875,22 @@ void tskMotor(void *arg)
 
 			if (motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready)
 			{
-				// 7-DOF J1 惯量补偿 (部分电机就绪时仍启用, MDH→补偿角度转换)
-				InertiaCompension_Calculate(
-				    MDH2Inertia_J2(joint[1].getCurrentAngle()),
-				    MDH2Inertia_J3(joint[2].getCurrentAngle()),
-				    MDH2Inertia_J4(joint[3].getCurrentAngle()),
-				    MDH2Inertia_J5(joint[4].getCurrentAngle()),
-				    MDH2Inertia_J6(joint[5].getCurrentAngle()),
-				    alpha_j1, f_torque1.f(motor[0].v_pid.Out),
-				    &Inertia_feedforward[0]);
-				motor[0].setInertia_feedforward(Inertia_feedforward[0] * inertia_J1);
+				// 7-DOF J1 惯量补偿 (部分电机就绪, 优先轨迹加速度/回退微分)
+				{
+					const float a_traj = joint[0].getTrajectoryAcceleration(HAL_GetTick() + 1);
+					const float alpha_use = (fabsf(a_traj) > 1e-6f)
+						? a_traj * (3.14159265f / 180.0f) : alpha_j1;
+
+					InertiaCompension_Calculate(
+					    MDH2Inertia_J2(joint[1].getCurrentAngle()),
+					    MDH2Inertia_J3(joint[2].getCurrentAngle()),
+					    MDH2Inertia_J4(joint[3].getCurrentAngle()),
+					    MDH2Inertia_J5(joint[4].getCurrentAngle()),
+					    MDH2Inertia_J6(joint[5].getCurrentAngle()),
+					    alpha_use, f_torque1.f(motor[0].v_pid.Out),
+					    &Inertia_feedforward[0]);
+					motor[0].setInertia_feedforward(Inertia_feedforward[0] * inertia_J1);
+				}
 			}
 			else
 			{
