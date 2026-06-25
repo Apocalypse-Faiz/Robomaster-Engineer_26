@@ -5,16 +5,16 @@
 #include <vector>
 
 /**
- * @brief ¹ì¼£µã
+ * @brief ï¿½ì¼£ï¿½ï¿½
  */
 struct TrajectoryPoint
 {
-    uint32_t t; // ÊÇ´Ó¿ªÊ¼Ö´ĞĞ
+    uint32_t t; // ï¿½Ç´Ó¿ï¿½Ê¼Ö´ï¿½ï¿½
     float a;
 };
 
 /**
- * @brief Ä¿±ê¹ì¼£µã×é£¬Õâ¾ÍÊÇÃèµã£¬ÄâºÏÇúÏßÖĞ¸øµÄÌõ¼şµã
+ * @brief Ä¿ï¿½ï¿½ì¼£ï¿½ï¿½ï¿½é£¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ã£¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğ¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
  */
 class TrajectoryPointArray
 {
@@ -25,7 +25,7 @@ public:
         tick_counter = 0;
     }
 
-    // ¿½±´
+    // ï¿½ï¿½ï¿½ï¿½
     TrajectoryPointArray(const TrajectoryPointArray &other)
     {
         this->capacity = other.capacity;
@@ -36,7 +36,7 @@ public:
     {
     }
 
-    // ¿½±´¹¹Ôìº¯Êı
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ìº¯ï¿½ï¿½
     TrajectoryPointArray &operator=(const TrajectoryPointArray &other)
     {
         if (this != &other)
@@ -47,16 +47,16 @@ public:
         return *this;
     }
 
-    // ¼ÓÈëÒ»¸öµã
+    // ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½
     /**
      * @brief
-     * @param dt deta£¨t£©²»ÊÇfreertosµÄÊµ¼ÊÊ±¼ä£¬ÊÇ¹ì¼£µãÖĞ¼äµÄÏà¶ÔÊ±¼ä
-     * @param Ä¿±ê½Ç¶È
+     * @param dt detaï¿½ï¿½tï¿½ï¿½ï¿½ï¿½ï¿½ï¿½freertosï¿½ï¿½Êµï¿½ï¿½Ê±ï¿½ä£¬ï¿½Ç¹ì¼£ï¿½ï¿½ï¿½Ğ¼ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
+     * @param Ä¿ï¿½ï¿½Ç¶ï¿½
      *
      */
     void add(uint32_t dt, float a)
     {
-        if (dt == 0 && trajectory_points.size() > 0) // µÚÒ»¸öµã×îºÃ²»ÒªÎª0
+        if (dt == 0 && trajectory_points.size() > 0) // ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã²ï¿½ÒªÎª0
             return;
         if (trajectory_points.size() < capacity)
         {
@@ -66,16 +66,16 @@ public:
             tmp.a = a;
             trajectory_points.push_back(tmp);
         }
-        // Èç¹û³¬¹ıcapacityÄÇ¾ÍÎŞ·¨¼ÓÈëÁË£¿
+        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½capacityï¿½Ç¾ï¿½ï¿½Ş·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë£ï¿½
     }
 
-    // ¼ÓÈëÒ»×é¹ì¼£µã
+    // ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ì¼£ï¿½ï¿½
     void add(const TrajectoryPointArray &_trajectory_point_array)
     {
         TrajectoryPoint tmp;
         if ((this->capacity >= this->size() + _trajectory_point_array.size()) && (_trajectory_point_array.size() > 0))
         {
-            uint32_t last_tick = (trajectory_points.size() == 0) ? (0) : (trajectory_points[trajectory_points.size() - 1].t); // ¼ÙÈçÔ­¹ì¼£µã×éÃ»ÓĞ¹ì¼£µã£¬ĞèÒª±£Ö¤µÚÒ»¸ö¹ì¼£µãµÄÊ±¼ä´Á²»Îª0
+            uint32_t last_tick = (trajectory_points.size() == 0) ? (0) : (trajectory_points[trajectory_points.size() - 1].t); // ï¿½ï¿½ï¿½ï¿½Ô­ï¿½ì¼£ï¿½ï¿½ï¿½ï¿½Ã»ï¿½Ğ¹ì¼£ï¿½ã£¬ï¿½ï¿½Òªï¿½ï¿½Ö¤ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ì¼£ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½Îª0
             for (int i = 0; i < _trajectory_point_array.size(); i++)
             {
                 tmp.t = _trajectory_point_array[i].t + last_tick;
@@ -107,7 +107,7 @@ public:
     }
 
 private:
-    uint32_t tick_counter; // Ö»ÊÇÎªÁËaddÓĞÓÃ£¬
+    uint32_t tick_counter; // Ö»ï¿½ï¿½Îªï¿½ï¿½addï¿½ï¿½ï¿½Ã£ï¿½
     uint16_t capacity;
     std::vector<TrajectoryPoint> trajectory_points;
 };
@@ -115,7 +115,7 @@ private:
 class TrajectoryPlanning;
 
 /**
- * @brief <freertos> ¾ßÌåµÄ¹æ»®Æ÷½Ó¿Ú£¬±ÈÈçÏßĞÔ²åÖµ£¬Èı´Î²åÖµµÈ
+ * @brief <freertos> ï¿½ï¿½ï¿½ï¿½Ä¹æ»®ï¿½ï¿½ï¿½Ó¿Ú£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô²ï¿½Öµï¿½ï¿½ï¿½ï¿½ï¿½Î²ï¿½Öµï¿½ï¿½
  */
 struct TrajectoryPlanner
 {
@@ -126,14 +126,22 @@ public:
     virtual void receive(TrajectoryPointArray, float a) = 0;
     virtual void compute(uint32_t t) = 0;
     virtual bool get(uint32_t t, float *result) = 0;
+    // è·å– t æ—¶åˆ»çš„ç›®æ ‡é€Ÿåº¦/åŠ é€Ÿåº¦ (å¤šé¡¹å¼æ±‚å¯¼). é»˜è®¤å®ç°è¿”å› false (æœªæ”¯æŒçš„è§„åˆ’å™¨è¾“å‡º 0).
+    virtual bool getDerivative(uint32_t t, float *vel, float *acc)
+    {
+        (void)t;
+        if (vel) *vel = 0.0f;
+        if (acc) *acc = 0.0f;
+        return false;
+    }
     virtual ~TrajectoryPlanner() {}
 
 protected:
-    bool free; // ÊÇ·ñ¿ÕÏĞ
+    bool free; // ï¿½Ç·ï¿½ï¿½ï¿½ï¿½
 };
 
 /**
- * @brief <freertos> ³éÏó¹ì¼£¹æ»®Æ÷
+ * @brief <freertos> ï¿½ï¿½ï¿½ï¿½ì¼£ï¿½æ»®ï¿½ï¿½
  */
 class TrajectoryPlanning
 {
@@ -153,7 +161,7 @@ public:
     }
 
     /**
-     * @brief °ó¶¨¼ÓÔØ¹ì¼£µã×é
+     * @brief ï¿½ó¶¨¼ï¿½ï¿½Ø¹ì¼£ï¿½ï¿½ï¿½ï¿½
      */
     bool attach(TrajectoryPointArray *_p)
     {
@@ -166,7 +174,7 @@ public:
     }
 
     /**
-     * @brief ½øĞĞ
+     * @brief ï¿½ï¿½ï¿½ï¿½
      *
      */
     bool compute(uint32_t tick, float a)
@@ -175,7 +183,7 @@ public:
         {
             if (trajectory_planner->free)
             {
-                trajectory_planner->reset(); // Çå¿ÕÉÏÒ»´Î
+                trajectory_planner->reset(); // ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½
                 trajectory_planner->receive(*trajectory_point_array, a);
                 trajectory_planner->compute(tick);
                 return true;
@@ -206,6 +214,18 @@ public:
             *result = target;
         }
         return ok;
+    }
+
+    /**
+     * @brief è·å– t æ—¶åˆ»è½¨è¿¹çš„ç›®æ ‡é€Ÿåº¦ä¸ç›®æ ‡åŠ é€Ÿåº¦
+     * @param vel è¾“å‡ºç›®æ ‡é€Ÿåº¦ (å•ä½/ç§’)
+     * @param acc è¾“å‡ºç›®æ ‡åŠ é€Ÿåº¦ (å•ä½/ç§’Â²)
+     */
+    bool getDerivative(uint32_t t, float *vel, float *acc)
+    {
+        if (trajectory_point_array && trajectory_planner)
+            return trajectory_planner->getDerivative(t, vel, acc);
+        return false;
     }
 
     bool free()
