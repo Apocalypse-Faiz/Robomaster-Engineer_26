@@ -432,7 +432,7 @@ float EstimateJ1Acceleration(float motor_speed_j1)
     static uint32_t speed_tick_prev_ms = 0U;
 
     float speed_diff_dt  = 0.001f;           // 默认 1ms 控制周期
-    const float ALPHA_LPF_GAIN = 0.2f;       // 低通滤波增益 (0~1, 越小越平滑)
+    const float ALPHA_LPF_GAIN = 0.08f;      // 低通滤波增益 (0~1, 越小越平滑; 降低以抑制微分噪声)
     float alpha_raw  = 0.0f;
     float alpha_j1   = 0.0f;
     uint32_t speed_tick_now_ms = HAL_GetTick();
@@ -662,12 +662,12 @@ void InertiaCompension_Calculate(float _J2, float _J3, float _J4, float _J5, flo
     // Step 6: 死区保护 + 惯量前馈力矩输出
     // ========================================================================
     // α_J1 由调用侧通过 EstimateJ1Acceleration() 预先估计 (每周期一次).
-    // 当 J1 几乎静止且 PID 输出很小时, 关闭惯量前馈,
-    // 避免速度微分噪声和极小转矩指令下的不必要补偿.
+    // 惯量前馈纯由角加速度驱动: α 小时补偿本应≈0, 且此时 α 多为微分噪声,
+    // 故用 α 死区直接置零 (与 PID 输出无关), 抑制前伸大 Ieq 下的噪声放大抖动.
     //
-    // 注意: 调用侧还会乘以调参增益 inertia_J1 (=0.5) 做最终缩放.
+    // 注意: 调用侧还会乘以调参增益 inertia_J1 做最终缩放.
 
-    if (fabsf(Motor_Set_torque_J1) < 0.1f && fabsf(alpha_J1) < 1e-3f)
+    if (fabsf(alpha_J1) < 0.05f)
     {
         *torque_J1 = 0.0f;
     }

@@ -1300,8 +1300,8 @@ void DR16_Debug_Ctrl()
     // motor[5].setPidParameters({speed_kp, -speed_Out_Max, speed_Out_Max, angle_kp, angle_ki, angle_kd, -angle_Out_Max, angle_Out_Max, 0, angle_I_Max});
     // motor[3].setPidParameters({speed_kp, -speed_Out_Max, speed_Out_Max, angle_kp, angle_ki, angle_kd, -angle_Out_Max, angle_Out_Max, 0, angle_I_Max});
     // motor[2].setPidParameters({speed_kp, -speed_Out_Max, speed_Out_Max, angle_kp, angle_ki, angle_kd, -angle_Out_Max, angle_Out_Max, 0, angle_I_Max});
-    motor[1].setPidParameters({speed_kp, -speed_Out_Max, speed_Out_Max, angle_kp, angle_ki, angle_kd, -angle_Out_Max, angle_Out_Max, 0, angle_I_Max});
-    // motor[0].setPidParameters({speed_kp, -speed_Out_Max, speed_Out_Max, angle_kp, angle_ki, angle_kd, -angle_Out_Max, angle_Out_Max, 0, angle_I_Max});
+    // motor[1].setPidParameters({speed_kp, -speed_Out_Max, speed_Out_Max, angle_kp, angle_ki, angle_kd, -angle_Out_Max, angle_Out_Max, 0, angle_I_Max});
+    motor[0].setPidParameters({speed_kp, -speed_Out_Max, speed_Out_Max, angle_kp, angle_ki, angle_kd, -angle_Out_Max, angle_Out_Max, 0, angle_I_Max});
     /*具体执行*/
     if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
     {
@@ -1318,13 +1318,13 @@ void DR16_Debug_Ctrl()
 
         if (DR16.GetS1() == 1 && DR16.GetS2() == 2) // 左上右下
         {
-            if (DR16.GetCh2() > 1324)
+            // Ch2 (J1): 摇杆通道值映射为增量, 死区±300, 最大增量 ±0.1
             {
-                joint[0].ajustJointTarget(0.05);
-            }
-            if (DR16.GetCh2() < 724)
-            {
-                joint[0].ajustJointTarget(-0.05);
+                const int16_t ch2 = DR16.GetCh2();
+                if (ch2 > 1324)
+                    joint[0].ajustJointTarget( map(ch2, 1324, 1684, 0.0f, 0.1f));
+                else if (ch2 < 724)
+                    joint[0].ajustJointTarget(-map(ch2, 724, 364, 0.0f, 0.1f));
             }
 
             // Ch3 (J2): 摇杆通道值 364~1684, 中位1024, 死区±300, 最大增量 ±0.1
@@ -1419,14 +1419,14 @@ void DR16_Debug_Ctrl()
         // {
         //     debug_target_angle = joint[2].getCurrentAngle();
         // }
-        if (motor[1].getStatus() == MotorStatus::ready)
-        {
-            debug_target_angle = joint[1].getCurrentAngle();
-        }
-        // if (motor[0].getStatus() == MotorStatus::ready)
+        // if (motor[1].getStatus() == MotorStatus::ready)
         // {
-        //     debug_target_angle = joint[0].getCurrentAngle();
+        //     debug_target_angle = joint[1].getCurrentAngle();
         // }
+        if (motor[0].getStatus() == MotorStatus::ready)
+        {
+            debug_target_angle = joint[0].getCurrentAngle();
+        }
     }
 
     last_link_status = DR16.GetStatus(); // 更新
