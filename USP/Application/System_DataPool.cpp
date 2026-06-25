@@ -153,6 +153,10 @@ float Coulomb_feedforward[7] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; // �
 float Viscous_feedforward[7] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; // 黏性前馈数组
 float Inertia_feedforward[7] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; // 惯量补偿数组
 
+// 轨迹前馈调参增益 (每关节单独调, 从0开始慢慢加)
+float speed_ff_gain[7] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; // 速度前馈增益
+float acc_ff_gain[7]   = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; // 加速度前馈增益 (含等效惯量换算)
+
 bool all_motor_connected = false; // 所有电机连接状态
 uint8_t OreBit[4] = {0, 0, 0, 0};                                                                                                        // 初始矿石位为空，0为空，1为有矿，OreBit[0]为左矿石位，OreBit[1]为右矿石位
 uint8_t UI_Mode;          // UI模式

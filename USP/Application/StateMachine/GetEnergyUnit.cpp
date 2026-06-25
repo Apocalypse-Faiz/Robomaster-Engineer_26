@@ -257,14 +257,29 @@ void executeVisionControlMode(bool vision_data_ready)
 /**
  * @brief 执行关节控制接管
  */
-void executeJointTakeover() 
+void executeJointTakeover()
 {
     uint32_t current_time = HAL_GetTick();
-    
+
     // 所有模式都需要执行关节接管
-    for (uint8_t i = 0; i < 7; i++) 
+    for (uint8_t i = 0; i < 7; i++)
     {
         joint[i].takeOver(current_time);
+
+        // 轨迹速度/加速度前馈 (与 ActionGroup_Execute 一致)
+        float v_des = 0.0f, a_des = 0.0f;
+        joint[i].getTrajectoryDerivative(current_time + 1, &v_des, &a_des);
+
+        const float k = joint[i].mapping.k;
+        if (k != 0.0f)
+        {
+            const float deg2rad = 3.14159265f / 180.0f;
+            float v_motor = v_des / k * deg2rad;
+            float a_motor = a_des / k * deg2rad;
+
+            motor[i].setSpeed_feedforward(v_motor * speed_ff_gain[i]);
+            motor[i].setAcceleration_feedforward(a_motor * acc_ff_gain[i]);
+        }
     }
 }
 

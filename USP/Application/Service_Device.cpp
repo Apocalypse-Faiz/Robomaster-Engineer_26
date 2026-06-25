@@ -618,14 +618,6 @@ void tskMotor(void *arg)
 	drive_dm_motor[4].bindTxQueueHandle(CAN2_TxPort);
 	drive_dm_motor[5].bindTxQueueHandle(CAN2_TxPort);
 	drive_dm_motor[6].bindTxQueueHandle(CAN2_TxPort);
-
-	// motor[0].setPidParameters({.v_Kp = 0, .v_Min = -20, .v_Max = 20, .a_Kp = 0, .a_Ki = 0, .a_Kd = 0, .a_Min = -10, .a_Max = 10, .a_IntSep = 0, .a_IntMax = 2});
-	// motor[1].setPidParameters({.v_Kp = 2.4, .v_Min = -10, .v_Max = 10, .a_Kp = 0.3, .a_Ki = 0.02, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
-	// motor[2].setPidParameters({.v_Kp = 3.5f, .v_Min = -20, .v_Max = 20, .a_Kp = 1.25f, .a_Ki = 0.15f, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 5});
-	// motor[3].setPidParameters({.v_Kp = 1.9f, .v_Min = -10, .v_Max = 10, .a_Kp = 0.726f, .a_Ki = 0.04f, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
-	// motor[4].setPidParameters({.v_Kp = 10.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 10, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
-	// motor[5].setPidParameters({.v_Kp = 10.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 10, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
-	// motor[6].setPidParameters({.v_Kp = 10.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 10, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
 	
 	motor[0].setPidParameters({.v_Kp = 5, .v_Min = -25, .v_Max = 25, .a_Kp = 0.47, .a_Ki = 0.03, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
 	motor[1].setPidParameters({.v_Kp = 6.3, .v_Min = -30, .v_Max = 30, .a_Kp = 0.257, .a_Ki = 0.01, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});

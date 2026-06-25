@@ -46,6 +46,16 @@ void Motor::setInertia_feedforward(float _data)
     Inertia_feedforward = _data;
 }
 
+void Motor::setSpeed_feedforward(float _data)
+{
+    Speed_feedforward = _data;
+}
+
+void Motor::setAcceleration_feedforward(float _data)
+{
+    Acceleration_feedforward = _data;
+}
+
 void Motor::update()
 {
     specific_motor->update((*this));
@@ -219,12 +229,14 @@ void Motor::execute()
 
         // 使用电机速度作为角度环微分项
         a_pid.Adjust_importDiff(getSpeed());
-        v_pid.Target = a_pid.Out;
+        // 速度前馈: 期望速度叠加到速度环目标, 减小跟踪滞后
+        v_pid.Target = a_pid.Out + Speed_feedforward;
 
         v_pid.Current = getSpeed();
         v_pid.Adjust();
 
-        True_Out = v_pid.Out + Gravity_feedforward + BackEMF_feedforward + Coulomb_feedforward + Viscous_feedforward + Inertia_feedforward;                         // 速度环输出再加上前馈
+        // 力矩级前馈: 各补偿 + 加速度前馈 (Acceleration_feedforward = Ieq·α_desired)
+        True_Out = v_pid.Out + Gravity_feedforward + BackEMF_feedforward + Coulomb_feedforward + Viscous_feedforward + Inertia_feedforward + Acceleration_feedforward;
         True_Out = std_lib::constrain(True_Out, -v_pid.Out_Max, v_pid.Out_Max); // 总输出再加个限制
 
         specific_motor->setTorque(True_Out);

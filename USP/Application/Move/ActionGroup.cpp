@@ -289,9 +289,27 @@ void ActionGroup_Execute(Joint _j[7], TrajectoryPointArray _tpa1[7], int Joint_n
         }
     }
 
+    uint32_t exec_tick = HAL_GetTick();
     for (int i = 0; i < Joint_num; i++)
     {
-        _j[i].takeOver(HAL_GetTick()); // 执行放在这里执行的一个好处就是下面对于储矿的各个延时停顿能够即时的反映到机械臂上，而不是再做一个传递到其他任务上去
+        _j[i].takeOver(exec_tick); // 执行放在这里执行的一个好处就是下面对于储矿的各个延时停顿能够即时的反映到机械臂上，而不是再做一个传递到其他任务上去
+
+        // 轨迹速度/加速度前馈: 取关节空间目标导数, 转电机空间后写入 motor 前馈
+        //   无轨迹(free)时 getTrajectoryDerivative 输出 0, 前馈自动关闭
+        float v_des = 0.0f, a_des = 0.0f;
+        _j[i].getTrajectoryDerivative(exec_tick + 1, &v_des, &a_des); // 与 takeOver 同用 +1
+
+        const float k = _j[i].mapping.k;
+        if (k != 0.0f)
+        {
+            // 关节空间(度/s, 度/s²) → 电机空间, 度→弧度 (假设 getSpeed 单位 rad/s)
+            const float deg2rad = 3.14159265f / 180.0f;
+            float v_motor = v_des / k * deg2rad; // rad/s, 注入速度环
+            float a_motor = a_des / k * deg2rad; // rad/s², ×增益(含惯量)得力矩
+
+            motor[i].setSpeed_feedforward(v_motor * speed_ff_gain[i]);
+            motor[i].setAcceleration_feedforward(a_motor * acc_ff_gain[i]);
+        }
     }
 }
 

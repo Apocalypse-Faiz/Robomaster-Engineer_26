@@ -893,32 +893,27 @@ void handleVisionControlMode()
 /**
  * @brief 执行关节控制接管
  */
-void executeJoint() 
+void executeJoint()
 {
     uint32_t current_time = HAL_GetTick();
-    
-    if (current_mode == ExchangeMode::CUSTOM_CONTROL && custom_controller.isEnabled()) 
+
+    // 三模式统一 join 关节接管 + 轨迹速度/加速度前馈
+    for (uint8_t i = 0; i < 7; i++)
     {
-        // 自定义控制模式
-        for (uint8_t i = 0; i < 7; i++) 
+        joint[i].takeOver(current_time);
+
+        float v_des = 0.0f, a_des = 0.0f;
+        joint[i].getTrajectoryDerivative(current_time + 1, &v_des, &a_des);
+
+        const float k = joint[i].mapping.k;
+        if (k != 0.0f)
         {
-            joint[i].takeOver(current_time);
-        }
-    } 
-    else if (current_mode == ExchangeMode::VISION_CONTROL && vision_controller.isEnabled()) 
-    {
-        // 视觉控制模式
-        for (uint8_t i = 0; i < 7; i++) 
-        {
-            joint[i].takeOver(current_time);
-        }
-    } 
-    else 
-    {
-        // 动作组模式
-        for (uint8_t i = 0; i < 7; i++) 
-        {
-            joint[i].takeOver(current_time);
+            const float deg2rad = 3.14159265f / 180.0f;
+            float v_motor = v_des / k * deg2rad;
+            float a_motor = a_des / k * deg2rad;
+
+            motor[i].setSpeed_feedforward(v_motor * speed_ff_gain[i]);
+            motor[i].setAcceleration_feedforward(a_motor * acc_ff_gain[i]);
         }
     }
 }

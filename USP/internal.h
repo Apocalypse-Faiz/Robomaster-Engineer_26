@@ -170,6 +170,8 @@ extern float BackEMF_feedforward[7]; // 反电动势前馈数组
 extern float Coulomb_feedforward[7]; // 库仑前馈数组
 extern float Viscous_feedforward[7]; // 黏性前馈数组
 extern float Inertia_feedforward[7]; // 惯量补偿数组
+extern float speed_ff_gain[7]; // 速度前馈增益
+extern float acc_ff_gain[7];   // 加速度前馈增益
 
 extern bool all_motor_connected; // 所有电机连接状态
 extern uint8_t OreBit[4];                                                                                                        // 初始矿石位为空，0为空，1为有矿，OreBit[0]为左矿石位，OreBit[1]为右矿石位

@@ -55,6 +55,8 @@ public:
     float Coulomb_feedforward = 0; // 库仑摩擦前馈
     float Viscous_feedforward = 0; // 黏性摩擦前馈
     float Inertia_feedforward = 0; // 转动惯量前馈
+    float Speed_feedforward = 0;        // 速度前馈: 注入速度环 Target (单位同 getSpeed)
+    float Acceleration_feedforward = 0; // 加速度前馈: 力矩级, 注入力矩输出 (调用方已乘等效惯量/增益)
 
     float target_angle; // 标定后的目标角度 ~ (current_angle - calibration)
     float target_torque;
@@ -89,6 +91,10 @@ public:
     void setViscous_feedforward(float _data);       // 设置黏性摩擦前馈
 
     void setInertia_feedforward(float _data);       // 设置转动惯量前馈
+
+    void setSpeed_feedforward(float _data);        // 设置速度前馈 (注入速度环 Target)
+
+    void setAcceleration_feedforward(float _data); // 设置加速度前馈 (力矩级)
 
     void update(); // 更新电机状态
 
