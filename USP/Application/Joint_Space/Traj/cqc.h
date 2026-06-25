@@ -115,8 +115,7 @@ public:
         }
     }
     bool get(uint32_t t, float *result) override
-    {
-        if (computed)
+    {        if (computed)
         {
             if ((t - start_tick) > points[size - 1].t)
             {
@@ -182,6 +181,76 @@ public:
             return true;
         }
         return false;
+    }
+
+    /**
+     * @brief 获取 t 时刻的目标速度 / 加速度 (对位置多项式逐段求导)
+     * @note  使用局部变量定位段, 不修改成员状态 (无副作用, 可在 get() 之后安全调用).
+     *        速度/加速度单位: 度/秒, 度/秒² (local_t 已转秒).
+     *        注意: CQC 段交界处保证 C¹ (速度连续), 但加速度可能不连续, 用于前馈建议过低通.
+     */
+    bool getDerivative(uint32_t t, float *vel, float *acc) override
+    {
+        if (!computed)
+            return false;
+
+        // 轨迹未开始或已结束 → 目标速度/加速度为 0 (静止)
+        if (free || (t - start_tick) > points[size - 1].t)
+        {
+            if (vel) *vel = 0.0f;
+            if (acc) *acc = 0.0f;
+            return true;
+        }
+
+        // 局部定位 (不碰成员 segment_index 等)
+        uint16_t seg = 0;
+        while ((t - start_tick) > points[seg + 1].t)
+            seg++;
+
+        float cubic_h = (points[seg + 1].t - points[seg].t) * (1 - quintic_proportion) / 2;
+        float quintic_h = (points[seg + 1].t - points[seg].t) * quintic_proportion;
+
+        uint8_t li;
+        float lt;
+        if ((t - start_tick) > points[seg].t + cubic_h + quintic_h)
+        {
+            lt = ((t - start_tick) - (points[seg].t + cubic_h + quintic_h)) * 1e-3f;
+            li = 3; // 后三次段
+        }
+        else if ((t - start_tick) > points[seg].t + cubic_h)
+        {
+            lt = ((t - start_tick) - (points[seg].t + cubic_h)) * 1e-3f;
+            li = 2; // 五次段
+        }
+        else
+        {
+            lt = ((t - start_tick) - (points[seg].t)) * 1e-3f;
+            li = 1; // 前三次段
+        }
+
+        const SegmentParameters &p = params[seg];
+        float v = 0.0f, ac = 0.0f;
+        switch (li)
+        {
+        case 1: // 前三次: pos = d·t³ + c·t² + b·t + a
+            v = (3 * p.cubic_d[0] * lt + 2 * p.cubic_c[0]) * lt + p.cubic_b[0];
+            ac = 6 * p.cubic_d[0] * lt + 2 * p.cubic_c[0];
+            break;
+        case 2: // 五次: pos = f·t⁵ + e·t⁴ + d·t³ + c·t² + b·t + a
+            v = (((5 * p.quintic_f * lt + 4 * p.quintic_e) * lt + 3 * p.quintic_d) * lt + 2 * p.quintic_c) * lt + p.quintic_b;
+            ac = ((20 * p.quintic_f * lt + 12 * p.quintic_e) * lt + 6 * p.quintic_d) * lt + 2 * p.quintic_c;
+            break;
+        case 3: // 后三次: pos = d·t³ + c·t² + b·t + a
+            v = (3 * p.cubic_d[1] * lt + 2 * p.cubic_c[1]) * lt + p.cubic_b[1];
+            ac = 6 * p.cubic_d[1] * lt + 2 * p.cubic_c[1];
+            break;
+        default:
+            break;
+        }
+
+        if (vel) *vel = v;
+        if (acc) *acc = ac;
+        return true;
     }
 };
 

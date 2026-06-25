@@ -114,6 +114,11 @@ public:
 
     void takeOver(uint32_t t); // 轨迹规划接管
 
+    // 获取 t 时刻轨迹的目标速度/加速度 (关节空间, 度/秒 与 度/秒²)
+    bool getTrajectoryDerivative(uint32_t t, float *target_speed, float *target_acceleration);
+    float getTrajectorySpeed(uint32_t t);        // 目标速度 (度/秒)
+    float getTrajectoryAcceleration(uint32_t t); // 目标加速度 (度/秒²)
+
     float Trajectory_display(uint32_t t); // 轨迹显示
 
     bool isTrajectoryPlannerFree(); // 判断轨迹规划是否空闲

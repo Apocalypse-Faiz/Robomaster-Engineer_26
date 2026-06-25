@@ -114,9 +114,43 @@ void Joint::takeOver(uint32_t t)
 }
 
 /**
- * @brief 轨迹规划的验证显示
- * @note 在轨迹规划执行前，先验证一下是否正确
+ * @brief 获取 t 时刻轨迹规划的目标速度与目标加速度 (关节空间)
+ * @param t   查询时刻 (tick)
+ * @param target_speed        输出: 目标速度 (度/秒), 可传 nullptr
+ * @param target_acceleration 输出: 目标加速度 (度/秒²), 可传 nullptr
+ * @return true 轨迹有效, false 轨迹未计算/已结束
+ * @note  返回的是关节空间值. 若需电机空间, 调用方再 ÷ mapping.k.
  */
+bool Joint::getTrajectoryDerivative(uint32_t t, float *target_speed, float *target_acceleration)
+{
+    if (getMode() != JointMode::angle)
+    {
+        if (target_speed) *target_speed = 0.0f;
+        if (target_acceleration) *target_acceleration = 0.0f;
+        return false;
+    }
+    return trajectory_planning->getDerivative(t, target_speed, target_acceleration);
+}
+
+/**
+ * @brief 获取 t 时刻的目标速度 (度/秒, 关节空间)
+ */
+float Joint::getTrajectorySpeed(uint32_t t)
+{
+    float v = 0.0f;
+    getTrajectoryDerivative(t, &v, nullptr);
+    return v;
+}
+
+/**
+ * @brief 获取 t 时刻的目标加速度 (度/秒², 关节空间)
+ */
+float Joint::getTrajectoryAcceleration(uint32_t t)
+{
+    float a = 0.0f;
+    getTrajectoryDerivative(t, nullptr, &a);
+    return a;
+}
 float Joint::Trajectory_display(uint32_t t)
 {
     updateJointData();
