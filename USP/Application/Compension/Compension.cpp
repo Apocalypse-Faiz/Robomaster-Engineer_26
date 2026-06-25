@@ -681,55 +681,83 @@ void InertiaCompension_Calculate(float _J2, float _J3, float _J4, float _J5, flo
  * @brief J1转动惯量补偿验证（虚拟弹簧法，纯力矩模式）
  *
  * @details
- * 每个控制周期根据当前姿态计算 J1 总等效惯量 I_total，构造动态刚度
- * K_dynamic = spring_k * I_total，再按虚拟弹簧力矩
- * tau_out = -K_dynamic * (theta1_actual - theta1_center) 输出纯力矩命令。
+ * 原理: 构造虚拟弹簧 τ = −K·Δθ, 动态刚度 K = spring_k · Ieq.
+ *   则 J1 振荡固有频率 ω = √(K/Ieq) = √(spring_k), 与姿态【无关】.
+ *   → 若 Ieq 模型准确, 任意姿态下 J1 振荡周期都应相同.
+ *   理论周期 T = 2π/√(spring_k).  (spring_k=30 → T≈1147ms)
  *
- * @param _J1 当前J1角度（度）
- * @param _J2 当前J2角度（度）
- * @param _J3 当前J3角度（度）
- * @param motor_speed_j1 当前J1速度
- * @param spring_k 动态刚度比例系数（建议初始 10）
+ *   验证: 把臂摆成不同姿态, 拨动 J1 让其绕中心振荡, 读 measured_period_ms.
+ *     各姿态周期一致 → Ieq 准确;
+ *     折叠时周期偏短 → 该姿态 Ieq 算小了; 反之算大了.
+ *
+ * @param _J1.._J6 各关节角度 (度, 约定同补偿函数)
+ * @param motor_speed_j1 当前J1速度 (超速保护用)
+ * @param spring_k 动态刚度比例系数 (= ω², 建议初始 30)
  * @param torque_limit 力矩限幅（Nm）
- * @param speed_limit 速度阈值，超过后强制输出0
- * @param dt 控制周期（秒）
- * @param recenter_request 非0时将当前J1角度重新设为弹簧中心
+ * @param speed_limit 速度阈值，超过后强制输出0 (安全保护)
+ * @param recenter_request 非0时将当前J1角度重设为弹簧中心
  * @param cmd_torque_j1 输出：本周期下发给J1的力矩
- * @param inertia_total_j1 输出：当前姿态下估计的总等效惯量 I_total
+ * @param inertia_total_j1 输出：当前姿态估计的总等效惯量 Ieq
  * @param k_dynamic_j1 输出：当前动态刚度 K_dynamic
  * @param theta1_center_deg 输出：当前弹簧中心角度（度）
+ * @param measured_period_ms 输出：自动测得的振荡周期 (ms), 用于对比各姿态
  */
-void InertiaCompension_ValidationStep(float _J1, float _J2, float _J3, float _J4, float _J5, float _J6, float spring_k, float torque_limit, float speed_limit, float dt, uint8_t recenter_request, float *cmd_torque_j1, float *inertia_total_j1, float *k_dynamic_j1, float *theta1_center_deg)
+void InertiaCompension_ValidationStep(float _J1, float _J2, float _J3, float _J4, float _J5, float _J6, float motor_speed_j1, float spring_k, float torque_limit, float speed_limit, uint8_t recenter_request, float *cmd_torque_j1, float *inertia_total_j1, float *k_dynamic_j1, float *theta1_center_deg, float *measured_period_ms)
 {
-    if (cmd_torque_j1 == nullptr || inertia_total_j1 == nullptr || k_dynamic_j1 == nullptr || theta1_center_deg == nullptr || dt <= 0.0f)
+    if (cmd_torque_j1 == nullptr || inertia_total_j1 == nullptr || k_dynamic_j1 == nullptr || theta1_center_deg == nullptr || measured_period_ms == nullptr)
     {
         return;
     }
 
     static uint8_t center_inited = 0U;
     static float theta1_center = 0.0f;
+    // 自动周期测量状态
+    static float prev_err_rad = 0.0f;
+    static uint32_t last_cross_tick = 0U;
+    static float period_ms = 0.0f;
 
     if (center_inited == 0U || recenter_request != 0U)
     {
         theta1_center = _J1;
         center_inited = 1U;
+        prev_err_rad = 0.0f;
+        last_cross_tick = HAL_GetTick();
+        period_ms = 0.0f;
     }
 
-    // 利用惯量补偿函数反推当前姿态的 J1 等效惯量 Ieq.
-    //   传入 alpha_J1=1.0, 输出 torque = 1.0 * Ieq = Ieq.
-    //   Motor_Set_torque=1.0 使死区 fabsf(1.0)<0.1 为 false, 绕过死区.
+    // 探测当前姿态的 J1 等效惯量 Ieq (传 alpha=1.0, 输出即 Ieq; torque=1.0 绕过死区)
     float ieq_probe = 0.0f;
     InertiaCompension_Calculate(_J2, _J3, _J4, _J5, _J6,
                                  1.0f, 1.0f, &ieq_probe);
 
-    // ieq_probe = Ieq = I1_BASE + Σ(I_trans + I_rot), 已含电机惯量
     const float inertia_total = ieq_probe;
     const float k_dynamic = spring_k * inertia_total;
 
     const float theta_err_rad = (_J1 - theta1_center) * PI / 180.0f;
+
+    // 自动周期测量: 检测振荡由负半周穿越中心到正半周 (每完整周期触发一次)
+    //   加 0.02rad(~1.1°) 幅度死区, 避免静止时噪声误触发.
+    if (prev_err_rad < -0.02f && theta_err_rad >= 0.0f)
+    {
+        uint32_t now = HAL_GetTick();
+        uint32_t dt_ms = now - last_cross_tick;
+        last_cross_tick = now;
+        if (dt_ms > 50U && dt_ms < 10000U)   // 合理周期范围内才更新
+        {
+            period_ms = (float)dt_ms;
+        }
+    }
+    prev_err_rad = theta_err_rad;
+
+    // 虚拟弹簧力矩 (纯比例, 不加阻尼 — 阻尼会改变振荡频率, 干扰验证)
     float torque_out = -k_dynamic * theta_err_rad;
 
-    if (torque_out > torque_limit)
+    // 超速保护: J1 转速超阈值时强制清零, 防止纯力矩模式下发散甩飞
+    if (fabsf(motor_speed_j1) > speed_limit)
+    {
+        torque_out = 0.0f;
+    }
+    else if (torque_out > torque_limit)
     {
         torque_out = torque_limit;
     }
@@ -742,4 +770,5 @@ void InertiaCompension_ValidationStep(float _J1, float _J2, float _J3, float _J4
     *inertia_total_j1 = inertia_total;
     *k_dynamic_j1 = k_dynamic;
     *theta1_center_deg = theta1_center;
+    *measured_period_ms = period_ms;
 }

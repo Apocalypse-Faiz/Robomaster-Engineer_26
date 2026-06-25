@@ -48,6 +48,7 @@ volatile float j1_validation_spring_k_debug = 30.0f;       // 虚拟弹簧比例
 volatile float j1_validation_torque_limit_debug = 15.0f;   // 力矩限幅（Nm）
 volatile float j1_validation_speed_limit_debug = 20.0f;   // 超速保护阈值（同 motor[0].getSpeed() 单位）
 volatile float j1_validation_recenter_req_debug = 0.0f;   // 置1后下一周期重置中心角，随后自动清零
+volatile float j1_validation_period_debug = 0.0f;         // 自动测得的振荡周期（ms），各姿态对比此值
 #endif
 /* Private function declarations ---------------------------------------------*/
 void tskMotor(void *arg);
@@ -625,6 +626,14 @@ void tskMotor(void *arg)
 	// motor[4].setPidParameters({.v_Kp = 10.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 10, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
 	// motor[5].setPidParameters({.v_Kp = 10.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 10, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
 	// motor[6].setPidParameters({.v_Kp = 10.0, .v_Min = -10000, .v_Max = 10000, .a_Kp = 10, .a_Ki = 0, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 100});
+	
+	motor[0].setPidParameters({.v_Kp = 0, .v_Min = -20, .v_Max = 20, .a_Kp = 0, .a_Ki = 0, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
+	motor[1].setPidParameters({.v_Kp = 0, .v_Min = -20, .v_Max = 20, .a_Kp = 0, .a_Ki = 0, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
+	motor[2].setPidParameters({.v_Kp = 7, .v_Min = -25, .v_Max = 25, .a_Kp = 1, .a_Ki = 0.04, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 5});
+	motor[3].setPidParameters({.v_Kp = 2, .v_Min = -20, .v_Max = 20, .a_Kp = 1.7, .a_Ki = 0.03, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
+	motor[4].setPidParameters({.v_Kp = 1.2, .v_Min = -20, .v_Max = 20, .a_Kp = 0.75, .a_Ki = 0.01, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
+	motor[5].setPidParameters({.v_Kp = 1.5, .v_Min = -20, .v_Max = 20, .a_Kp = 0.8, .a_Ki = 0, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
+	motor[6].setPidParameters({.v_Kp = 0.5, .v_Min = -20, .v_Max = 20, .a_Kp = 0.95, .a_Ki = 0, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
 	vTaskDelay(1000);
 	for(int i = 0; i < 7; i++)
 	{
@@ -633,10 +642,10 @@ void tskMotor(void *arg)
 
 	DM4340P.setEncoderOffset(0x767F);
 	DM8009.setEncoderOffset(0x7370);
-	DM4340_1.setEncoderOffset(0x8FD9);
+	DM4340_1.setEncoderOffset(0x4F6A);
 	DM4340_2.setEncoderOffset(0x9ECF);
 	DM4310_1.setEncoderOffset(0x720F);
-	DM4310_2.setEncoderOffset(0x5C67);
+	DM4310_2.setEncoderOffset(0x9D5B);
 	DM4310_3.setEncoderOffset(0x7516);
 	// DM8009.setEncoderOffset(0x7872);
 	// DM10010.setEncoderOffset(0x60E7);
@@ -736,12 +745,14 @@ void tskMotor(void *arg)
 			float j1_validation_inertia_total = j1_validation_inertia_total_debug;
 			float j1_validation_k_dynamic = j1_validation_k_dynamic_debug;
 			float j1_validation_theta_center = j1_validation_theta_center_debug;
+			float j1_validation_period = j1_validation_period_debug;
 			uint8_t recenter_req = (j1_validation_recenter_req_debug != 0.0f) ? 1U : 0U;
-			InertiaCompension_ValidationStep(joint[0].getCurrentAngle(), joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), joint[3].getCurrentAngle(), joint[4].getCurrentAngle(), joint[5].getCurrentAngle(), j1_validation_spring_k_debug, j1_validation_torque_limit_debug, j1_validation_speed_limit_debug, 0.001f, recenter_req, &j1_validation_cmd, &j1_validation_inertia_total, &j1_validation_k_dynamic, &j1_validation_theta_center);
+			InertiaCompension_ValidationStep(joint[0].getCurrentAngle(), joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), joint[3].getCurrentAngle(), joint[4].getCurrentAngle(), joint[5].getCurrentAngle(), motor[0].getSpeed(), j1_validation_spring_k_debug, j1_validation_torque_limit_debug, j1_validation_speed_limit_debug, recenter_req, &j1_validation_cmd, &j1_validation_inertia_total, &j1_validation_k_dynamic, &j1_validation_theta_center, &j1_validation_period);
 			j1_validation_cmd_debug = j1_validation_cmd;
 			j1_validation_inertia_total_debug = j1_validation_inertia_total;
 			j1_validation_k_dynamic_debug = j1_validation_k_dynamic;
 			j1_validation_theta_center_debug = j1_validation_theta_center;
+			j1_validation_period_debug = j1_validation_period;
 			j1_validation_recenter_req_debug = 0.0f;
 			joint[0].setMode(JointMode::torque);
 			motor[0].forceSetMode(MotorMode::torque);
