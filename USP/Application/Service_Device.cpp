@@ -365,6 +365,107 @@ void CheckMotorStatus()
 }
 
 /**
+ * @brief 云台升降电机 (Gimbal_Lift, DJI2006) 力矩复位标定
+ * @note  参考旧 ResetState 力矩复位逻辑. 需在 tskMotor 主循环周期调用,
+ *        靠 static 状态机分阶段推进:
+ *          1) 从当前角度持续自减目标角, 让电机往限位方向转
+ *          2) 监测回传力矩, 超阈值判定堵转到限位
+ *          3) 堵转后: 先 disabled, 再 calibrate 标定当前位置为 0°, 再设回 angle
+ *          4) 标定完成: 置 gimbal_lift_init_done, 并记录 gimbal_lift_max_angle
+ */
+void Gimbal_Lift_Init()
+{
+    // ── 复位参数 (TODO: 实机标定) ──
+    static const float DECREASE_STEP   = 20.0f;    // 每周期目标角自减量 (度), 决定下压速度
+    static const float TORQUE_THRESHOLD = 1.0f;   // 堵转力矩阈值 (与 getTorque 同单位), 超过判定到限位
+    static const float GIMBAL_LIFT_RANGE = 24000.0f; // 标定后可用行程 (度): 0° 为限位, +RANGE 为另一端 (TODO 实测)
+
+    static MeanFilter<20> torque_filter;          // 力矩低通, 抑制噪声误判
+    enum class InitState { DECREASING, CALIBRATED };
+    static InitState state = InitState::DECREASING;
+
+    if (gimbal_lift_init_done)
+    {
+        return;
+    }
+
+    // 电机未就绪时不动作, 等待上线
+    if (Gimbal_Lift.getStatus() != MotorStatus::ready)
+    {
+        return;
+    }
+
+    switch (state)
+    {
+    case InitState::DECREASING:
+    {
+        // 确保处于角度模式 (首次进入)
+        if (Gimbal_Lift.getMode() != MotorMode::angle)
+        {
+            Gimbal_Lift.setMode(MotorMode::angle);
+        }
+
+        float torque = torque_filter.f(fabsf(Gimbal_Lift.getTorque()));
+
+        if (torque < TORQUE_THRESHOLD)
+        {
+            // 未堵转: 目标角持续自减, 往限位方向压
+            Gimbal_Lift.setTarget(Gimbal_Lift.target_angle - DECREASE_STEP);
+        }
+        else
+        {
+            // 堵转到限位: 先失能, 再标定当前位置为 0°, 再设回角度模式
+            Gimbal_Lift.setMode(MotorMode::disabled);
+            Gimbal_Lift.calibrate();          // 标定当前角为 0°
+            Gimbal_Lift.setMode(MotorMode::angle);
+            Gimbal_Lift.setTarget(0.0f);      // 标定后目标设为 0°, 顶住限位
+
+            gimbal_lift_max_angle = GIMBAL_LIFT_RANGE; // 记录可用最大角度
+			gimbal_lift_min_angle = 100.0f;
+            gimbal_lift_init_done = true;
+            state = InitState::CALIBRATED;
+        }
+        break;
+    }
+    case InitState::CALIBRATED:
+    default:
+        // 已完成, 不再处理 (gimbal_lift_init_done 已为 true, 上面已 return)
+        break;
+    }
+}
+
+/**
+ * @brief 云台升降电机步进式目标角设定
+ * @param goal_deg  最终目标角度 (度), 0°=下限位, gimbal_lift_max_angle=上限位
+ * @param step_deg  每周期最大步长 (度), 正=往上, 负=往下
+ * @note  需在 tskMotor 主循环中周期调用 (每 1ms).
+ *        内部自动 cl(map) 到 [0, gimbal_lift_max_angle] 范围.
+ *        若未完成力矩复位标定则直接设 goal_deg (fallback).
+ */
+void Gimbal_Lift_StepToGoal(float goal_deg, float step_deg)
+{
+    if (Gimbal_Lift.getStatus() != MotorStatus::ready)
+        return;
+    if (Gimbal_Lift.getMode() != MotorMode::angle)
+        Gimbal_Lift.setMode(MotorMode::angle);
+
+    // 限位 clamp (力矩复位完成后才有意义)
+    if (gimbal_lift_init_done)
+    {
+        goal_deg = std_lib::constrain(goal_deg, 0.0f, gimbal_lift_max_angle);
+    }
+
+    float current_target = Gimbal_Lift.target_angle;
+    float diff = goal_deg - current_target;
+    float step  = fabsf(diff) > fabsf(step_deg) ? step_deg : fabsf(diff);
+
+    if (diff > 0.0f)
+        Gimbal_Lift.setTarget(current_target + step);
+    else if (diff < -0.0f)
+        Gimbal_Lift.setTarget(current_target - step);
+}
+
+/**
  * @brief 关节角度限位设置
  * @note 需要在获取电机初始角度后，做一些判断后再设置
  */
@@ -608,7 +709,7 @@ static inline float MDH2Inertia_J6(float mdh_j6) {
 void tskMotor(void *arg)
 {
 	/*	pre load for task	*/
-	Motor_CAN_COB Tx_Buff_DJI_Can2 = {};
+	Motor_CAN_COB Tx_Buff_DJI_Can1 = {};
 
 	drive_dm_motor[0].bindTxQueueHandle(CAN1_TxPort);
 	drive_dm_motor[1].bindTxQueueHandle(CAN1_TxPort);
@@ -626,13 +727,17 @@ void tskMotor(void *arg)
 	motor[4].setPidParameters({.v_Kp = 1.2, .v_Min = -20, .v_Max = 20, .a_Kp = 0.75, .a_Ki = 0.01, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
 	motor[5].setPidParameters({.v_Kp = 1.5, .v_Min = -20, .v_Max = 20, .a_Kp = 0.8, .a_Ki = 0, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
 	motor[6].setPidParameters({.v_Kp = 0.5, .v_Min = -20, .v_Max = 20, .a_Kp = 0.95, .a_Ki = 0, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
+
 	vTaskDelay(1000);
+
+	Gimbal_Lift.setPidParameters({.v_Kp = 15, .v_Min = -10000, .v_Max = 10000, .a_Kp = 10, .a_Ki = 0.3, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 2});
+
 	for(int i = 0; i < 7; i++)
 	{
 		drive_dm_motor[i].enableMotor();
 	}
 
-	DM4340P.setEncoderOffset(0x767F);
+	DM4340P.setEncoderOffset(0x8238);
 	DM8009.setEncoderOffset(0x7370);
 	DM4340_1.setEncoderOffset(0x4F6A);
 	DM4340_2.setEncoderOffset(0x9ECF);
@@ -720,6 +825,13 @@ void tskMotor(void *arg)
 			motor[i].update(); // 更新电机数据
 		}
 
+		Gimbal_Lift.update(); // 更新云台升降电机数据
+
+		if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED || (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C && VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED))
+		{
+			Gimbal_Lift_Init(); // 云台升降电机力矩复位标定
+		}
+
 		CheckMotorStatus();
 
 		gripper.update(); // 更新夹爪数据
@@ -768,7 +880,7 @@ void tskMotor(void *arg)
 			}
 
 			// DM电机无需复位，Robot_Prepared默认为1，补偿始终启用
-			DR16_Debug_Ctrl();
+			// DR16_Debug_Ctrl();
 			// UpdateMotor0PidByPose();
 
 				// ============================================================
@@ -910,7 +1022,11 @@ void tskMotor(void *arg)
 			}
 		}
 
+		Gimbal_Lift.execute();
 		gripper.executeOutput(); // 夹爪执行输出
+
+		motor_dji::MotorMsgPack(Tx_Buff_DJI_Can1, DJI2006);
+		xQueueSend(CAN1_TxPort, &Tx_Buff_DJI_Can1.Id200, 0);
 
 	}
 }

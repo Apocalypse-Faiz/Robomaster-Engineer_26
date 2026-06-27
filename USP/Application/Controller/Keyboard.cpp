@@ -1421,12 +1421,13 @@ void DR16_Debug_Ctrl()
     static uint8_t one = 0;
 
     // motor[6].setPidParameters({speed_kp, -speed_Out_Max, speed_Out_Max, angle_kp, angle_ki, angle_kd, -angle_Out_Max, angle_Out_Max, 0, angle_I_Max});
-    motor[4].setPidParameters({speed_kp, -speed_Out_Max, speed_Out_Max, angle_kp, angle_ki, angle_kd, -angle_Out_Max, angle_Out_Max, 0, angle_I_Max});
+    // motor[4].setPidParameters({speed_kp, -speed_Out_Max, speed_Out_Max, angle_kp, angle_ki, angle_kd, -angle_Out_Max, angle_Out_Max, 0, angle_I_Max});
     // motor[5].setPidParameters({speed_kp, -speed_Out_Max, speed_Out_Max, angle_kp, angle_ki, angle_kd, -angle_Out_Max, angle_Out_Max, 0, angle_I_Max});
     // motor[3].setPidParameters({speed_kp, -speed_Out_Max, speed_Out_Max, angle_kp, angle_ki, angle_kd, -angle_Out_Max, angle_Out_Max, 0, angle_I_Max});
     // motor[2].setPidParameters({speed_kp, -speed_Out_Max, speed_Out_Max, angle_kp, angle_ki, angle_kd, -angle_Out_Max, angle_Out_Max, 0, angle_I_Max});
     // motor[1].setPidParameters({speed_kp, -speed_Out_Max, speed_Out_Max, angle_kp, angle_ki, angle_kd, -angle_Out_Max, angle_Out_Max, 0, angle_I_Max});
     // motor[0].setPidParameters({speed_kp, -speed_Out_Max, speed_Out_Max, angle_kp, angle_ki, angle_kd, -angle_Out_Max, angle_Out_Max, 0, angle_I_Max});
+    Gimbal_Lift.setPidParameters({speed_kp, -speed_Out_Max, speed_Out_Max, angle_kp, angle_ki, angle_kd, -angle_Out_Max, angle_Out_Max, 0, angle_I_Max});
     /*具体执行*/
     if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
     {
@@ -1439,6 +1440,8 @@ void DR16_Debug_Ctrl()
             {
                 joint[i].setMode(JointMode::angle);
             }
+
+            Gimbal_Lift.setMode(MotorMode::angle);
         }
 
         // ====================================================================
@@ -1636,6 +1639,7 @@ void DR16_Debug_Ctrl()
         // joint[2].setTargetAngle(debug_target_angle);
         // joint[1].setTargetAngle(debug_target_angle);
         // joint[0].setTargetAngle(debug_target_angle);
+        Gimbal_Lift.setTarget(debug_target_angle);
     }
     else
     {
@@ -1643,6 +1647,8 @@ void DR16_Debug_Ctrl()
         {
             joint[i].setMode(JointMode::disabled);
         }
+
+        Gimbal_Lift.setMode(MotorMode::disabled);
 
         // if (motor[6].getStatus() == MotorStatus::ready)
         // {
@@ -1652,10 +1658,10 @@ void DR16_Debug_Ctrl()
         // {
         //     debug_target_angle = joint[5].getCurrentAngle();
         // }
-        if (motor[4].getStatus() == MotorStatus::ready)
-        {
-            debug_target_angle = joint[4].getCurrentAngle();
-        }
+        // if (motor[4].getStatus() == MotorStatus::ready)
+        // {
+        //     debug_target_angle = joint[4].getCurrentAngle();
+        // }
         // if (motor[3].getStatus() == MotorStatus::ready)
         // {
         //     debug_target_angle = joint[3].getCurrentAngle();
@@ -1672,6 +1678,10 @@ void DR16_Debug_Ctrl()
         // {
         //     debug_target_angle = joint[0].getCurrentAngle();
         // }
+        if (Gimbal_Lift.getStatus() == MotorStatus::ready)
+        {
+            debug_target_angle = Gimbal_Lift.getAngle();
+        }
     }
 
     last_link_status = DR16.GetStatus(); // 更新

@@ -312,6 +312,10 @@ void GetEnergyUnit_enterAction()
 
 void GetEnergyUnit_action(Event_t **pEvent)
 {
+    // 云台升降电机升到上限位 (步进, 不跳变)
+    if (gimbal_lift_init_done)
+        Gimbal_Lift_StepToGoal(gimbal_lift_max_angle, 20.0f); // 升到上限位, 步长 0.5°
+
     bool vision_data_ready = false;
     uint32_t vision_notify_value = 0U;
     if (current_mode == ControlMode::VISION_CONTROL)

@@ -37,6 +37,12 @@ void Lost_action(Event_t **pEvent)
             joint[i].setMode(JointMode::disabled);
         }
     }
+
+    if (Gimbal_Lift.getStatus() == MotorStatus::ready)
+    {
+        Gimbal_Lift.setMode(MotorMode::disabled);
+    }
+
 #if !LOST_DEBUG_KEEP_CHASSIS
     // 底盘失能 (正常模式)
     toBottomdata.ChassisState = 0; // 失能底盘控制
@@ -106,6 +112,11 @@ void Lost_exitAction()
         {
             joint[i].setMode(JointMode::angle);
         }
+    }
+
+    if (Gimbal_Lift.getStatus() == MotorStatus::ready)
+    {
+        Gimbal_Lift.setMode(MotorMode::angle);
     }
 
 #if !LOST_DEBUG_KEEP_CHASSIS

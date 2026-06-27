@@ -227,6 +227,10 @@ void Task_CAN1Receive(void *arg)
      {
       DM4340_1.update(CAN_RxCOB.ID, CAN_RxCOB.Data);
      }
+     else if(CAN_RxCOB.ID == DJI2006.getRecID())
+     {
+       DJI2006.update(CAN_RxCOB.ID, CAN_RxCOB.Data);
+     }
     }
   }
 }

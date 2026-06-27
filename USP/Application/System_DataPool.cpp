@@ -82,7 +82,10 @@ Motor_DM_classdef DM4310_1(2); // 达妙电机类，ID为2
 Motor_DM_classdef DM4310_2(3); // 达妙电机类，ID为4
 Motor_DM_classdef DM4310_3(4); // 达妙电机类，ID为4
 
+Motor_C610 DJI2006(4); // 大疆电机类，ID为4
+
 DM_Motor drive_dm_motor[7] = {DM_Motor(&DM4340P), DM_Motor(&DM8009), DM_Motor(&DM4340_1), DM_Motor(&DM4340_2), DM_Motor(&DM4310_1), DM_Motor(&DM4310_2), DM_Motor(&DM4310_3)}; // 达妙电机对象数组
+DJI_Motor_2006 drive_dji_motor_2006 = DJI_Motor_2006(&DJI2006); // 大疆电机对象
 
 Motor motor[7] = {
     Motor(&drive_dm_motor[0]),
@@ -93,6 +96,7 @@ Motor motor[7] = {
     Motor(&drive_dm_motor[5]),
     Motor(&drive_dm_motor[6])}; // 电机对象数组
 
+Motor Gimbal_Lift = Motor(&drive_dji_motor_2006); // 云台升降电机对象
 Servo_Classdef servo_gripper(&htim2, TIM_CHANNEL_2, 20000, 0.025f, 0.125f, 360); // 夹爪舵机对象
 Gripper gripper(&servo_gripper); // 夹爪对象
 
@@ -158,7 +162,10 @@ float speed_ff_gain[7] = {2.6f, 0.5f, 1.7f, 1.2f, 0.0f, 0.0f, 0.0f}; // 速度�
 float acc_ff_gain[7]   = {0.2f, 0.25f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; // 加速度前馈增益 (含等效惯量换算)
 
 bool all_motor_connected = false; // 所有电机连接状态
-uint8_t OreBit[4] = {0, 0, 0, 0};                                                                                                        // 初始矿石位为空，0为空，1为有矿，OreBit[0]为左矿石位，OreBit[1]为右矿石位
+bool gimbal_lift_init_done = false; // 云台升降电机力矩复位标定完成标志
+float gimbal_lift_max_angle = 0.0f; // 云台升降电机标定后的最大角度 (度)
+float gimbal_lift_min_angle = 0.0f; // 云台升降电机标定后的最小角度 (度)
+uint8_t OreBit[4] = {0, 0, 0, 0};   // 初始矿石位为空，0为空，1为有矿
 uint8_t UI_Mode;          // UI模式
 uint8_t Robot_Prepared = 1; // 机器人准备状态，DM电机无需力矩复位，默认已准备好
 Indicator_Classdef Indicator(&htim1, &hdma_tim1_ch1, TIM_CHANNEL_1);           // 指示灯

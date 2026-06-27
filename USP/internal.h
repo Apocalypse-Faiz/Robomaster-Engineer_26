@@ -154,8 +154,12 @@ extern Motor_DM_classdef DM4310_1; // 达妙电机类，ID为2
 extern Motor_DM_classdef DM4310_2; // 达妙电机类，ID为4
 extern Motor_DM_classdef DM4310_3; // 达妙电机类，ID为4
 
+extern Motor_C610 DJI2006; // 大疆电机类，ID为4
+
 extern DM_Motor drive_dm_motor[7]; // 达妙电机对象数组
+extern DJI_Motor_2006 drive_dji_motor_2006; // 大疆电机对象
 extern Motor motor[7];             // 电机对象数组
+extern Motor Gimbal_Lift; // 云台升降电机对象
 extern Servo_Classdef servo_gripper; // 夹爪舵机对象
 
 extern Special_Actuator3 special_actuator3[7];             // 特殊执行器对象数组
@@ -174,6 +178,10 @@ extern float speed_ff_gain[7]; // 速度前馈增益
 extern float acc_ff_gain[7];   // 加速度前馈增益
 
 extern bool all_motor_connected; // 所有电机连接状态
+extern bool gimbal_lift_init_done; // 云台升降电机力矩复位标定完成标志
+extern float gimbal_lift_max_angle; // 云台升降电机标定后的最大角度 (度)
+extern float gimbal_lift_min_angle; // 云台升降电机标定后的最小角度 (度)
+void Gimbal_Lift_StepToGoal(float goal_deg, float step_deg); // 云台升降电机步进式目标角设定
 extern uint8_t OreBit[4];                                                                                                        // 初始矿石位为空，0为空，1为有矿，OreBit[0]为左矿石位，OreBit[1]为右矿石位
 extern uint8_t UI_Mode;          // UI模式
 extern uint8_t Robot_Prepared; // 机器人准备状态，0：未准备好，1：准备好
