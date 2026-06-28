@@ -217,12 +217,12 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
         }
     }
     
-    // 清除取矿状态标志
-    if ((DR16.GetS1() == SW_DOWN && DR16.GetS2() == SW_DOWN) || (VT13.GetFN1() && VT13.GetFN2()))
-    {
-        take_ore_state = TakeOre_enum::Zero;
-        memset(OreBit, 0, sizeof(OreBit));
-    }
+    // // 清除取矿状态标志
+    // if ((DR16.GetS1() == SW_DOWN && DR16.GetS2() == SW_DOWN) || (VT13.GetFN1() && VT13.GetFN2()))
+    // {
+    //     take_ore_state = TakeOre_enum::Zero;
+    //     memset(OreBit, 0, sizeof(OreBit));
+    // }
 
     // 储矿逻辑 — 根据 OreBit 自动选空槽 (优先级: LF>RF>LB>RB)
     //   F 键触发储存, 自动寻找第一个 OreBit[s]==0 的槽位
@@ -404,7 +404,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
     
     // 取肚矿逻辑 — 根据 OreBit 自动选有矿槽 (优先级: LF>RF>LB>RB)
     //   C 键触发取出, 自动寻找第一个 OreBit[s]==1 的槽位
-    else if (action_free == true && (DR16.IsKeyPress(DR16_KEY_C) || VT13.IsKeyPress(VT13_KEY_C)) && take_ore_state == TakeOre_enum::Zero)
+    else if (action_free == true && (DR16.IsKeyPress(DR16_KEY_C) || VT13.IsKeyPress(VT13_KEY_C) || VT13.Datapack_custom.TakeOut) && take_ore_state == TakeOre_enum::Zero)
     {
         static const ActionGroup_enum takein_actions[4] = {
             ActionGroup_enum::TakeInOre_LF, ActionGroup_enum::TakeInOre_RF,

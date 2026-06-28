@@ -15,7 +15,7 @@ enum class ControlMode {
 static ControlMode current_mode = ControlMode::ACTION_GROUP;
 static CustomData custom_control_data;            // 自定义控制数据
 static VisionData vision_control_data;            // 视觉控制数据
-static constexpr float get_energy_unit_default_chassis_height_m = 0.441f;
+static constexpr float get_energy_unit_default_chassis_height_m = 0.35f;
 
 // 模式切换状态
 static bool mode_changing = false;
@@ -304,7 +304,7 @@ void GetEnergyUnit_enterAction()
     vision_comm_flag_override = 0U;
     vision_comm_flag_override_valid = false;
 
-    // 进入取能量单元状态时，默认将底盘高度目标设置为 0.441m
+    // 进入取能量单元状态时，默认将底盘高度目标设置为 0.35m
     toBottomdata.ChassisState = 2;
     SetTargetChassisHeight(get_energy_unit_default_chassis_height_m);
 
@@ -314,7 +314,7 @@ void GetEnergyUnit_action(Event_t **pEvent)
 {
     // 云台升降电机升到上限位 (步进, 不跳变)
     if (gimbal_lift_init_done)
-        Gimbal_Lift_StepToGoal(gimbal_lift_max_angle, 20.0f); // 升到上限位, 步长 0.5°
+        Gimbal_Lift_StepToGoal(gimbal_lift_max_angle, 20.0f); 
 
     bool vision_data_ready = false;
     uint32_t vision_notify_value = 0U;

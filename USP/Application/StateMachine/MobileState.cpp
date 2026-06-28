@@ -17,7 +17,7 @@ void Mobile_action(Event_t **pEvent)
 {
     // 云台升降电机降到下限位 0° (每周期步进, 不跳变)
     if (gimbal_lift_init_done)
-        Gimbal_Lift_StepToGoal(0.0f, 20.0f); // 降到 0° (下限位), 步长 0.5°
+        Gimbal_Lift_StepToGoal(gimbal_lift_min_angle, 20.0f); 
 
     static ActionGroup_enum action_enum = ActionGroup_enum::NuLLAction;
     static uint8_t Add_onlyOnce = 0;
