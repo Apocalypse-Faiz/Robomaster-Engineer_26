@@ -1473,9 +1473,20 @@ void Sx_Referee(void *arg)
 		// 具备自定义数据功能，如工程
 		Referee.CC_data_input(CC_ID_ENGINEER_V2, (uint8_t *)&engineer_data_2_cc, sizeof(engineer_data_2_cc), CC_MESSAGE_SELF, 0);
 
-		// 不具备自定义数据功能，如步兵
-		// Referee.InfantryInfo[0].gimbal_info.shooter_flag = 0;
-		// Referee.CC_data_input(CC_ID_INFANTRY_3_V1, NULL, 0, CC_MESSAGE_SELF, 0);
+		// 自定义控制器数据 (0x0309, 10Hz): 7 个关节角, 50Hz 每 5 次发一次
+		static uint8_t cc_ctrl_cnt = 0;
+		if (++cc_ctrl_cnt >= 5)
+		{
+			cc_ctrl_cnt = 0;
+			#pragma pack(1)
+			struct { float joint_angle[7]; } cc_ctrl_data;
+			#pragma pack()
+			for (int i = 0; i < 7; i++)
+				cc_ctrl_data.joint_angle[i] = joint[i].getCurrentAngle();
+			Referee.CC_controller_data_send(&cc_ctrl_data, sizeof(cc_ctrl_data));
+		}
+
+		vTaskDelayUntil(&xLastWakeTime_t, pdMS_TO_TICKS(20)); // 50Hz 发送
 	}
 }
 
