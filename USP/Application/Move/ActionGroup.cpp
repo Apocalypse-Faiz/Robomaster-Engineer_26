@@ -78,56 +78,59 @@ void ActionGroup_Choose(TrajectoryPointArray _tpa1[7], ActionGroup_enum _action_
     // 储矿槽动作组 — 4 槽 (LF=左前, RF=右前, LB=左后, RB=右后)
     // ========================================================================
     /*储存 (Store) */
-    case ActionGroup_enum::StoreOre_LF: case ActionGroup_enum::StoreOre_RF:
-    case ActionGroup_enum::StoreOre_LB: case ActionGroup_enum::StoreOre_RB:
-        if (_Add_onlyOnce == 1)
-        {
-            // 根据枚举值选取对应数组 (利用枚举连续排列: LF,RF,LB,RB)
-            static float (*const store_tables[4])[8] = {
-                StoreOre_LF, StoreOre_RF, StoreOre_LB, StoreOre_RB
-            };
-            int idx = (int)_action_enum - (int)ActionGroup_enum::StoreOre_LF;
-            ActionGroup_WithJoint(_tpa1, store_tables[idx], 2);
-        }
+    case ActionGroup_enum::StoreOre_LF:
+        if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, StoreOre_LF, 2);
+        break;
+    case ActionGroup_enum::StoreOre_RF:
+        if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, StoreOre_RF, 2);
+        break;
+    case ActionGroup_enum::StoreOre_LB:
+        if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, StoreOre_LB, 3);
+        break;
+    case ActionGroup_enum::StoreOre_RB:
+        if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, StoreOre_RB, 2);
         break;
 
     /*退出储存 (ExitStore) */
-    case ActionGroup_enum::ExitStoreOre_LF: case ActionGroup_enum::ExitStoreOre_RF:
-    case ActionGroup_enum::ExitStoreOre_LB: case ActionGroup_enum::ExitStoreOre_RB:
-        if (_Add_onlyOnce == 1)
-        {
-            static float (*const exit_tables[4])[8] = {
-                ExitStoreOre_LF, ExitStoreOre_RF, ExitStoreOre_LB, ExitStoreOre_RB
-            };
-            int idx = (int)_action_enum - (int)ActionGroup_enum::ExitStoreOre_LF;
-            ActionGroup_WithJoint(_tpa1, exit_tables[idx], 2);
-        }
+    case ActionGroup_enum::ExitStoreOre_LF:
+        if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, ExitStoreOre_LF, 2);
+        break;
+    case ActionGroup_enum::ExitStoreOre_RF:
+        if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, ExitStoreOre_RF, 2);
+        break;
+    case ActionGroup_enum::ExitStoreOre_LB:
+        if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, ExitStoreOre_LB, 2);
+        break;
+    case ActionGroup_enum::ExitStoreOre_RB:
+        if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, ExitStoreOre_RB, 2);
         break;
 
     /*取出 (TakeIn) */
-    case ActionGroup_enum::TakeInOre_LF: case ActionGroup_enum::TakeInOre_RF:
-    case ActionGroup_enum::TakeInOre_LB: case ActionGroup_enum::TakeInOre_RB:
-        if (_Add_onlyOnce == 1)
-        {
-            static float (*const takein_tables[4])[8] = {
-                TakeInOre_LF, TakeInOre_RF, TakeInOre_LB, TakeInOre_RB
-            };
-            int idx = (int)_action_enum - (int)ActionGroup_enum::TakeInOre_LF;
-            ActionGroup_WithJoint(_tpa1, takein_tables[idx], 2);
-        }
+    case ActionGroup_enum::TakeInOre_LF:
+        if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, TakeInOre_LF, 2);
+        break;
+    case ActionGroup_enum::TakeInOre_RF:
+        if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, TakeInOre_RF, 2);
+        break;
+    case ActionGroup_enum::TakeInOre_LB:
+        if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, TakeInOre_LB, 2);
+        break;
+    case ActionGroup_enum::TakeInOre_RB:
+        if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, TakeInOre_RB, 2);
         break;
 
     /*取出结束 (TakeIn_end) */
-    case ActionGroup_enum::TakeinOreLF_end: case ActionGroup_enum::TakeinOreRF_end:
-    case ActionGroup_enum::TakeinOreLB_end: case ActionGroup_enum::TakeinOreRB_end:
-        if (_Add_onlyOnce == 1)
-        {
-            static float (*const end_tables[4])[8] = {
-                TakeinOreLF_end, TakeinOreRF_end, TakeinOreLB_end, TakeinOreRB_end
-            };
-            int idx = (int)_action_enum - (int)ActionGroup_enum::TakeinOreLF_end;
-            ActionGroup_WithJoint(_tpa1, end_tables[idx], 2);
-        }
+    case ActionGroup_enum::TakeinOreLF_end:
+        if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, TakeinOreLF_end, 2);
+        break;
+    case ActionGroup_enum::TakeinOreRF_end:
+        if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, TakeinOreRF_end, 2);
+        break;
+    case ActionGroup_enum::TakeinOreLB_end:
+        if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, TakeinOreLB_end, 2);
+        break;
+    case ActionGroup_enum::TakeinOreRB_end:
+        if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, TakeinOreRB_end, 2);
         break;
     // 取能量单元
     case ActionGroup_enum::TakeOre1_prepare:
@@ -525,55 +528,72 @@ float TakeOre6_end[3][8] =
 // ── 储存 (Store) ──────────────────────────────────
 float StoreOre_LF[2][8] = 
 {
-    {55.41, 133.72, 134.77, -77, 12.26, -16.37, -27.55, 500},
+    {58.38, 135.17, 133.77, -77, 7.93, -17.37, -20.98, 500},
     {46.95, 144.75, 138, -46.78, 33.72, -33.81, -41.13, 500}
 };
 float StoreOre_RF[2][8] = 
 {
-    {-55.41, 133.72, 134.77, -77, -12.26, -16.37, 27.55, 500},
-    {-46.95, 144.75, 138, -46.78, -33.72, -33.81, 41.13, 500}
+    {-74.35, 132, 130.46, -74.29, -12, -26.19, 24.13, 500},
+    {-82.53, 139.34, 146.43, -64.47, -12.94, -28.43, 26.5, 500}
 };
-float StoreOre_LB[2][8] = {0};
+float StoreOre_LB[3][8] = 
+{
+    {0, 154, 103, -28, 0, -42, 0, 500},
+    {162.27, 74.94, 96.13, -61.09, 8.59, -80.57, -11.56, 1200},
+    {162.27, 54.41, 110.13, -77, 6.54, -95.4, -4.89, 600}
+};
 float StoreOre_RB[2][8] = {0};
 
 // ── 退出储存 (ExitStore) ──────────────────────────
 float ExitStoreOre_LF[2][8] = 
 {
-    {46.96, 155, 103.3, -6.04, 26.67, -26.03, -28.56, 500},
+    {46.96, 155, 100.3, -6.04, 26.67, -26.03, -28.56, 500},
     {0, 154, 103, -28, 0, -42, 0, 500}
 };
 float ExitStoreOre_RF[2][8] = 
 {
-    {-46.96, 155, 103.3, -6.04, -26.67, -26.03, 28.56, 500},
+    {-80, 155, 114.2, -15.87, -5.8, -28.23, 21.2, 500},
     {0, 154, 103, -28, 0, -42, 0, 500}
 };
-float ExitStoreOre_LB[2][8] = {0};
+float ExitStoreOre_LB[2][8] = 
+{
+    {151.13, 67.97, 116.81, -52.96, 16.08, -100, 0.63, 500},
+    {0, 154, 103, -28, 0, -42, 0, 1000}
+};
 float ExitStoreOre_RB[2][8] = {0};
 
 // ── 取出 (TakeIn) ─────────────────────────────────
 float TakeInOre_LF[2][8] = 
 {
-    {46.96, 155, 103.3, -6.04, 26.67, -26.03, -28.56, 500},
+    {46.96, 155, 100.3, -6.04, 26.67, -26.03, -28.56, 500},
     {46.95, 144.75, 138, -46.78, 33.72, -33.81, -41.13, 500}
 };
 float TakeInOre_RF[2][8] = 
 {
-    {-46.96, 155, 103.3, -6.04, -26.67, -26.03, 28.56, 500},
-    {-46.95, 144.75, 138, -46.78, -33.72, -33.81, 41.13, 500}
+    {-80, 155, 114.2, -15.87, -5.8, -28.23, 21.2, 500},
+    {-82.53, 139.34, 146.43, -64.47, -12.94, -28.43, 26.5, 500}
 };
-float TakeInOre_LB[2][8] = {0};
+float TakeInOre_LB[2][8] = 
+{
+    {151.13, 67.97, 116.81, -52.96, 16.08, -100, 0.63, 1200},
+    {162.27, 54.41, 110.13, -77, 6.54, -95.4, -4.89, 500}
+};
 float TakeInOre_RB[2][8] = {0};
 
 // ── 取出结束 (TakeIn_end) ─────────────────────────
 float TakeinOreLF_end[2][8] = 
 {
-    {55.41, 133.72, 134.77, -77, 12.26, -16.37, -27.55, 500},
+    {58.38, 135.17, 133.77, -77, 7.93, -17.37, -20.98, 500},
     {0, 154, 103, -28, 0, -42, 0, 500}
 };
 float TakeinOreRF_end[2][8] = 
 {
-    {-55.41, 133.72, 134.77, -77, -12.26, -16.37, 27.55, 500},
+    {-74.35, 132, 130.46, -74.29, -12, -26.19, 24.13, 500},
     {0, 154, 103, -28, 0, -42, 0, 500}
 };
-float TakeinOreLB_end[2][8] = {0};
+float TakeinOreLB_end[2][8] = 
+{
+    {158.83, 74.94, 96.13, -61.09, 8.59, -80.57, -11.56, 500},
+    {0, 154, 103, -28, 0, -42, 0, 1200}
+};
 float TakeinOreRB_end[2][8] = {0};
