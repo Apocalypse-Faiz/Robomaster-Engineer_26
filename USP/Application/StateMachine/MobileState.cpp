@@ -15,9 +15,18 @@ void Mobile_enterAction()
 
 void Mobile_action(Event_t **pEvent)
 {
-    // 云台升降电机降到下限位 0° (每周期步进, 不跳变)
-    if (gimbal_lift_init_done)
+    
+    if (reBottomdata.ChassisState == 1)
+    {
+        if (gimbal_lift_init_done)
+        Gimbal_Lift_StepToGoal(gimbal_lift_max_angle, 20.0f); 
+    }
+    else
+    {
+        if (gimbal_lift_init_done)
         Gimbal_Lift_StepToGoal(gimbal_lift_min_angle, 20.0f); 
+    }
+    
 
     static ActionGroup_enum action_enum = ActionGroup_enum::NuLLAction;
     static uint8_t Add_onlyOnce = 0;

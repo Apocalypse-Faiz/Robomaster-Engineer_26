@@ -77,9 +77,9 @@ void ActionGroup_Execute(Joint _j[7], TrajectoryPointArray _tpa1[7], int Joint_n
 extern float ResetActionNoOre_Joint[2][8];
 extern float ResetActionOre_Joint[3][8];
 
-extern float MobileNoOreAction_Joint[2][8];
+extern float MobileNoOreAction_Joint[3][8];
 extern float MobileOreAction_Joint[2][8];
-extern float MobileTunnelAction_Joint[2][8];
+extern float MobileTunnelAction_Joint[4][8];
 
 extern float TakeLandOre_prepare[2][8]; // 取地矿
 extern float TakeLandOre_ing[1][8];

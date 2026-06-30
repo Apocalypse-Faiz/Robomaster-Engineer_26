@@ -1297,28 +1297,28 @@ void DR16_Manipulater_JointCtrl()
  */
 static void debugStartTrajectory()
 {
-    // // J1 正弦扫频: 振幅 ±10°, 20点×150ms=3s, 从当前位置出发, 硬限位保护
-    // //   Watch 窗口可实时改 debug_amp_J1 调整振幅
-    // static float debug_amp_J1 = 60.0f;
+    // J1 正弦扫频: 振幅 ±10°, 20点×150ms=3s, 从当前位置出发, 硬限位保护
+    //   Watch 窗口可实时改 debug_amp_J1 调整振幅
+    static float debug_amp_J1 = 60.0f;
 
-    // // 清 J1 旧轨迹 + 停止规划器
-    // joint_trajectory_point_array[0].clear();
-    // joint[0].stopTrajectoryPlanner();
+    // 清 J1 旧轨迹 + 停止规划器
+    joint_trajectory_point_array[0].clear();
+    joint[0].stopTrajectoryPlanner();
 
-    // float j_lo = (joint[0].parameters.min_angle > -360.0f) ? joint[0].parameters.min_angle : -90.0f;
-    // float j_hi = (joint[0].parameters.max_angle <  360.0f) ? joint[0].parameters.max_angle :  90.0f;
-    // float j_c = std_lib::constrain(joint[0].getCurrentAngle(), j_lo + debug_amp_J1, j_hi - debug_amp_J1);
+    float j_lo = (joint[0].parameters.min_angle > -360.0f) ? joint[0].parameters.min_angle : -90.0f;
+    float j_hi = (joint[0].parameters.max_angle <  360.0f) ? joint[0].parameters.max_angle :  90.0f;
+    float j_c = std_lib::constrain(joint[0].getCurrentAngle(), j_lo + debug_amp_J1, j_hi - debug_amp_J1);
 
-    // const int N = 18;  // CQC 容量20, receive 自动加1个起点, 总数须≤20, 取18留余量
-    // for (int k = 0; k < N; k++)
-    // {
-    //     float phase = 2.0f * 3.14159265f * (float)k / (float)N;
-    //     float t = std_lib::constrain(j_c + debug_amp_J1 * sinf(phase), j_lo, j_hi);
-    //     joint_trajectory_point_array[0].add(150, t);
-    // }
+    const int N = 18;  // CQC 容量20, receive 自动加1个起点, 总数须≤20, 取18留余量
+    for (int k = 0; k < N; k++)
+    {
+        float phase = 2.0f * 3.14159265f * (float)k / (float)N;
+        float t = std_lib::constrain(j_c + debug_amp_J1 * sinf(phase), j_lo, j_hi);
+        joint_trajectory_point_array[0].add(150, t);
+    }
 
-    // joint[0].attach(&joint_trajectory_point_array[0]);
-    // joint[0].startTrajectoryPlanner(HAL_GetTick());
+    joint[0].attach(&joint_trajectory_point_array[0]);
+    joint[0].startTrajectoryPlanner(HAL_GetTick());
 
     // J1 正弦扫频: 振幅 ±10°, 20点×150ms=3s, 从当前位置出发, 硬限位保护
     //   Watch 窗口可实时改 debug_amp_J1 调整振幅
@@ -1391,26 +1391,26 @@ static void debugStartTrajectory()
 
     // J1 正弦扫频: 振幅 ±10°, 20点×150ms=3s, 从当前位置出发, 硬限位保护
     //   Watch 窗口可实时改 debug_amp_J1 调整振幅
-    static float debug_amp_J = 60.0f;
+    // static float debug_amp_J = 60.0f;
 
-    // 清 J1 旧轨迹 + 停止规划器
-    joint_trajectory_point_array[3].clear();
-    joint[4].stopTrajectoryPlanner();
+    // // 清 J1 旧轨迹 + 停止规划器
+    // joint_trajectory_point_array[3].clear();
+    // joint[4].stopTrajectoryPlanner();
 
-    float j_lo = (joint[4].parameters.min_angle > -360.0f) ? joint[4].parameters.min_angle : -90.0f;
-    float j_hi = (joint[4].parameters.max_angle <  360.0f) ? joint[4].parameters.max_angle :  90.0f;
-    float j_c = std_lib::constrain(joint[4].getCurrentAngle(), j_lo + debug_amp_J, j_hi - debug_amp_J);
+    // float j_lo = (joint[4].parameters.min_angle > -360.0f) ? joint[4].parameters.min_angle : -90.0f;
+    // float j_hi = (joint[4].parameters.max_angle <  360.0f) ? joint[4].parameters.max_angle :  90.0f;
+    // float j_c = std_lib::constrain(joint[4].getCurrentAngle(), j_lo + debug_amp_J, j_hi - debug_amp_J);
 
-    const int N = 18;  // CQC 容量20, receive 自动加1个起点, 总数须≤20, 取18留余量
-    for (int k = 0; k < N; k++)
-    {
-        float phase = 2.0f * 3.14159265f * (float)k / (float)N;
-        float t = std_lib::constrain(j_c + debug_amp_J * sinf(phase), j_lo, j_hi);
-        joint_trajectory_point_array[4].add(150, t);
-    }
+    // const int N = 18;  // CQC 容量20, receive 自动加1个起点, 总数须≤20, 取18留余量
+    // for (int k = 0; k < N; k++)
+    // {
+    //     float phase = 2.0f * 3.14159265f * (float)k / (float)N;
+    //     float t = std_lib::constrain(j_c + debug_amp_J * sinf(phase), j_lo, j_hi);
+    //     joint_trajectory_point_array[4].add(150, t);
+    // }
 
-    joint[4].attach(&joint_trajectory_point_array[4]);
-    joint[4].startTrajectoryPlanner(HAL_GetTick());
+    // joint[4].attach(&joint_trajectory_point_array[4]);
+    // joint[4].startTrajectoryPlanner(HAL_GetTick());
 }
 
 void DR16_Debug_Ctrl()
@@ -1461,7 +1461,7 @@ void DR16_Debug_Ctrl()
                 }
                 else
                 {
-                        joint[4].stopTrajectoryPlanner();
+                        joint[0].stopTrajectoryPlanner();
                     debug_traj_active = false;
                 }
             }
@@ -1471,22 +1471,22 @@ void DR16_Debug_Ctrl()
         if (debug_traj_active)
         {
             // 轨迹接管: J1 用 takeOver + 前馈; 其余关节不动
-            // uint32_t tick = HAL_GetTick();
-            // joint[0].takeOver(tick);
+            uint32_t tick = HAL_GetTick();
+            joint[0].takeOver(tick);
 
-            // float v_des = 0.0f, a_des = 0.0f;
-            // joint[0].getTrajectoryDerivative(tick + 1, &v_des, &a_des);
+            float v_des = 0.0f, a_des = 0.0f;
+            joint[0].getTrajectoryDerivative(tick + 1, &v_des, &a_des);
 
-            // const float k = joint[0].mapping.k;
-            // if (k != 0.0f)
-            // {
-            //     const float deg2rad = 3.14159265f / 180.0f;
-            //     motor[0].setSpeed_feedforward(v_des / k * deg2rad * speed_ff_gain[0]);
-            //     motor[0].setAcceleration_feedforward(a_des / k * deg2rad * acc_ff_gain[0]);
-            // }
+            const float k = joint[0].mapping.k;
+            if (k != 0.0f)
+            {
+                const float deg2rad = 3.14159265f / 180.0f;
+                motor[0].setSpeed_feedforward(v_des / k * deg2rad * speed_ff_gain[0]);
+                motor[0].setAcceleration_feedforward(a_des / k * deg2rad * acc_ff_gain[0]);
+            }
 
-            // if (joint[0].isTrajectoryPlannerFree())
-            //     debug_traj_active = false;
+            if (joint[0].isTrajectoryPlannerFree())
+                debug_traj_active = false;
 
             // 轨迹接管: J1 用 takeOver + 前馈; 其余关节不动
             // uint32_t tick = HAL_GetTick();
@@ -1543,22 +1543,22 @@ void DR16_Debug_Ctrl()
             //     debug_traj_active = false;
 
              // 轨迹接管: J1 用 takeOver + 前馈; 其余关节不动
-            uint32_t tick = HAL_GetTick();
-            joint[4].takeOver(tick);
+            // uint32_t tick = HAL_GetTick();
+            // joint[4].takeOver(tick);
 
-            float v_des = 0.0f, a_des = 0.0f;
-            joint[4].getTrajectoryDerivative(tick + 1, &v_des, &a_des);
+            // float v_des = 0.0f, a_des = 0.0f;
+            // joint[4].getTrajectoryDerivative(tick + 1, &v_des, &a_des);
 
-            const float k = joint[4].mapping.k;
-            if (k != 0.0f)
-            {
-                const float deg2rad = 3.14159265f / 180.0f;
-                motor[4].setSpeed_feedforward(v_des / k * deg2rad * speed_ff_gain[4]);
-                motor[4].setAcceleration_feedforward(a_des / k * deg2rad * acc_ff_gain[4]);
-            }
+            // const float k = joint[4].mapping.k;
+            // if (k != 0.0f)
+            // {
+            //     const float deg2rad = 3.14159265f / 180.0f;
+            //     motor[4].setSpeed_feedforward(v_des / k * deg2rad * speed_ff_gain[4]);
+            //     motor[4].setAcceleration_feedforward(a_des / k * deg2rad * acc_ff_gain[4]);
+            // }
 
-            if (joint[4].isTrajectoryPlannerFree())
-                debug_traj_active = false;
+            // if (joint[4].isTrajectoryPlannerFree())
+            //     debug_traj_active = false;
         }
         else
         {

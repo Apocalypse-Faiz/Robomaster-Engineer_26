@@ -103,6 +103,8 @@ void Task_VofaMonitor(void *arg){
 		// 	vision_crc_stats.crc_errors,
 		// 	vision_crc_stats.error_rate);
 
+		VofaMonitor::setDatas(0, Gimbal_Lift.getAngle(), Gimbal_Lift.target_angle, Gimbal_Lift.getSpeed(), Gimbal_Lift.a_pid.Out, Gimbal_Lift.v_pid.Out, Gimbal_Lift.getTorque());
+
 		if (motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready && motor[3].getStatus() == MotorStatus::ready && motor[4].getStatus() == MotorStatus::ready && motor[5].getStatus() == MotorStatus::ready && motor[6].getStatus() == MotorStatus::ready)
 		{
 			for (uint8_t i = 0; i < 7; i++)
@@ -121,7 +123,8 @@ void Task_VofaMonitor(void *arg){
 			// 	motor[5].getSpeed(),
 			// 	motor[5].a_pid.Out,
 			// 	motor[5].a_pid.I_Term, 
-			// 	motor[5].v_pid.Out);
+			// 	motor[5].v_pid.Out,
+			// 	motor[5].getTorque());
 
 				// VofaMonitor::setDatas(0, debug_target_angle, 
 				// joint[4].data.target_angle,
@@ -191,7 +194,7 @@ void Task_VofaMonitor(void *arg){
 
 				// VofaMonitor::setDatas(0, motor[4].getAngle(),motor[4].target_angle, motor[5].getAngle(), motor[5].target_angle, joint[4].getCurrentAngle(), joint[5].getCurrentAngle(), joint[4].getTargetAngle(), joint[5].getTargetAngle());
 
-				VofaMonitor::setDatas(0, Gimbal_Lift.getAngle(), Gimbal_Lift.target_angle, Gimbal_Lift.getSpeed(), Gimbal_Lift.a_pid.Out, Gimbal_Lift.v_pid.Out, Gimbal_Lift.getTorque());
+				
 		}
 		
 		/* 选择串口id */

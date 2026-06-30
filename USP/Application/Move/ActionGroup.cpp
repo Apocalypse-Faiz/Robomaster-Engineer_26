@@ -57,7 +57,7 @@ void ActionGroup_Choose(TrajectoryPointArray _tpa1[7], ActionGroup_enum _action_
     case ActionGroup_enum::Mobile_NoOre: // 无矿机动
         if (_Add_onlyOnce == 1)
         {
-            ActionGroup_WithJoint(_tpa1, MobileNoOreAction_Joint, 2);
+            ActionGroup_WithJoint(_tpa1, MobileNoOreAction_Joint, 3);
             // ActionGroup_World(_tpa1, TempAction_World, 4);
         }
         break;
@@ -70,7 +70,7 @@ void ActionGroup_Choose(TrajectoryPointArray _tpa1[7], ActionGroup_enum _action_
     case ActionGroup_enum::Mobile_Tunnel:
         if (_Add_onlyOnce == 1)
         {
-            ActionGroup_WithJoint(_tpa1, MobileTunnelAction_Joint, 2);
+            ActionGroup_WithJoint(_tpa1, MobileTunnelAction_Joint, 4);
         }
         break;
 
@@ -328,18 +328,21 @@ float ResetActionOre_Joint[3][8] = {
     {0, 125, -45, 0, 0, 0, 0, 300}};
 
 /*机动动作组*/
-float MobileNoOreAction_Joint[2][8] = {
-    {0, 120, 35, 0, 0, 0, 0, 800},
-    {0, 150, 64, 0, 0, 0, 0, 800}};
+float MobileNoOreAction_Joint[3][8] = {
+    {0, 143.5, 97, -1, 76, -100, -5, 700},
+    {0, 140, 133, -72, 0, 0, 0, 700},
+    {0, 153, 145, -77, 0, 0, 0, 700}};
 
 float MobileOreAction_Joint[2][8] =
     {
         {0, 90, -10, 0, 0, 0, 0, 800},
         {0, 135, -56.67, 0, -30, 0, 0, 800}};
 
-float MobileTunnelAction_Joint[2][8] = {
-    {0, 120, 35, 0, 0, 0, 0, 800},
-    {0, 160, 50, 0, 55, 0, 0, 800}};
+float MobileTunnelAction_Joint[4][8] = {
+    {0, 143.5, 97, -1, 76, -100, -5, 700},
+    {0, 130, 115, -75, 0, 0, 0, 700},
+    {0, 143.5, 97, -1, 76, -100, -5, 700},
+    {0, 144.8, 143.6, 15.7, 90, -100, 13.6, 500}};
 
 /*取地矿*/
 float TakeLandOre_prepare[2][8] = {

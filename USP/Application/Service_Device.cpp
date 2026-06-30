@@ -421,7 +421,7 @@ void Gimbal_Lift_Init()
             Gimbal_Lift.setTarget(0.0f);      // 标定后目标设为 0°, 顶住限位
 
             gimbal_lift_max_angle = GIMBAL_LIFT_RANGE; // 记录可用最大角度
-			gimbal_lift_min_angle = 100.0f;
+			gimbal_lift_min_angle = 200.0f;
             gimbal_lift_init_done = true;
             state = InitState::CALIBRATED;
         }
@@ -452,7 +452,7 @@ void Gimbal_Lift_StepToGoal(float goal_deg, float step_deg)
     // 限位 clamp (力矩复位完成后才有意义)
     if (gimbal_lift_init_done)
     {
-        goal_deg = std_lib::constrain(goal_deg, 0.0f, gimbal_lift_max_angle);
+        goal_deg = std_lib::constrain(goal_deg, gimbal_lift_min_angle, gimbal_lift_max_angle);
     }
 
     float current_target = Gimbal_Lift.target_angle;
@@ -527,7 +527,7 @@ void Joint_limitSet()
 		joint[2].setJointParam(34, 150, -10, 10);
 		joint[3].setJointParam(-77, 17, -10, 10);
 		joint[4].setJointParam(-165, 165, -10, 10); // J5关节在力矩复位后还要重新再限位一下
-		joint[5].setJointParam(-105, 105, -10, 10);
+		joint[5].setJointParam(-100, 102, -10, 10);
 		joint[6].setJointParam(-150, 167, -10, 10);
 
 		Set_ok = 1;
@@ -720,7 +720,7 @@ void tskMotor(void *arg)
 	drive_dm_motor[5].bindTxQueueHandle(CAN2_TxPort);
 	drive_dm_motor[6].bindTxQueueHandle(CAN2_TxPort);
 	
-	motor[0].setPidParameters({.v_Kp = 4.4, .v_Min = -25, .v_Max = 25, .a_Kp = 0.5, .a_Ki = 0.03, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
+	motor[0].setPidParameters({.v_Kp = 4.3, .v_Min = -25, .v_Max = 25, .a_Kp = 0.47, .a_Ki = 0.03, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
 	motor[1].setPidParameters({.v_Kp = 6.3, .v_Min = -30, .v_Max = 30, .a_Kp = 0.26, .a_Ki = 0.01, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
 	motor[2].setPidParameters({.v_Kp = 7, .v_Min = -25, .v_Max = 25, .a_Kp = 0.9, .a_Ki = 0.04, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 5});
 	motor[3].setPidParameters({.v_Kp = 2, .v_Min = -20, .v_Max = 20, .a_Kp = 1.4, .a_Ki = 0.03, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
@@ -737,7 +737,7 @@ void tskMotor(void *arg)
 		drive_dm_motor[i].enableMotor();
 	}
 
-	DM4340P.setEncoderOffset(0x8238);
+	DM4340P.setEncoderOffset(0x7348);
 	DM8009.setEncoderOffset(0x7370);
 	DM4340_1.setEncoderOffset(0x4F6A);
 	DM4340_2.setEncoderOffset(0x9ECF);
