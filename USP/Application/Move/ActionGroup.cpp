@@ -87,7 +87,7 @@ void ActionGroup_Choose(TrajectoryPointArray _tpa1[7], ActionGroup_enum _action_
                 StoreOre_LF, StoreOre_RF, StoreOre_LB, StoreOre_RB
             };
             int idx = (int)_action_enum - (int)ActionGroup_enum::StoreOre_LF;
-            ActionGroup_WithJoint(_tpa1, store_tables[idx], 3);
+            ActionGroup_WithJoint(_tpa1, store_tables[idx], 2);
         }
         break;
 
@@ -100,7 +100,7 @@ void ActionGroup_Choose(TrajectoryPointArray _tpa1[7], ActionGroup_enum _action_
                 ExitStoreOre_LF, ExitStoreOre_RF, ExitStoreOre_LB, ExitStoreOre_RB
             };
             int idx = (int)_action_enum - (int)ActionGroup_enum::ExitStoreOre_LF;
-            ActionGroup_WithJoint(_tpa1, exit_tables[idx], 3);
+            ActionGroup_WithJoint(_tpa1, exit_tables[idx], 2);
         }
         break;
 
@@ -113,7 +113,7 @@ void ActionGroup_Choose(TrajectoryPointArray _tpa1[7], ActionGroup_enum _action_
                 TakeInOre_LF, TakeInOre_RF, TakeInOre_LB, TakeInOre_RB
             };
             int idx = (int)_action_enum - (int)ActionGroup_enum::TakeInOre_LF;
-            ActionGroup_WithJoint(_tpa1, takein_tables[idx], 3);
+            ActionGroup_WithJoint(_tpa1, takein_tables[idx], 2);
         }
         break;
 
@@ -126,7 +126,7 @@ void ActionGroup_Choose(TrajectoryPointArray _tpa1[7], ActionGroup_enum _action_
                 TakeinOreLF_end, TakeinOreRF_end, TakeinOreLB_end, TakeinOreRB_end
             };
             int idx = (int)_action_enum - (int)ActionGroup_enum::TakeinOreLF_end;
-            ActionGroup_WithJoint(_tpa1, end_tables[idx], 3);
+            ActionGroup_WithJoint(_tpa1, end_tables[idx], 2);
         }
         break;
     // 取能量单元
@@ -395,7 +395,7 @@ float TurnOre_end[1][8] = {
 float TakeOre1_prepare[2][8] = 
 {
     {0, 121.3, 14.7, 0, 14.2, 0, 0, 500},
-    {0, 86.1, -10.98, 0, 4.85, 0, 0, 500}
+    {0, 154, 103, -28, 0, -42, 0, 500}
     // {0, 114.79, -17.07, 0, 47.63, 0, 500}
 };
 
@@ -523,25 +523,57 @@ float TakeOre6_end[3][8] =
 // ============================================================================
 
 // ── 储存 (Store) ──────────────────────────────────
-float StoreOre_LF[3][8] = {0};
-float StoreOre_RF[3][8] = {0};
-float StoreOre_LB[3][8] = {0};
-float StoreOre_RB[3][8] = {0};
+float StoreOre_LF[2][8] = 
+{
+    {55.41, 133.72, 134.77, -77, 12.26, -16.37, -27.55, 500},
+    {46.95, 144.75, 138, -46.78, 33.72, -33.81, -41.13, 500}
+};
+float StoreOre_RF[2][8] = 
+{
+    {-55.41, 133.72, 134.77, -77, -12.26, -16.37, 27.55, 500},
+    {-46.95, 144.75, 138, -46.78, -33.72, -33.81, 41.13, 500}
+};
+float StoreOre_LB[2][8] = {0};
+float StoreOre_RB[2][8] = {0};
 
 // ── 退出储存 (ExitStore) ──────────────────────────
-float ExitStoreOre_LF[3][8] = {0};
-float ExitStoreOre_RF[3][8] = {0};
-float ExitStoreOre_LB[3][8] = {0};
-float ExitStoreOre_RB[3][8] = {0};
+float ExitStoreOre_LF[2][8] = 
+{
+    {46.96, 155, 103.3, -6.04, 26.67, -26.03, -28.56, 500},
+    {0, 154, 103, -28, 0, -42, 0, 500}
+};
+float ExitStoreOre_RF[2][8] = 
+{
+    {-46.96, 155, 103.3, -6.04, -26.67, -26.03, 28.56, 500},
+    {0, 154, 103, -28, 0, -42, 0, 500}
+};
+float ExitStoreOre_LB[2][8] = {0};
+float ExitStoreOre_RB[2][8] = {0};
 
 // ── 取出 (TakeIn) ─────────────────────────────────
-float TakeInOre_LF[3][8] = {0};
-float TakeInOre_RF[3][8] = {0};
-float TakeInOre_LB[3][8] = {0};
-float TakeInOre_RB[3][8] = {0};
+float TakeInOre_LF[2][8] = 
+{
+    {46.96, 155, 103.3, -6.04, 26.67, -26.03, -28.56, 500},
+    {46.95, 144.75, 138, -46.78, 33.72, -33.81, -41.13, 500}
+};
+float TakeInOre_RF[2][8] = 
+{
+    {-46.96, 155, 103.3, -6.04, -26.67, -26.03, 28.56, 500},
+    {-46.95, 144.75, 138, -46.78, -33.72, -33.81, 41.13, 500}
+};
+float TakeInOre_LB[2][8] = {0};
+float TakeInOre_RB[2][8] = {0};
 
 // ── 取出结束 (TakeIn_end) ─────────────────────────
-float TakeinOreLF_end[3][8] = {0};
-float TakeinOreRF_end[3][8] = {0};
-float TakeinOreLB_end[3][8] = {0};
-float TakeinOreRB_end[3][8] = {0};
+float TakeinOreLF_end[2][8] = 
+{
+    {55.41, 133.72, 134.77, -77, 12.26, -16.37, -27.55, 500},
+    {0, 154, 103, -28, 0, -42, 0, 500}
+};
+float TakeinOreRF_end[2][8] = 
+{
+    {-55.41, 133.72, 134.77, -77, -12.26, -16.37, 27.55, 500},
+    {0, 154, 103, -28, 0, -42, 0, 500}
+};
+float TakeinOreLB_end[2][8] = {0};
+float TakeinOreRB_end[2][8] = {0};

@@ -115,24 +115,24 @@ extern float TakeOre5_end[3][8];
 extern float TakeOre6_end[3][8];
 
 // 储存能量单元 — 4 储矿槽 (LF=左前, RF=右前, LB=左后, RB=右后)
-extern float StoreOre_LF[3][8];
-extern float StoreOre_RF[3][8];
-extern float StoreOre_LB[3][8];
-extern float StoreOre_RB[3][8];
-extern float ExitStoreOre_LF[3][8];
-extern float ExitStoreOre_RF[3][8];
-extern float ExitStoreOre_LB[3][8];
-extern float ExitStoreOre_RB[3][8];
+extern float StoreOre_LF[2][8];
+extern float StoreOre_RF[2][8];
+extern float StoreOre_LB[2][8];
+extern float StoreOre_RB[2][8];
+extern float ExitStoreOre_LF[2][8];
+extern float ExitStoreOre_RF[2][8];
+extern float ExitStoreOre_LB[2][8];
+extern float ExitStoreOre_RB[2][8];
 
 // 取肚子内能量单元 — 4 储矿槽
-extern float TakeInOre_LF[3][8];
-extern float TakeInOre_RF[3][8];
-extern float TakeInOre_LB[3][8];
-extern float TakeInOre_RB[3][8];
-extern float TakeinOreLF_end[3][8];
-extern float TakeinOreRF_end[3][8];
-extern float TakeinOreLB_end[3][8];
-extern float TakeinOreRB_end[3][8];
+extern float TakeInOre_LF[2][8];
+extern float TakeInOre_RF[2][8];
+extern float TakeInOre_LB[2][8];
+extern float TakeInOre_RB[2][8];
+extern float TakeinOreLF_end[2][8];
+extern float TakeinOreRF_end[2][8];
+extern float TakeinOreLB_end[2][8];
+extern float TakeinOreRB_end[2][8];
 
 /*世界坐标系下*/
 extern float TempAction_World[4][8];

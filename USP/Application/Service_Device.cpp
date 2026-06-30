@@ -725,7 +725,7 @@ void tskMotor(void *arg)
 	motor[2].setPidParameters({.v_Kp = 7, .v_Min = -25, .v_Max = 25, .a_Kp = 0.9, .a_Ki = 0.04, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 5});
 	motor[3].setPidParameters({.v_Kp = 2, .v_Min = -20, .v_Max = 20, .a_Kp = 1.4, .a_Ki = 0.03, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
 	motor[4].setPidParameters({.v_Kp = 1.2, .v_Min = -20, .v_Max = 20, .a_Kp = 0.75, .a_Ki = 0.01, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
-	motor[5].setPidParameters({.v_Kp = 1.5, .v_Min = -20, .v_Max = 20, .a_Kp = 0.8, .a_Ki = 0, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
+	motor[5].setPidParameters({.v_Kp = 1.5, .v_Min = -20, .v_Max = 20, .a_Kp = 0.8, .a_Ki = 0.02, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
 	motor[6].setPidParameters({.v_Kp = 0.5, .v_Min = -20, .v_Max = 20, .a_Kp = 0.95, .a_Ki = 0, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
 
 	vTaskDelay(1000);
