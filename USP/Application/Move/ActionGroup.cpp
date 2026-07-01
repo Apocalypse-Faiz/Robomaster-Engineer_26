@@ -88,7 +88,7 @@ void ActionGroup_Choose(TrajectoryPointArray _tpa1[7], ActionGroup_enum _action_
         if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, StoreOre_LB, 3);
         break;
     case ActionGroup_enum::StoreOre_RB:
-        if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, StoreOre_RB, 2);
+        if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, StoreOre_RB, 3);
         break;
 
     /*退出储存 (ExitStore) */
@@ -102,7 +102,7 @@ void ActionGroup_Choose(TrajectoryPointArray _tpa1[7], ActionGroup_enum _action_
         if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, ExitStoreOre_LB, 2);
         break;
     case ActionGroup_enum::ExitStoreOre_RB:
-        if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, ExitStoreOre_RB, 2);
+        if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, ExitStoreOre_RB, 3);
         break;
 
     /*取出 (TakeIn) */
@@ -332,7 +332,7 @@ float ResetActionOre_Joint[3][8] = {
 
 /*机动动作组*/
 float MobileNoOreAction_Joint[3][8] = {
-    {0, 143.5, 97, -1, 76, -100, -5, 700},
+    {0, 155, 77, 17, 85, -93, 5, 700},
     {0, 140, 133, -72, 0, 0, 0, 700},
     {0, 153, 145, -77, 0, 0, 0, 700}};
 
@@ -342,9 +342,9 @@ float MobileOreAction_Joint[2][8] =
         {0, 135, -56.67, 0, -30, 0, 0, 800}};
 
 float MobileTunnelAction_Joint[4][8] = {
-    {0, 143.5, 97, -1, 76, -100, -5, 700},
+    {0, 155, 77, 17, 85, -93, 5, 700},
     {0, 130, 115, -75, 0, 0, 0, 700},
-    {0, 143.5, 97, -1, 76, -100, -5, 700},
+    {0, 155, 77, 17, 85, -93, 5, 700},
     {0, 144.8, 143.6, 15.7, 90, -100, 13.6, 500}};
 
 /*取地矿*/
@@ -539,10 +539,15 @@ float StoreOre_RF[2][8] =
 float StoreOre_LB[3][8] = 
 {
     {0, 154, 103, -28, 0, -42, 0, 500},
-    {162.27, 74.94, 96.13, -61.09, 8.59, -80.57, -11.56, 1200},
+    {162.27, 74.23, 98.73, -69.9, 7.73, -70.6, -10.76, 1200},
     {162.27, 54.41, 110.13, -77, 6.54, -95.4, -4.89, 600}
 };
-float StoreOre_RB[2][8] = {0};
+float StoreOre_RB[3][8] = 
+{
+    {0, 154, 103, -28, 0, -42, 0, 500},
+    {-172.18, 74.85, 106, -77, 4.52, -71.5, -2.99, 1200},
+    {-167.01, 56.83, 110.79, -77, -0.73, -84.40, -3.93, 600}
+};
 
 // ── 退出储存 (ExitStore) ──────────────────────────
 float ExitStoreOre_LF[2][8] = 
@@ -558,9 +563,14 @@ float ExitStoreOre_RF[2][8] =
 float ExitStoreOre_LB[2][8] = 
 {
     {151.13, 67.97, 116.81, -52.96, 16.08, -100, 0.63, 500},
-    {0, 154, 103, -28, 0, -42, 0, 1000}
+    {0, 154, 103, -28, 0, -42, 0, 1200}
 };
-float ExitStoreOre_RB[2][8] = {0};
+float ExitStoreOre_RB[3][8] = 
+{
+    {-166.68, 68.61, 129.69, -76.82, -2.79, -97.42, -2.04, 500},
+    {-83, 111, 100, -53, 0, -70, 0, 600},
+    {0, 154, 103, -28, 0, -42, 0, 600}
+};
 
 // ── 取出 (TakeIn) ─────────────────────────────────
 float TakeInOre_LF[2][8] = 
@@ -578,7 +588,11 @@ float TakeInOre_LB[2][8] =
     {151.13, 67.97, 116.81, -52.96, 16.08, -100, 0.63, 1200},
     {162.27, 54.41, 110.13, -77, 6.54, -95.4, -4.89, 500}
 };
-float TakeInOre_RB[2][8] = {0};
+float TakeInOre_RB[2][8] = 
+{
+    {-172.68, 68.61, 129.69, -76.82, -2.79, -97.42, -2.04, 1200},
+    {-172.01, 56.83, 110.79, -77, -0.73, -84.40, -3.93, 500}
+};
 
 // ── 取出结束 (TakeIn_end) ─────────────────────────
 float TakeinOreLF_end[2][8] = 
@@ -596,4 +610,8 @@ float TakeinOreLB_end[2][8] =
     {158.83, 74.94, 96.13, -61.09, 8.59, -80.57, -11.56, 500},
     {0, 154, 103, -28, 0, -42, 0, 1200}
 };
-float TakeinOreRB_end[2][8] = {0};
+float TakeinOreRB_end[2][8] = 
+{
+    {-168.18, 74.85, 106, -77, 4.52, -71.5, -2.99, 500},
+    {0, 154, 103, -28, 0, -42, 0, 1200}
+};

@@ -38,10 +38,7 @@ void Lost_action(Event_t **pEvent)
         }
     }
 
-    if (Gimbal_Lift.getStatus() == MotorStatus::ready)
-    {
-        Gimbal_Lift.setMode(MotorMode::disabled);
-    }
+   
 
 #if !LOST_DEBUG_KEEP_CHASSIS
     // 底盘失能 (正常模式)
@@ -49,6 +46,11 @@ void Lost_action(Event_t **pEvent)
     toBottomdata.chassis_control_struct.x = 0;
     toBottomdata.chassis_control_struct.y = 0;
     toBottomdata.chassis_control_struct.z = 0;
+
+    if (Gimbal_Lift.getStatus() == MotorStatus::ready)
+    {
+        Gimbal_Lift.setMode(MotorMode::disabled);
+    }
     // toBottomdata.L_Store = 0; // 夹爪待命
     // toBottomdata.R_Store = 0; // 夹爪待命
 #else
@@ -57,6 +59,9 @@ void Lost_action(Event_t **pEvent)
     toBottomdata.chassis_control_struct.x = 0;
     toBottomdata.chassis_control_struct.y = 0;
     toBottomdata.chassis_control_struct.z = 0;
+
+    if (gimbal_lift_init_done)
+    Gimbal_Lift_StepToGoal(gimbal_lift_max_angle, 20.0f); 
 #endif
 
     for (int i = 0; i < 6; i++)  // 硬件仅6个灯珠，对应motor[0]~motor[5]

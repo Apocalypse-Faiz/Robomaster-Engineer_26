@@ -118,11 +118,11 @@ extern float TakeOre6_end[3][8];
 extern float StoreOre_LF[2][8];
 extern float StoreOre_RF[2][8];
 extern float StoreOre_LB[3][8];
-extern float StoreOre_RB[2][8];
+extern float StoreOre_RB[3][8];
 extern float ExitStoreOre_LF[2][8];
 extern float ExitStoreOre_RF[2][8];
 extern float ExitStoreOre_LB[2][8];
-extern float ExitStoreOre_RB[2][8];
+extern float ExitStoreOre_RB[3][8];
 
 // 取肚子内能量单元 — 4 储矿槽
 extern float TakeInOre_LF[2][8];
