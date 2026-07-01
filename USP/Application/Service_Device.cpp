@@ -378,7 +378,7 @@ void Gimbal_Lift_Init()
     // ── 复位参数 (TODO: 实机标定) ──
     static const float DECREASE_STEP   = 20.0f;    // 每周期目标角自减量 (度), 决定下压速度
     static const float TORQUE_THRESHOLD = 1.0f;   // 堵转力矩阈值 (与 getTorque 同单位), 超过判定到限位
-    static const float GIMBAL_LIFT_RANGE = 24000.0f; // 标定后可用行程 (度): 0° 为限位, +RANGE 为另一端 (TODO 实测)
+    static const float GIMBAL_LIFT_RANGE = 23000.0f; // 标定后可用行程 (度): 0° 为限位, +RANGE 为另一端 (TODO 实测)
 
     static MeanFilter<20> torque_filter;          // 力矩低通, 抑制噪声误判
     enum class InitState { DECREASING, CALIBRATED };

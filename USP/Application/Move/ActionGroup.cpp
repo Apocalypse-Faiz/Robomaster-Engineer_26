@@ -208,37 +208,37 @@ void ActionGroup_Choose(TrajectoryPointArray _tpa1[7], ActionGroup_enum _action_
     case ActionGroup_enum::TakeOre1_end:
         if (_Add_onlyOnce == 1)
         {
-            ActionGroup_WithJoint(_tpa1, TakeOre1_end, 3);
+            ActionGroup_WithJoint(_tpa1, TakeOre1_end, 2);
         }
         break;
     case ActionGroup_enum::TakeOre2_end:
         if (_Add_onlyOnce == 1)
         {
-            ActionGroup_WithJoint(_tpa1, TakeOre2_end, 3);
+            ActionGroup_WithJoint(_tpa1, TakeOre2_end, 2);
         }
         break;
     case ActionGroup_enum::TakeOre3_end:
         if (_Add_onlyOnce == 1)
         {
-            ActionGroup_WithJoint(_tpa1, TakeOre3_end, 3);
+            ActionGroup_WithJoint(_tpa1, TakeOre3_end, 2);
         }
         break;
     case ActionGroup_enum::TakeOre4_end:
         if (_Add_onlyOnce == 1)
         {
-            ActionGroup_WithJoint(_tpa1, TakeOre4_end, 3);
+            ActionGroup_WithJoint(_tpa1, TakeOre4_end, 2);
         }
         break;
     case ActionGroup_enum::TakeOre5_end:
         if (_Add_onlyOnce == 1)
         {
-            ActionGroup_WithJoint(_tpa1, TakeOre5_end, 3);
+            ActionGroup_WithJoint(_tpa1, TakeOre5_end, 2);
         }
         break;
     case ActionGroup_enum::TakeOre6_end:
         if (_Add_onlyOnce == 1)
         {
-            ActionGroup_WithJoint(_tpa1, TakeOre6_end, 3);
+            ActionGroup_WithJoint(_tpa1, TakeOre6_end, 2);
         }
         break;
     // case ActionGroup_enum::TakeLandOre_prepare: // 取地矿准备
@@ -397,15 +397,15 @@ float TurnOre_end[1][8] = {
 // 取能量单元
 float TakeOre1_prepare[2][8] = 
 {
-    {0, 121.3, 14.7, 0, 14.2, 0, 0, 500},
-    {0, 154, 103, -28, 0, -42, 0, 500}
+    {0, 122, 83, -77, 0, 0, 0, 500},
+    {0, 100.89, 69.22, -77, 0, -12.2, 0, 500}
     // {0, 114.79, -17.07, 0, 47.63, 0, 500}
 };
 
 float TakeOre2_prepare[2][8] = 
 {
-    {32.22, 106.21, 11.64, 70.46, 27.01, -13.76, 0, 500},
-    {18.18, 79.36, -10.63, 61.8, 13.64, -5.74, 0, 500}
+    {27.03, 104.52, 81.51, -77, 57.08, 0, 0, 500},
+    {15.03, 92.61, 71.51, -77, 66.12, -10.54, -9.86, 500}
 };
 
 float TakeOre3_prepare[2][8] = 
@@ -435,8 +435,8 @@ float TakeOre6_prepare[2][8] =
 
 float TakeOre1_ing[2][8] = 
 {
-    {0, 81.38, -45.97, 0, 29.56, 0, 0, 500},
-    {0, 81.38, -45.97, 0, 0, 0, 0, 500},
+    {0, 90.12, 38.53, -77, 0, 8.87, 0, 500},
+    {0, 90.12, 38.53, -77, 0, -30, 0, 500},
     // {0, 103, -49, 0, 60.20, 0, 400}
     // {0, 105.09, -44.52, 0, 61.66, 0, 500}
 };
@@ -445,8 +445,8 @@ float TakeOre2_ing[2][8] =
 {
     // {39.72, 103.46, -15.63, 51.37, 48.03, 10.87, 400},
     // {46.27, 95.70, -28.98, 55.81, 57.69, 9.99, 400}
-    {36.61, 67.16, -37.68, 79.34, 33.66, -18.97, 0, 500},
-    {36.61, 67.16, -37.68, 79.34, 0, -18.97, 0, 500}
+    {30.5, 80.23, 51.75, -77, 66.16, 30, -6.42, 500},
+    {30.5, 80.23, 51.75, -77, 66.16, 30, -6.42, 500}
 };
 
 float TakeOre3_ing[2][8] = 
@@ -476,47 +476,41 @@ float TakeOre6_ing[2][8] =
 };
         
 
-float TakeOre1_end[3][8] = 
+float TakeOre1_end[2][8] = 
 {
     //{0, 99.14, -49, 0, 5.58, 0, 300}
-    {0, 117.6, -9.64, 0, 15.1, 0, 500, 500 },
-    {0, 126, 17, 0, 26.7, 0, 400, 500},
-    {0, 134.35, 42.62, 0, 41.7, 0, 400, 500}
+    {0, 134, 88, -77, 0, -32, 0, 500},
+    {0, 154, 103, -28, 0, -42, 0, 500}
 };
 
-float TakeOre2_end[3][8] = 
+float TakeOre2_end[2][8] = 
 {
-    {35.44, 105.4, 6.91, 65.76, -9.04, 2.52, 500, 500},
-    {17.7, 120, 23, 53, -13.3, 28, 500, 500},
-    {0, 134.35, 42.62, 0, 41.7, 0, 600, 600}
+    {32, 116, 95, -65, 43, -30, 0, 500},
+    {0, 154, 103, -28, 0, -42, 0, 500}
 };
 
-float TakeOre3_end[3][8] =
+float TakeOre3_end[2][8] =
 {
     {35.76, 88.37, 24.61, 63.76, -13.3, 3.43, 500, 500},
-    {17, 111, 28.87, 32, 14, 0, 500, 500},
-    {0, 134.35, 42.62, 0, 41.7, 0, 500, 500}
+    {17, 111, 28.87, 32, 14, 0, 500, 500}
 };
 
-float TakeOre4_end[3][8] = 
+float TakeOre4_end[2][8] = 
 {
     {0, 68.94, 18.11, 118, -9.3, 0, 500, 500},
-    {0, 101, 30, 59, 7.7, 0, 500, 500},
-    {0, 134.35, 42.62, 0, 41.7, 0, 500, 500}
+    {0, 101, 30, 59, 7.7, 0, 500, 500}
 };
 
-float TakeOre5_end[3][8] = 
+float TakeOre5_end[2][8] = 
 {
     {-35.76, 88.37, 24.61, -63.76, -13.3, -3.43, 500, 500},
-    {-17, 111, 28.87, -32, 14, 0, 500, 500},
-    {0, 134.35, 42.62, 0, 41.7, 0, 500, 500}
+    {-17, 111, 28.87, -32, 14, 0, 500, 500}
 };
 
-float TakeOre6_end[3][8] = 
+float TakeOre6_end[2][8] = 
 {
     {-35.44, 105.4, 6.91,-65.76, -9.34, -2.52, 500, 500},
-    {-17.7, 120, 23, -53, -13.3, -28, 500, 500},
-    {0, 134.35, 42.62, 0, 41.7, 0, 600, 600}
+    {-17.7, 120, 23, -53, -13.3, -28, 500, 500}
 };
 
 // ============================================================================

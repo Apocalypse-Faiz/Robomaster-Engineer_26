@@ -18,13 +18,13 @@ void Mobile_action(Event_t **pEvent)
     
     // if (reBottomdata.ChassisState == 1)
     // {
-        if (gimbal_lift_init_done)
-        Gimbal_Lift_StepToGoal(gimbal_lift_max_angle, 20.0f); 
+        // if (gimbal_lift_init_done)
+        // Gimbal_Lift_StepToGoal(gimbal_lift_max_angle, 20.0f); 
     // }
     // else
     // {
-    //     if (gimbal_lift_init_done)
-    //     Gimbal_Lift_StepToGoal(gimbal_lift_min_angle, 20.0f); 
+        if (gimbal_lift_init_done)
+        Gimbal_Lift_StepToGoal(gimbal_lift_min_angle, 20.0f); 
     // }
     
 

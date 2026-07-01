@@ -107,12 +107,12 @@ extern float TakeOre4_ing[2][8];
 extern float TakeOre5_ing[2][8];
 extern float TakeOre6_ing[2][8];
 
-extern float TakeOre1_end[3][8];
-extern float TakeOre2_end[3][8];
-extern float TakeOre3_end[3][8];
-extern float TakeOre4_end[3][8];
-extern float TakeOre5_end[3][8];
-extern float TakeOre6_end[3][8];
+extern float TakeOre1_end[2][8];
+extern float TakeOre2_end[2][8];
+extern float TakeOre3_end[2][8];
+extern float TakeOre4_end[2][8];
+extern float TakeOre5_end[2][8];
+extern float TakeOre6_end[2][8];
 
 // 储存能量单元 — 4 储矿槽 (LF=左前, RF=右前, LB=左后, RB=右后)
 extern float StoreOre_LF[2][8];
