@@ -34,20 +34,25 @@ private:
     uint8_t ore_ing[4];
     uint8_t get_ore_num[6];
     uint8_t ore_index;
-    
+
+    // 入场动作组标志: init() 后首次 update() 自动触发一次起始动作组
+    bool entry_action_pending = false;
+
     // 临时变量
     ActionGroup_enum action_enum;
     uint8_t add_once_flag;
     uint8_t last_action_done;
-    
+
+    void initFlags(); // 仅清标志位, 不触发入场动作组 (供 reset 调用)
+
 public:
     ActionGroupController();
-    
+
     /**
-     * @brief 初始化控制器
+     * @brief 初始化控制器 (含入场动作组触发)
      */
     void init();
-    
+
     /**
      * @brief 更新动作组控制
      * @param joints 关节数组
@@ -57,9 +62,9 @@ public:
      * @param reBottomdata 接收的底盘数据
      */
     void update(Joint joints[], TrajectoryPointArray trajectory_arrays[], Gripper& gripper, ToBottomDataStructdef& toBottomdata, ReBottomDataStructdef& reBottomdata);
-    
+
     /**
-     * @brief 重置控制器状态
+     * @brief 重置控制器状态 (不清入场动作组触发)
      */
     void reset();
     

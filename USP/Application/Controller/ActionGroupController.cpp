@@ -14,9 +14,9 @@ ActionGroupController::ActionGroupController()
 }
 
 /**
- * @brief 初始化控制器
+ * @brief 仅清标志位 (不触发入场动作组)
  */
-void ActionGroupController::init() 
+void ActionGroupController::initFlags()
 {
     take_ore_state = TakeOre_enum::Zero;
     memset(ore_ing, 0, sizeof(ore_ing));
@@ -25,6 +25,15 @@ void ActionGroupController::init()
     action_enum = ActionGroup_enum::NuLLAction;
     add_once_flag = 0;
     last_action_done = 0;
+}
+
+/**
+ * @brief 初始化控制器 + 标记入场动作组待触发
+ */
+void ActionGroupController::init()
+{
+    initFlags();
+    entry_action_pending = true; // 下次 update() 自动触发一次起始动作组
 }
 
 /**
@@ -206,6 +215,7 @@ void ActionGroupController::executeActionGroup(Joint joints[], TrajectoryPointAr
  * @brief 更新动作组控制
  */
 void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajectory_arrays[], Gripper& gripper, ToBottomDataStructdef& toBottomdata, ReBottomDataStructdef& reBottomdata) {
+
     // 检查动作组是否空闲
     bool action_free = true;
     for (uint8_t i = 0; i < 7; i++) 
@@ -216,17 +226,19 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
             break;
         }
     }
-    
-    // // 清除取矿状态标志
-    // if ((DR16.GetS1() == SW_DOWN && DR16.GetS2() == SW_DOWN) || (VT13.GetFN1() && VT13.GetFN2()))
-    // {
-    //     take_ore_state = TakeOre_enum::Zero;
-    //     memset(OreBit, 0, sizeof(OreBit));
-    // }
 
+    // init() 后首次 update 自动触发一次入场起始动作组
+    // 必须作为 if-else 链的第一个分支: 否则下方 else 会把 action_enum 覆盖成 NuLLAction,
+    // 而 add_once_flag 仍为 1, 导致对空轨迹数组 startTrajectoryPlanner → CQC 越界 → 死锁
+    if (entry_action_pending && action_free == true)
+    {
+        entry_action_pending = false;
+        action_enum = ActionGroup_enum::ToActionGroup;
+        add_once_flag = 1;
+    }
     // 储矿逻辑 — 根据 OreBit 自动选空槽 (优先级: LF>RF>LB>RB)
     //   F 键触发储存, 自动寻找第一个 OreBit[s]==0 的槽位
-    if (action_free == true && (DR16.IsKeyPress(DR16_KEY_F) || VT13.IsKeyPress(VT13_KEY_F)) && gripper.getState() == GripperState::CLOSING && take_ore_state == TakeOre_enum::Zero)
+    else if (action_free == true && (DR16.IsKeyPress(DR16_KEY_F) || VT13.IsKeyPress(VT13_KEY_F)) && gripper.getState() == GripperState::CLOSING && take_ore_state == TakeOre_enum::Zero)
     {
         static const ActionGroup_enum store_actions[4] = {
             ActionGroup_enum::StoreOre_LF, ActionGroup_enum::StoreOre_RF,
@@ -487,9 +499,9 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
 }
 
 /**
- * @brief 重置控制器状态
+ * @brief 重置控制器状态 (仅清标志, 不触发入场动作组)
  */
-void ActionGroupController::reset() 
+void ActionGroupController::reset()
 {
     init();
     // UI_Mode = 0;

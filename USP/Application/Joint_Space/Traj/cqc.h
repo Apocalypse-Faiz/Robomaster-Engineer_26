@@ -61,7 +61,7 @@ public:
     void compute(uint32_t tick) override
     {
         size = points.size();
-        if (size - 1 > capacity)
+        if (size < 2 || size - 1 > capacity) // 至少2个点才能规划; size<2 时下方 points[1] 会越界
             return;
         free = false;
         computed = true;

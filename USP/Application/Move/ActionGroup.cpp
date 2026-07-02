@@ -85,10 +85,10 @@ void ActionGroup_Choose(TrajectoryPointArray _tpa1[7], ActionGroup_enum _action_
         if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, StoreOre_RF, 2);
         break;
     case ActionGroup_enum::StoreOre_LB:
-        if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, StoreOre_LB, 3);
+        if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, StoreOre_LB, 2);
         break;
     case ActionGroup_enum::StoreOre_RB:
-        if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, StoreOre_RB, 3);
+        if (_Add_onlyOnce == 1) ActionGroup_WithJoint(_tpa1, StoreOre_RB, 2);
         break;
 
     /*退出储存 (ExitStore) */
@@ -241,6 +241,13 @@ void ActionGroup_Choose(TrajectoryPointArray _tpa1[7], ActionGroup_enum _action_
             ActionGroup_WithJoint(_tpa1, TakeOre6_end, 2);
         }
         break;
+    case ActionGroup_enum::ToActionGroup:
+        if (_Add_onlyOnce == 1)
+        {
+            ActionGroup_WithJoint(_tpa1, ToActionGroup, 2);
+        }
+        break;
+
     // case ActionGroup_enum::TakeLandOre_prepare: // 取地矿准备
     //     if (_Add_onlyOnce == 1)
     //     {
@@ -528,15 +535,15 @@ float StoreOre_RF[2][8] =
     {-74.35, 132, 130.46, -74.29, -12, -26.19, 24.13, 500},
     {-82.53, 139.34, 146.43, -64.47, -12.94, -28.43, 26.5, 500}
 };
-float StoreOre_LB[3][8] = 
+float StoreOre_LB[2][8] = 
 {
-    {0, 154, 103, -28, 0, -42, 0, 500},
+    // {0, 154, 103, -28, 0, -42, 0, 500},
     {162.27, 74.23, 98.73, -69.9, 7.73, -70.6, -10.76, 1200},
     {162.27, 54.41, 110.13, -77, 6.54, -95.4, -4.89, 600}
 };
-float StoreOre_RB[3][8] = 
+float StoreOre_RB[2][8] = 
 {
-    {0, 154, 103, -28, 0, -42, 0, 500},
+    // {0, 154, 103, -28, 0, -42, 0, 500},
     {-172.18, 74.85, 106, -77, 4.52, -71.5, -2.99, 1200},
     {-167.01, 56.83, 110.79, -77, -0.73, -84.40, -3.93, 600}
 };
@@ -606,4 +613,10 @@ float TakeinOreRB_end[2][8] =
 {
     {-168.18, 74.85, 106, -77, 4.52, -71.5, -2.99, 500},
     {0, 154, 103, -28, 0, -42, 0, 1200}
+};
+
+float ToActionGroup[2][8] = 
+{
+    {0, 155, 77, 17, 85, -93, 5, 700},
+    {0, 154, 103, -28, 0, -42, 0, 600}
 };

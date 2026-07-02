@@ -295,9 +295,10 @@ void GetEnergyUnit_enterAction()
 
     // 初始化所有控制器
     initControllers();
-    
+
     // 设置为动作组模式
     current_mode = ControlMode::ACTION_GROUP;
+
     mode_changing = false;
     vision_takeover_requested = false;
     vision_takeover_acknowledged = false;
@@ -544,14 +545,21 @@ void GetEnergyUnit_action(Event_t **pEvent)
 
 void GetEnergyUnit_exitAction()
 {
+     // 停止轨迹
+     for (uint8_t i = 0; i < 7; i++)
+     {
+         joint_trajectory_point_array[i].clear();
+         joint[i].stopTrajectoryPlanner();
+     }
+
      // 重置所有控制器
      custom_control_data.enable = false;
      vision_control_data.enable = false;
-     
+
      custom_controller.reset();
      vision_controller.reset();
      action_group_controller.reset();
-     
+
      // 重置模式状态
      current_mode = ControlMode::ACTION_GROUP;
      mode_changing = false;

@@ -62,7 +62,9 @@ enum class ActionGroup_enum
     TakeLandOre_end, // 取地矿结束
     Stop,            // 紧急停止执行动作
 
-    ExchangeRotate
+    ExchangeRotate,
+
+    ToActionGroup // 进入动作组
 
 };
 
@@ -92,6 +94,8 @@ extern float TurnOre_prepare[2][8]; // 翻转矿石
 extern float TurnOre_ing[5][8];
 extern float TurnOre_end[1][8];
 
+extern float ToActionGroup[2][8]; // 进入动作组
+
 // 取能量单元
 extern float TakeOre1_prepare[2][8];
 extern float TakeOre2_prepare[2][8];
@@ -117,8 +121,8 @@ extern float TakeOre6_end[2][8];
 // 储存能量单元 — 4 储矿槽 (LF=左前, RF=右前, LB=左后, RB=右后)
 extern float StoreOre_LF[2][8];
 extern float StoreOre_RF[2][8];
-extern float StoreOre_LB[3][8];
-extern float StoreOre_RB[3][8];
+extern float StoreOre_LB[2][8];
+extern float StoreOre_RB[2][8];
 extern float ExitStoreOre_LF[2][8];
 extern float ExitStoreOre_RF[2][8];
 extern float ExitStoreOre_LB[2][8];
