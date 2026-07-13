@@ -207,6 +207,7 @@ extern float speed_kp, speed_Out_Max, angle_kp, angle_ki, angle_kd, angle_Out_Ma
 extern float speed_kp1, speed_Out_Max1, angle_kp1, angle_ki1, angle_kd1, angle_Out_Max1, angle_I_Max1, debug_target_angle1;
 
 extern MeanFilter<50> f_torque1, f_omega1;
+extern MeanFilter<100> CustomDataF[7];
 
 extern uint8_t DTR_state;
 extern uint8_t tx_result; 

@@ -816,7 +816,7 @@ void tskMotor(void *arg)
 
 		UpdateTargetChassisHeight();
 
-		toBottomdata.chassis_control_struct.chassis_height = constrain(target_chassis_height,
+		toBottomdata.chassis_control_struct.chassis_height = constrain(target_chassis_height - 0.007f,
 																		  chassis_height_min,
 																		  chassis_height_max);
 

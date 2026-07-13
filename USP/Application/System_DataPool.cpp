@@ -198,6 +198,7 @@ float speed_kp, speed_Out_Max, angle_kp, angle_ki, angle_kd, angle_Out_Max, angl
 float speed_kp1, speed_Out_Max1, angle_kp1, angle_ki1, angle_kd1, angle_Out_Max1, angle_I_Max1, debug_target_angle1 = 0.000f;
 
 MeanFilter<50> f_torque1, f_omega1;
+MeanFilter<100> CustomDataF[7];
 
 uint8_t ArmMode;
 
