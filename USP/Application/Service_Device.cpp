@@ -1149,7 +1149,7 @@ void tskBoardCom(void *arg)
 						vision_latest_frame.joint_current[i] = joint[i].getCurrentAngle();
 						vision_latest_frame.torque_current[i] = joint[i].getCurrentTorque();
 					}
-					vision_latest_frame.chassis_height_current = current_chassis_height;
+					vision_latest_frame.chassis_height_current = current_chassis_height + 0.007f;
 					vision_latest_frame.seq_num = seq_num++;
 					if (vision_comm_flag_override_valid)
 					{

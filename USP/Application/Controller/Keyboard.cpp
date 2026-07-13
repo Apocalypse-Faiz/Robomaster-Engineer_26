@@ -177,7 +177,7 @@ void UpdateTargetChassisHeight()
         updated_target_chassis_height = current_chassis_height;
     }
 
-    target_chassis_height = constrain(updated_target_chassis_height,
+    target_chassis_height = constrain(updated_target_chassis_height - 0.007f,
                                       chassis_height_min,
                                       chassis_height_max);
 }

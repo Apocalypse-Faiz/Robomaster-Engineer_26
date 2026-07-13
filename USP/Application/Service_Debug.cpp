@@ -103,7 +103,7 @@ void Task_VofaMonitor(void *arg){
 		// 	vision_crc_stats.crc_errors,
 		// 	vision_crc_stats.error_rate);
 
-		VofaMonitor::setDatas(0, Gimbal_Lift.getAngle(), Gimbal_Lift.target_angle, Gimbal_Lift.getSpeed(), Gimbal_Lift.a_pid.Out, Gimbal_Lift.v_pid.Out, Gimbal_Lift.getTorque());
+		// VofaMonitor::setDatas(0, Gimbal_Lift.getAngle(), Gimbal_Lift.target_angle, Gimbal_Lift.getSpeed(), Gimbal_Lift.a_pid.Out, Gimbal_Lift.v_pid.Out, Gimbal_Lift.getTorque());
 
 		if (motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready && motor[3].getStatus() == MotorStatus::ready && motor[4].getStatus() == MotorStatus::ready && motor[5].getStatus() == MotorStatus::ready && motor[6].getStatus() == MotorStatus::ready)
 		{
@@ -112,6 +112,7 @@ void Task_VofaMonitor(void *arg){
 				joint[i].updateJointData();
 			}
 
+			VofaMonitor::setDatas(0, joint[0].data.target_angle, joint[1].data.target_angle, joint[2].data.target_angle, joint[3].data.target_angle, joint[4].data.target_angle, joint[5].data.target_angle, joint[6].data.target_angle);
 			// VofaMonitor::setDatas(0, joint[0].getCurrentTorque(), joint[1].getCurrentTorque(), joint[2].getCurrentTorque(), joint[3].getCurrentTorque(), joint[4].getCurrentTorque(), joint[5].getCurrentTorque(), toBottomdata.ChassisState, reBottomdata.ChassisState);
 			// VofaMonitor::setDatas(0, joint[0].getCurrentAngle(), joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), joint[3].getCurrentAngle(), joint[4].getCurrentAngle(), joint[5].getCurrentAngle(), current_chassis_height, joint[0].getCurrentTorque(),joint[1].getCurrentTorque(), joint[2].getCurrentTorque());
 			// VofaMonitor::setDatas(0, joint[0].getCurrentAngle(), joint[0].getCurrentTorque(), motor[0].Inertia_feedforward);

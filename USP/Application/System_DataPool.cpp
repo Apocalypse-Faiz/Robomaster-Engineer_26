@@ -176,8 +176,8 @@ float gravity_J5 = 1.2f;   // J5 roll 重力补偿增益 (J6电机外置Y偏置�
 float gravity_J6 = 1.7f;  // J6 重力补偿增益 (TODO: 需实机调参, 初始建议 0.05~0.3)
 float inertia_J1 = 0.0f;
 
-float chassis_height_min = 0.203f;
-float chassis_height_max = 0.458f;
+float chassis_height_min = 0.266f;
+float chassis_height_max = 0.460f;
 float chassis_height_step = 0.03f;
 float current_chassis_height = 0.203f;
 float target_chassis_height = 0.203f;
