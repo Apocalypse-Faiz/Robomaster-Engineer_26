@@ -159,7 +159,7 @@ void UpdateTargetChassisHeight()
     }
 #endif
 
-    // 手动控制优先；无手动输入时若处于进状态自动对位阶段则继续对位，否则保持当前位置。
+    // 手动控制优先；无手动输入时若处于进状态自动对位阶段则继续对位，否则保持目标高度。
     if (has_manual_command)
     {
         align_to_target_active = false;
@@ -172,11 +172,6 @@ void UpdateTargetChassisHeight()
             align_to_target_active = false;
         }
     }
-    else
-    {
-        updated_target_chassis_height = current_chassis_height;
-    }
-
     target_chassis_height = constrain(updated_target_chassis_height,
                                       chassis_height_min,
                                       chassis_height_max);

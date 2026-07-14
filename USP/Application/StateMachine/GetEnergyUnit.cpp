@@ -24,6 +24,27 @@ static bool vision_takeover_requested = false;
 static bool vision_takeover_acknowledged = false;
 static bool last_vt13_z_state = false;
 
+static float joint_takeover_speed_ff[7] = {0.0f};
+static uint32_t joint_takeover_ff_last_time = 0U;
+static ControlMode joint_takeover_ff_last_mode = ControlMode::ACTION_GROUP;
+
+static float clampFloat(float value, float min_value, float max_value)
+{
+    if (value < min_value) return min_value;
+    if (value > max_value) return max_value;
+    return value;
+}
+
+static void resetJointTakeoverFeedforward()
+{
+    for (uint8_t i = 0; i < 7; i++)
+    {
+        joint_takeover_speed_ff[i] = 0.0f;
+        motor[i].setSpeed_feedforward(0.0f);
+        motor[i].setAcceleration_feedforward(0.0f);
+    }
+}
+
 /**
  * @brief 初始化所有控制器
  */
@@ -42,8 +63,9 @@ void initControllers()
     custom_controller.reset();
     vision_controller.reset();
     action_group_controller.reset();
-    
-    // 设置为当前位置
+    resetJointTakeoverFeedforward();
+
+    // Set target to current joint position.
     for (int i = 0; i < 7; i++) 
     {
         if (joint[i].isCalibrated()) 
@@ -260,27 +282,65 @@ void executeVisionControlMode(bool vision_data_ready)
 void executeJointTakeover()
 {
     uint32_t current_time = HAL_GetTick();
+    const bool smooth_feedforward =
+        current_mode == ControlMode::CUSTOM_CONTROL ||
+        current_mode == ControlMode::VISION_CONTROL;
 
-    // 所有模式都需要执行关节接管
+    if (joint_takeover_ff_last_mode != current_mode ||
+        current_time < joint_takeover_ff_last_time ||
+        joint_takeover_ff_last_time == 0U)
+    {
+        resetJointTakeoverFeedforward();
+    }
+
+    float dt = (current_time - joint_takeover_ff_last_time) * 1e-3f;
+    dt = clampFloat(dt, 0.001f, 0.05f);
+
+    constexpr float deg2rad = 3.14159265f / 180.0f;
+    constexpr float custom_speed_ff_lpf_alpha = 0.150f;
+    constexpr float custom_speed_ff_max_abs = 10.0f;   // rad/s
+    constexpr float custom_speed_ff_max_slew = 25.0f; // rad/s^2
+
+    // Joint takeover is required in all modes.
     for (uint8_t i = 0; i < 7; i++)
     {
         joint[i].takeOver(current_time);
 
-        // // 轨迹速度/加速度前馈 (与 ActionGroup_Execute 一致)
-        // float v_des = 0.0f, a_des = 0.0f;
-        // joint[i].getTrajectoryDerivative(current_time + 1, &v_des, &a_des);
+        float speed_ff = 0.0f;
+        float acc_ff = 0.0f;
+        float v_des = 0.0f, a_des = 0.0f;
+        const float k = joint[i].mapping.k;
 
-        // const float k = joint[i].mapping.k;
-        // if (k != 0.0f)
-        // {
-        //     const float deg2rad = 3.14159265f / 180.0f;
-        //     float v_motor = v_des / k * deg2rad;
-        //     float a_motor = a_des / k * deg2rad;
+        if (k != 0.0f && joint[i].getTrajectoryDerivative(current_time + 1, &v_des, &a_des))
+        {
+            const float v_motor = v_des / k * deg2rad;
+            const float a_motor = a_des / k * deg2rad;
 
-        //     motor[i].setSpeed_feedforward(v_motor * speed_ff_gain[i]);
-        //     motor[i].setAcceleration_feedforward(a_motor * acc_ff_gain[i]);
-        // }
+            speed_ff = v_motor * speed_ff_gain[i];
+            acc_ff = a_motor * acc_ff_gain[i];
+
+            if (smooth_feedforward)
+            {
+                speed_ff = clampFloat(speed_ff, -custom_speed_ff_max_abs, custom_speed_ff_max_abs);
+                speed_ff = joint_takeover_speed_ff[i] +
+                           custom_speed_ff_lpf_alpha * (speed_ff - joint_takeover_speed_ff[i]);
+
+                const float max_step = custom_speed_ff_max_slew * dt;
+                speed_ff = joint_takeover_speed_ff[i] +
+                           clampFloat(speed_ff - joint_takeover_speed_ff[i], -max_step, max_step);
+
+                // Short-cycle replanning makes desired acceleration discontinuous; keep torque FF off here.
+                acc_ff = 0.0f;
+            }
+        }
+
+        joint_takeover_speed_ff[i] = speed_ff;
+        motor[i].setSpeed_feedforward(speed_ff);
+        motor[i].setAcceleration_feedforward(acc_ff);
     }
+
+    joint_takeover_ff_last_time = current_time;
+    joint_takeover_ff_last_mode = current_mode;
 }
 
 void GetEnergyUnit_enterAction()
