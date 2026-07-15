@@ -510,7 +510,7 @@ void Joint_limitSet()
 		joint[2].setJointMapping(1, 34);
 		joint[3].setJointMapping(-1, -79);
 		joint[4].setJointMapping(-1, 0);
-		joint[5].setJointMapping(-1, 0);
+		joint[5].setJointMapping(-1, 0.3);
 		joint[6].setJointMapping(-1, 0);
 
 		special_actuator3[0].calibrate();
@@ -742,7 +742,7 @@ void tskMotor(void *arg)
 	DM4340_1.setEncoderOffset(0x4F6A);
 	DM4340_2.setEncoderOffset(0x9ECF);
 	DM4310_1.setEncoderOffset(0x720F);
-	DM4310_2.setEncoderOffset(0x9D5B);
+	DM4310_2.setEncoderOffset(0x723C);
 	DM4310_3.setEncoderOffset(0x7516);
 	// DM8009.setEncoderOffset(0x7872);
 	// DM10010.setEncoderOffset(0x60E7);

@@ -3,7 +3,7 @@
 
 // 调试模式: 进 Lost 时仅失能 7 个关节, 底盘保持原 ChassisState 与 chassis_height
 //   置 1 = 调试 (底盘不失能), 置 0 = 正常 (底盘失能)
-#define LOST_DEBUG_KEEP_CHASSIS 1
+#define LOST_DEBUG_KEEP_CHASSIS 0
 
 // 记录进入 Lost 前的状态, 重连后恢复到该状态
 static TopStateId lost_entry_state = TopStateId::None;
