@@ -106,11 +106,23 @@ void tskStateMachine(void *arg)
 {
 	/* Pre-Load for task */
 	TickType_t xLastWakeTime_t;
+	VisionFrameBuffer vision_rx_frame;
+	ReVisionDataStruct vision_control_snapshot;
 	xLastWakeTime_t = xTaskGetTickCount();
 	Total_init();
 	vTaskDelayUntil(&xLastWakeTime_t, 1000);
 	for (;;)
 	{
+		while (Visiondata_TakeLatestFrame(&vision_rx_frame) != 0U)
+		{
+			if (Visiondata_DecodeControlFrame(&vision_rx_frame, &vision_control_snapshot) != 0U)
+			{
+				/* reVisiondata is published and consumed only by this task. */
+				memcpy(&reVisiondata, &vision_control_snapshot, sizeof(reVisiondata));
+				xTaskNotify(StateMachine_Handle, VISION_NOTIFY_BIT, eSetBits);
+			}
+		}
+
 		/* wait for next circle */
 		TopStateMachine.action();
 		// if (ulTaskNotifyTake(pdTRUE, 0) == 55)
@@ -1041,7 +1053,7 @@ void tskBoardCom(void *arg)
     
 	uint8_t debug_computerCOm = 100;
 	uint16_t seq_num = 0;
-	ToVisionDataStruct vision_latest_frame;
+	ToVisionDataStruct vision_latest_frame = {};
 	uint8_t vision_pending_valid = 0;
 	uint8_t last_cdc_open = 1U;
 	TickType_t cdc_last_restart_tick = 0U;
@@ -1061,6 +1073,9 @@ void tskBoardCom(void *arg)
 #endif
 	for (;;)
 	{
+		/* CRC, length validation and frame reassembly run in task context. */
+		(void)Visiondata_ProcessRx();
+
 		/*发送给底层*/
 		// 底盘发送信息处理
 		// 与底盘通信测试

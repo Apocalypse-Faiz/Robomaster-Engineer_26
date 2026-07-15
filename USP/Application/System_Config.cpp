@@ -80,6 +80,7 @@ void System_Device_Init(void)
 #endif // #if USE_SRML_UART
 
 #if USE_SRML_VIRTUAL_COM
+  Visiondata_Init();
   VirtualComUserInit(VirtualCom_Rx_Buff, User_VirtualComRecCpltCallback, NULL);
 #endif
 

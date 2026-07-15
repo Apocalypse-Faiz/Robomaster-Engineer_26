@@ -473,14 +473,7 @@ uint32_t Referee_recv_Callback(uint8_t *Recv_Data, uint16_t ReceiveLen)
 #if USE_SRML_VIRTUAL_COM
 void User_VirtualComRecCpltCallback(uint8_t *Recv_Data, uint16_t ReceiveLen)
 {
-  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-
-  if ((StateMachine_Handle != NULL) && (Visiondata_Receive(Recv_Data, ReceiveLen) != 0U))
-  {
-    xTaskNotifyFromISR(StateMachine_Handle, VISION_NOTIFY_BIT, eSetBits, &xHigherPriorityTaskWoken);
-  }
-
-  portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+  (void)Visiondata_ReceiveFromISR(Recv_Data, ReceiveLen);
 }
 #endif
 

@@ -685,10 +685,13 @@ void handleCustomControlMode()
 /**
  * @brief 处理视觉控制模式
  */
-void handleVisionControlMode() 
+void handleVisionControlMode()
 {
+    uint32_t vision_notify_value = 0U;
+
     // 接收视觉数据
-   if (ulTaskNotifyTake(pdTRUE, 0) == 55)
+   if ((xTaskNotifyWait(0U, VISION_NOTIFY_BIT, &vision_notify_value, 0U) == pdTRUE) &&
+       ((vision_notify_value & VISION_NOTIFY_BIT) != 0U))
    {
         for (int i = 0; i < 7; i++)
         {
