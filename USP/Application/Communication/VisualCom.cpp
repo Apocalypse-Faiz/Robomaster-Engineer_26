@@ -5,9 +5,13 @@ CRCErrorStats vision_crc_stats = {0};
 
 static_assert(sizeof(ToVisionDataStruct) <= VISION_FRAME_MAX_SIZE, "Vision TX frame is too large");
 static_assert(sizeof(ReVisionDataStruct) <= VISION_FRAME_MAX_SIZE, "Vision RX frame is too large");
+static_assert(sizeof(ToVisionDataStruct) >= (VISION_FRAME_HEADER_SIZE + VISION_FRAME_CRC_SIZE),
+              "Vision TX frame is too small");
+static_assert(sizeof(ReVisionDataStruct) >= (VISION_FRAME_HEADER_SIZE + VISION_FRAME_CRC_SIZE),
+              "Vision RX frame is too small");
 
-static const uint16_t VISION_FRAME_LENGTH_OFFSET = 2U;
 static const size_t VISION_RX_STREAM_CAPACITY = VISION_FRAME_MAX_SIZE * 4U;
+static const uint16_t VISION_RX_FRAME_SIZE = (uint16_t)sizeof(ReVisionDataStruct);
 
 static StaticStreamBuffer_t vision_rx_stream_control;
 static uint8_t vision_rx_stream_storage[VISION_RX_STREAM_CAPACITY + 1U];
@@ -19,7 +23,6 @@ static QueueHandle_t vision_frame_queue = NULL;
 
 static uint8_t vision_rx_frame_buffer[VISION_FRAME_MAX_SIZE];
 static uint16_t vision_rx_frame_length = 0U;
-static uint16_t vision_rx_expected_length = 0U;
 static VisionFrameBuffer vision_publish_frame;
 static uint8_t vision_task_receive_buffer[VIRTUALCOM_RX_BUFFER_SIZE];
 
@@ -34,8 +37,6 @@ static void Visiondata_UpdateErrorRate()
 static void Visiondata_ResyncReceiveBuffer()
 {
     const uint16_t buffered_length = vision_rx_frame_length;
-
-    vision_rx_expected_length = 0U;
 
     /* A damaged candidate may already contain the beginning of the next frame. */
     for (uint16_t i = 1U; (i + 1U) < buffered_length; i++)
@@ -63,15 +64,9 @@ static void Visiondata_ResyncReceiveBuffer()
     }
 }
 
-static uint16_t Visiondata_ReadFrameLength()
-{
-    return (uint16_t)vision_rx_frame_buffer[VISION_FRAME_LENGTH_OFFSET] |
-           ((uint16_t)vision_rx_frame_buffer[VISION_FRAME_LENGTH_OFFSET + 1U] << 8U);
-}
-
 static uint8_t Visiondata_PublishFrame()
 {
-    vision_publish_frame.length = vision_rx_expected_length;
+    vision_publish_frame.length = VISION_RX_FRAME_SIZE;
     memcpy(vision_publish_frame.data,
            vision_rx_frame_buffer,
            vision_publish_frame.length);
@@ -112,74 +107,35 @@ static uint8_t Visiondata_ParseByte(uint8_t byte)
 
     vision_rx_frame_buffer[vision_rx_frame_length++] = byte;
 
-    for (;;)
+    if (vision_rx_frame_length < VISION_RX_FRAME_SIZE)
     {
-        if ((vision_rx_expected_length == 0U) &&
-            (vision_rx_frame_length >= (VISION_FRAME_LENGTH_OFFSET + sizeof(uint16_t))))
-        {
-            vision_rx_expected_length = Visiondata_ReadFrameLength();
-
-            if ((vision_rx_expected_length < VISION_FRAME_MIN_SIZE) ||
-                (vision_rx_expected_length > VISION_FRAME_MAX_SIZE))
-            {
-                vision_crc_stats.length_errors++;
-                Visiondata_ResyncReceiveBuffer();
-
-                if (vision_rx_frame_length < (VISION_FRAME_LENGTH_OFFSET + sizeof(uint16_t)))
-                {
-                    return 0U;
-                }
-                continue;
-            }
-        }
-
-        if ((vision_rx_expected_length == 0U) ||
-            (vision_rx_frame_length < vision_rx_expected_length))
-        {
-            return 0U;
-        }
-
-        vision_crc_stats.total_received++;
-
-        const uint16_t crc_offset = vision_rx_expected_length - VISION_FRAME_CRC_SIZE;
-        const uint16_t received_crc =
-            (uint16_t)vision_rx_frame_buffer[crc_offset] |
-            ((uint16_t)vision_rx_frame_buffer[crc_offset + 1U] << 8U);
-
-        if (received_crc == calculate_crc16(vision_rx_frame_buffer, crc_offset))
-        {
-            const uint8_t published = Visiondata_PublishFrame();
-            vision_rx_frame_length = 0U;
-            vision_rx_expected_length = 0U;
-            Visiondata_UpdateErrorRate();
-            return published;
-        }
-
-        vision_crc_stats.crc_errors++;
-        Visiondata_ResyncReceiveBuffer();
-        Visiondata_UpdateErrorRate();
-
-        if (vision_rx_frame_length < (VISION_FRAME_LENGTH_OFFSET + sizeof(uint16_t)))
-        {
-            return 0U;
-        }
+        return 0U;
     }
+
+    vision_crc_stats.total_received++;
+
+    const uint16_t crc_offset = VISION_RX_FRAME_SIZE - VISION_FRAME_CRC_SIZE;
+    const uint16_t received_crc =
+        (uint16_t)vision_rx_frame_buffer[crc_offset] |
+        ((uint16_t)vision_rx_frame_buffer[crc_offset + 1U] << 8U);
+
+    if (received_crc == calculate_crc16(vision_rx_frame_buffer, crc_offset))
+    {
+        const uint8_t published = Visiondata_PublishFrame();
+        vision_rx_frame_length = 0U;
+        Visiondata_UpdateErrorRate();
+        return published;
+    }
+
+    vision_crc_stats.crc_errors++;
+    Visiondata_ResyncReceiveBuffer();
+    Visiondata_UpdateErrorRate();
+    return 0U;
 }
 
-uint8_t Visiondata_TransmitPayload(uint8_t frame_type,
-                                   const uint8_t *payload,
-                                   uint16_t payload_length)
+uint8_t Visiondata_Transmist()
 {
-    static uint8_t tx_frame[VISION_FRAME_MAX_SIZE];
-
-    if (((payload == NULL) && (payload_length != 0U)) ||
-        (payload_length > VISION_FRAME_MAX_PAYLOAD_SIZE))
-    {
-        return USBD_FAIL;
-    }
-
-    const uint16_t frame_length =
-        VISION_FRAME_HEADER_SIZE + payload_length + VISION_FRAME_CRC_SIZE;
+    static ToVisionDataStruct tx_frame;
 
 #if USE_SRML_VIRTUAL_COM
     if (VirtualComIsTxBusy() != 0U)
@@ -187,43 +143,20 @@ uint8_t Visiondata_TransmitPayload(uint8_t frame_type,
         return USBD_BUSY;
     }
 
-    tx_frame[0] = VISION_FRAME_HEAD1;
-    tx_frame[1] = VISION_FRAME_HEAD2;
-    tx_frame[VISION_FRAME_LENGTH_OFFSET] = (uint8_t)(frame_length & 0xFFU);
-    tx_frame[VISION_FRAME_LENGTH_OFFSET + 1U] = (uint8_t)(frame_length >> 8U);
-    tx_frame[4] = frame_type;
+    memcpy(&tx_frame, &toVisiondata, sizeof(tx_frame));
+    tx_frame.head1 = VISION_FRAME_HEAD1;
+    tx_frame.head2 = VISION_FRAME_HEAD2;
 
-    if (payload_length != 0U)
-    {
-        memcpy(&tx_frame[VISION_FRAME_HEADER_SIZE], payload, payload_length);
-    }
+    uint8_t *frame_bytes = (uint8_t *)&tx_frame;
+    const uint16_t crc_offset = (uint16_t)sizeof(tx_frame) - VISION_FRAME_CRC_SIZE;
+    const uint16_t crc = calculate_crc16(frame_bytes, crc_offset);
+    frame_bytes[crc_offset] = (uint8_t)(crc & 0xFFU);
+    frame_bytes[crc_offset + 1U] = (uint8_t)(crc >> 8U);
 
-    const uint16_t crc_offset = frame_length - VISION_FRAME_CRC_SIZE;
-    const uint16_t crc = calculate_crc16(tx_frame, crc_offset);
-    tx_frame[crc_offset] = (uint8_t)(crc & 0xFFU);
-    tx_frame[crc_offset + 1U] = (uint8_t)(crc >> 8U);
-
-    return VirtualComTransmitData(tx_frame, frame_length);
+    return VirtualComTransmitData(frame_bytes, sizeof(tx_frame));
 #else
     return USBD_FAIL;
 #endif
-}
-
-uint8_t Visiondata_Transmist()
-{
-    static ToVisionDataStruct ToVisionData_temp;
-
-    memcpy(&ToVisionData_temp, &toVisiondata, sizeof(ToVisionData_temp));
-
-    const uint8_t *payload =
-        ((const uint8_t *)&ToVisionData_temp) + VISION_FRAME_HEADER_SIZE;
-    const uint16_t payload_length =
-        (uint16_t)sizeof(ToVisionData_temp) - VISION_FRAME_HEADER_SIZE - VISION_FRAME_CRC_SIZE;
-
-    return Visiondata_TransmitPayload(
-        VISION_FRAME_TYPE_FEEDBACK,
-        payload,
-        payload_length);
 }
 
 uint8_t Visiondata_IsTxBusy()
@@ -337,9 +270,7 @@ uint8_t Visiondata_DecodeControlFrame(const VisionFrameBuffer *frame,
     memcpy(&temp, frame->data, sizeof(temp));
 
     if ((temp.head1 != VISION_FRAME_HEAD1) ||
-        (temp.head2 != VISION_FRAME_HEAD2) ||
-        (temp.frame_length != sizeof(temp)) ||
-        (temp.frame_type != VISION_FRAME_TYPE_CONTROL))
+        (temp.head2 != VISION_FRAME_HEAD2))
     {
         return 0U;
     }
