@@ -20,9 +20,9 @@ static constexpr float get_energy_unit_default_chassis_height_m = 0.357f;
 // 模式切换状态
 static bool mode_changing = false;
 static uint32_t mode_change_time = 0;
-static bool vision_takeover_requested = false;
-static bool vision_takeover_acknowledged = false;
-static bool last_vt13_z_state = false;
+static TickType_t last_vision_rx_tick = 0U;
+static bool vision_frame_received = false;
+static constexpr uint32_t vision_link_timeout_ms = 100U;
 
 static float joint_takeover_speed_ff[7] = {0.0f};
 static uint32_t joint_takeover_ff_last_time = 0U;
@@ -33,6 +33,12 @@ static float clampFloat(float value, float min_value, float max_value)
     if (value < min_value) return min_value;
     if (value > max_value) return max_value;
     return value;
+}
+
+static void resetVisionLinkState()
+{
+    last_vision_rx_tick = 0U;
+    vision_frame_received = false;
 }
 
 static void resetJointTakeoverFeedforward()
@@ -110,10 +116,7 @@ void switchControlMode(ControlMode new_mode)
         case ControlMode::VISION_CONTROL:
             vision_control_data.enable = false;
             vision_controller.reset();
-            vision_takeover_requested = false;
-            vision_takeover_acknowledged = false;
-            vision_comm_flag_override = 0U;
-            vision_comm_flag_override_valid = false;
+            resetVisionLinkState();
             break;
     }
     
@@ -133,10 +136,7 @@ void switchControlMode(ControlMode new_mode)
             
         case ControlMode::VISION_CONTROL:
             vision_control_data.enable = true;
-            vision_takeover_requested = false;
-            vision_takeover_acknowledged = false;
-            vision_comm_flag_override = 0U;
-            vision_comm_flag_override_valid = false;
+            resetVisionLinkState();
             break;
     }
 }
@@ -360,10 +360,7 @@ void GetEnergyUnit_enterAction()
     current_mode = ControlMode::ACTION_GROUP;
 
     mode_changing = false;
-    vision_takeover_requested = false;
-    vision_takeover_acknowledged = false;
-    vision_comm_flag_override = 0U;
-    vision_comm_flag_override_valid = false;
+    resetVisionLinkState();
 
     // 进入取能量单元状态时，默认将底盘高度目标设置为 0.35m
     toBottomdata.ChassisState = 2;
@@ -378,57 +375,26 @@ void GetEnergyUnit_action(Event_t **pEvent)
         Gimbal_Lift_StepToGoal(gimbal_lift_max_angle, 20.0f); 
 
     bool vision_data_ready = false;
+    bool vision_link_alive = false;
     uint32_t vision_notify_value = 0U;
-    if (current_mode == ControlMode::VISION_CONTROL)
+    const TickType_t current_tick = xTaskGetTickCount();
+
+    /* Always consume the bit so data received in other modes cannot become stale. */
+    if ((xTaskNotifyWait(0U, VISION_NOTIFY_BIT, &vision_notify_value, 0U) == pdTRUE) &&
+        ((vision_notify_value & VISION_NOTIFY_BIT) != 0U) &&
+        (current_mode == ControlMode::VISION_CONTROL))
     {
-        if (xTaskNotifyWait(0U, VISION_NOTIFY_BIT, &vision_notify_value, 0U) == pdTRUE)
-        {
-            vision_data_ready = ((vision_notify_value & VISION_NOTIFY_BIT) != 0U);
-        }
+        vision_data_ready = true;
+        vision_frame_received = true;
+        last_vision_rx_tick = current_tick;
     }
 
-
-    if (current_mode == ControlMode::VISION_CONTROL)
+    if ((current_mode == ControlMode::VISION_CONTROL) && vision_frame_received)
     {
-        const bool dr16_ready = (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED);
-        const bool vt13_ready = (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C && VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED);
-        bool z_triggered = false;
-
-        if (dr16_ready && IsKeyPressOnce(DR16_KEY_Z))
-        {
-            z_triggered = true;
-        }
-
-        if (vt13_ready)
-        {
-            const bool vt13_z_pressed = VT13.IsKeyPress(VT13_KEY_Z);
-            if (vt13_z_pressed && !last_vt13_z_state)
-            {
-                z_triggered = true;
-            }
-            last_vt13_z_state = vt13_z_pressed;
-        }
-        else
-        {
-            last_vt13_z_state = false;
-        }
-
-        if (z_triggered)
-        {
-            vision_takeover_requested = true;
-            vision_takeover_acknowledged = false;
-            vision_comm_flag_override = 9U;
-            vision_comm_flag_override_valid = true;
-        }
-
-        if (vision_takeover_requested && reVisiondata.comm_flag == 8U)
-        {
-            vision_takeover_requested = false;
-            vision_takeover_acknowledged = true;
-            vision_comm_flag_override = 0U;
-            vision_comm_flag_override_valid = true;
-        }
+        vision_link_alive =
+            ((current_tick - last_vision_rx_tick) < pdMS_TO_TICKS(vision_link_timeout_ms));
     }
+
 
     // 根据当前模式执行不同逻辑
     if ((DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED) || (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C && VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)) 
@@ -488,17 +454,7 @@ void GetEnergyUnit_action(Event_t **pEvent)
             }
             else if (current_mode == ControlMode::VISION_CONTROL)
             {
-                if (vision_takeover_requested)
-                {
-                    if (i == 0)
-                    WS_indicator[i] = WS_Blue;
-                }
-                else if (vision_takeover_acknowledged)
-                {
-                    if (i == 0)
-                    WS_indicator[i] = WS_Green;
-                }
-                else if (vision_data_ready)
+                if (vision_link_alive)
                 {
                     WS_indicator[i] = WS_Purple;
                 }
@@ -623,8 +579,5 @@ void GetEnergyUnit_exitAction()
      // 重置模式状态
      current_mode = ControlMode::ACTION_GROUP;
      mode_changing = false;
-    vision_takeover_requested = false;
-    vision_takeover_acknowledged = false;
-    vision_comm_flag_override = 0U;
-    vision_comm_flag_override_valid = false;
+     resetVisionLinkState();
 }
