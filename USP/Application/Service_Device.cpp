@@ -264,116 +264,248 @@ void tskBackpackdrive(void *arg)
 	}
 }
 
+namespace
+{
+volatile bool arm_safety_latched = false;
+
+enum class DmRecoveryPhase : uint8_t
+{
+	Idle,
+	SendClearError,
+	SendStart,
+	WaitReady
+};
+
+bool ArmControlLinkEstablished()
+{
+	bool established = false;
+#if USE_SRML_DR16
+	established = (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED);
+#endif
+#if USE_SRML_VT13
+	established = established ||
+		((VT13.GetModeSwitch() != MS_Status_Typedef::MS_C) &&
+		 (VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED));
+#endif
+	return established;
+}
+
+void ClearArmFeedforward()
+{
+	for (uint8_t i = 0; i < 7U; i++)
+	{
+		Gravity_feedforward[i] = 0.0f;
+		BackEMF_feedforward[i] = 0.0f;
+		Coulomb_feedforward[i] = 0.0f;
+		Viscous_feedforward[i] = 0.0f;
+		Inertia_feedforward[i] = 0.0f;
+
+		motor[i].setGravity_feedforward(0.0f);
+		motor[i].setBackEMF_feedforward(0.0f);
+		motor[i].setCoulomb_feedforward(0.0f);
+		motor[i].setViscous_feedforward(0.0f);
+		motor[i].setInertia_feedforward(0.0f);
+		motor[i].setSpeed_feedforward(0.0f);
+		motor[i].setAcceleration_feedforward(0.0f);
+	}
+
+	Gimbal_Lift.setGravity_feedforward(0.0f);
+	Gimbal_Lift.setBackEMF_feedforward(0.0f);
+	Gimbal_Lift.setCoulomb_feedforward(0.0f);
+	Gimbal_Lift.setViscous_feedforward(0.0f);
+	Gimbal_Lift.setInertia_feedforward(0.0f);
+	Gimbal_Lift.setSpeed_feedforward(0.0f);
+	Gimbal_Lift.setAcceleration_feedforward(0.0f);
+}
+
+void ReleaseArmSafetyStop()
+{
+	ClearArmFeedforward();
+
+	for (uint8_t i = 0; i < 7U; i++)
+	{
+		joint_trajectory_point_array[i].clear();
+		joint[i].setMode(JointMode::angle);
+		// setMode(angle) 先把目标置为当前角度，再将规划器同步到该目标。
+		joint[i].stopTrajectoryPlanner();
+	}
+
+	if (Gimbal_Lift.getStatus() == MotorStatus::ready)
+	{
+		Gimbal_Lift.setMode(MotorMode::angle);
+	}
+
+	all_motor_connected = true;
+	arm_safety_latched = false;
+}
+} // namespace
+
+void ArmSafety_Trip()
+{
+	const bool first_trip = !arm_safety_latched;
+	arm_safety_latched = true;
+	all_motor_connected = false;
+
+	if (first_trip)
+	{
+		for (uint8_t i = 0; i < 7U; i++)
+		{
+			joint_trajectory_point_array[i].clear();
+			joint[i].stopTrajectoryPlanner();
+		}
+	}
+
+	ClearArmFeedforward();
+	for (uint8_t i = 0; i < 7U; i++)
+	{
+		joint[i].setMode(JointMode::disabled);
+		// setMode() 会在电机 error 时拒绝写入，因此再强制设置电机层模式。
+		motor[i].forceSetMode(MotorMode::disabled);
+	}
+	Gimbal_Lift.forceSetMode(MotorMode::disabled);
+	gripper.emergencyStop();
+}
+
+bool ArmSafety_IsLatched()
+{
+	return arm_safety_latched;
+}
+
 void CheckMotorStatus()
 {
-	static TickType_t last_dm_reconnect_tick = 0U;
-	static uint8_t dm_reconnect_rr_idx = 0U;
+	static constexpr uint8_t DM_MOTOR_COUNT = 7U;
+	static constexpr uint8_t ALL_READY_STABLE_TICKS = 20U;
+	const TickType_t DM_RECOVERY_FRAME_GAP = pdMS_TO_TICKS(2U);
+	const TickType_t DM_RECOVERY_TIMEOUT = pdMS_TO_TICKS(1000U);
+
+	static DmRecoveryPhase recovery_phase = DmRecoveryPhase::Idle;
+	static uint8_t recovery_scan_idx = 0U;
+	static uint8_t recovery_active_idx = 0U;
 	static uint8_t all_ready_stable_cnt = 0U;
-	static uint8_t dm_offline_latched[7] = {0U, 0U, 0U, 0U, 0U, 0U, 0U};
-	static uint8_t ready_init_done[7] = {0U};
-	static uint8_t mode_init_done = 0U;
-	static uint8_t dm_recover_pending = 0U;
-	static const uint8_t DM_MOTOR_COUNT = 7U;
-	static const uint8_t ALL_READY_STABLE_TICKS = 20U;
-	const TickType_t DM_RECONNECT_PERIOD_TICK = pdMS_TO_TICKS(100);
-#if ENABLE_J1_INERTIA_VALIDATION
-	const uint8_t mode_set_start = 1U;
-#else
-	const uint8_t mode_set_start = 0U;
-#endif
+	static TickType_t recovery_last_action_tick = 0U;
+	static TickType_t recovery_start_tick = 0U;
 
 	bool all_ready = true;
-	bool dm_has_disconnect = false;
-
 	for (uint8_t i = 0; i < DM_MOTOR_COUNT; i++)
 	{
 		if (motor[i].getStatus() != MotorStatus::ready)
 		{
 			all_ready = false;
-			ready_init_done[i] = 0U;
-			dm_has_disconnect = true;
-			if (dm_offline_latched[i] == 0U)
-			{
-				motor[i].forceSetMode(MotorMode::disabled);
-				joint[i].setMode(JointMode::disabled);
-				dm_offline_latched[i] = 1U;
-			}
-		}
-		else
-		{
-			dm_offline_latched[i] = 0U;
-		}
-	}
-
-	if (all_ready)
-	{
-		if (all_ready_stable_cnt < ALL_READY_STABLE_TICKS)
-		{
-			all_ready_stable_cnt++;
-		}
-
-		if (all_ready_stable_cnt < ALL_READY_STABLE_TICKS)
-		{
-			all_motor_connected = false;
-			return;
-		}
-
-		if (all_motor_connected == false)
-		{
-			if (mode_init_done == 0U)
-			{
-				for (uint8_t i = mode_set_start; i < DM_MOTOR_COUNT; i++)
-				{
-					if (ready_init_done[i] == 0U)
-					{
-						motor[i].setMode(MotorMode::angle);
-						joint[i].setMode(JointMode::angle);
-						ready_init_done[i] = 1U;
-					}
-				}
-				mode_init_done = 1U;
-			}
-			else if (dm_recover_pending != 0U)
-			{
-				for (uint8_t i = mode_set_start; i < DM_MOTOR_COUNT; i++)
-				{
-					motor[i].setMode(MotorMode::angle);
-					joint[i].setMode(JointMode::angle);
-				}
-				dm_recover_pending = 0U;
-			}
-		}
-		all_motor_connected = true;
-		return;
-	}
-
-	all_ready_stable_cnt = 0U;
-	all_motor_connected = false;
-	if (dm_has_disconnect == false)
-	{
-		return;
-	}
-
-	dm_recover_pending = 1U;
-
-	TickType_t now_tick = xTaskGetTickCount();
-	if ((now_tick - last_dm_reconnect_tick) < DM_RECONNECT_PERIOD_TICK)
-	{
-		return;
-	}
-
-	for (uint8_t offset = 0; offset < DM_MOTOR_COUNT; offset++)
-	{
-		uint8_t idx = (dm_reconnect_rr_idx + offset) % DM_MOTOR_COUNT;
-		if (motor[idx].getStatus() != MotorStatus::ready)
-		{
-			drive_dm_motor[idx].enableMotor();
-			dm_reconnect_rr_idx = (idx + 1U) % DM_MOTOR_COUNT;
 			break;
 		}
 	}
 
-	last_dm_reconnect_tick = now_tick;
+	const bool control_link_established = ArmControlLinkEstablished();
+	const bool top_state_blocks_recovery =
+		(g_top_state_id == TopStateId::Lost) || (g_top_state_id == TopStateId::None);
+	const bool recovery_allowed = control_link_established && !top_state_blocks_recovery;
+
+	// 任意一个电机故障、遥控链路丢失或处于 Lost，都锁存全臂安全停机。
+	if (!all_ready || !control_link_established || top_state_blocks_recovery)
+	{
+		ArmSafety_Trip();
+	}
+
+	if (!ArmSafety_IsLatched())
+	{
+		all_motor_connected = all_ready;
+		return;
+	}
+
+	// 锁存期间每周期重申失能，防止其他任务覆盖安全模式。
+	ArmSafety_Trip();
+
+	if (!recovery_allowed)
+	{
+		recovery_phase = DmRecoveryPhase::Idle;
+		all_ready_stable_cnt = 0U;
+		return;
+	}
+
+	const TickType_t now_tick = xTaskGetTickCount();
+	if (recovery_phase == DmRecoveryPhase::Idle)
+	{
+		// 链路和顶层状态允许后自动开始恢复。
+		recovery_scan_idx = 0U;
+		all_ready_stable_cnt = 0U;
+		recovery_start_tick = now_tick;
+		recovery_last_action_tick = now_tick - DM_RECOVERY_FRAME_GAP;
+		recovery_phase = DmRecoveryPhase::SendClearError;
+	}
+
+	if ((now_tick - recovery_start_tick) >= DM_RECOVERY_TIMEOUT)
+	{
+		// 本轮未恢复则回到 Idle；下一周期会自动重新清错、启动。
+		recovery_phase = DmRecoveryPhase::Idle;
+		all_ready_stable_cnt = 0U;
+		return;
+	}
+
+	switch (recovery_phase)
+	{
+	case DmRecoveryPhase::SendClearError:
+		if ((now_tick - recovery_last_action_tick) < DM_RECOVERY_FRAME_GAP)
+		{
+			return;
+		}
+
+		while ((recovery_scan_idx < DM_MOTOR_COUNT) &&
+			   (motor[recovery_scan_idx].getStatus() == MotorStatus::ready))
+		{
+			recovery_scan_idx++;
+		}
+
+		if (recovery_scan_idx >= DM_MOTOR_COUNT)
+		{
+			recovery_phase = DmRecoveryPhase::WaitReady;
+			all_ready_stable_cnt = 0U;
+			return;
+		}
+
+		recovery_active_idx = recovery_scan_idx;
+		drive_dm_motor[recovery_active_idx].clearError();
+		recovery_last_action_tick = now_tick;
+		recovery_phase = DmRecoveryPhase::SendStart;
+		return;
+
+	case DmRecoveryPhase::SendStart:
+		if ((now_tick - recovery_last_action_tick) < DM_RECOVERY_FRAME_GAP)
+		{
+			return;
+		}
+
+		drive_dm_motor[recovery_active_idx].startMotor();
+		recovery_scan_idx = recovery_active_idx + 1U;
+		recovery_last_action_tick = now_tick;
+		recovery_phase = DmRecoveryPhase::SendClearError;
+		return;
+
+	case DmRecoveryPhase::WaitReady:
+		if (all_ready)
+		{
+			if (all_ready_stable_cnt < ALL_READY_STABLE_TICKS)
+			{
+				all_ready_stable_cnt++;
+			}
+
+			if (all_ready_stable_cnt >= ALL_READY_STABLE_TICKS)
+			{
+				// 1 ms 电机任务中连续 ready 20 次，即稳定 20 ms。
+				// 此处清除残留轨迹/前馈，重置 PID，并把目标同步到当前位置后自动恢复角度控制。
+				ReleaseArmSafetyStop();
+				recovery_phase = DmRecoveryPhase::Idle;
+			}
+		}
+		else
+		{
+			all_ready_stable_cnt = 0U;
+		}
+		return;
+
+	case DmRecoveryPhase::Idle:
+	default:
+		return;
+	}
 }
 
 /**
@@ -744,10 +876,8 @@ void tskMotor(void *arg)
 
 	Gimbal_Lift.setPidParameters({.v_Kp = 15, .v_Min = -10000, .v_Max = 10000, .a_Kp = 10, .a_Ki = 0.3, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 2});
 
-	for(int i = 0; i < 7; i++)
-	{
-		drive_dm_motor[i].enableMotor();
-	}
+	// DM 电机不在这里阻塞使能。遥控链路建立且退出 Lost 后，
+	// CheckMotorStatus() 会用非阻塞状态机自动完成清错、启动和安全恢复。
 
 	DM4340P.setEncoderOffset(0x7348);
 	DM8009.setEncoderOffset(0x7370);
@@ -839,7 +969,9 @@ void tskMotor(void *arg)
 
 		Gimbal_Lift.update(); // 更新云台升降电机数据
 
-		if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED || (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C && VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED))
+		if (!ArmSafety_IsLatched() &&
+			(DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED ||
+			 (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C && VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)))
 		{
 			Gimbal_Lift_Init(); // 云台升降电机力矩复位标定
 		}
@@ -852,7 +984,7 @@ void tskMotor(void *arg)
 		Joint_limitSet();
 
 #if ENABLE_J1_INERTIA_VALIDATION
-		if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
+		if (!ArmSafety_IsLatched() && DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
 		{
 			if (motor[0].getStatus() == MotorStatus::ready)
 			{
@@ -882,7 +1014,15 @@ void tskMotor(void *arg)
 			// J1 角加速度估计: 每周期调用一次 (static 状态, 不能重入)
 			const float alpha_j1 = EstimateJ1Acceleration(f_omega1.f(motor[0].getSpeed()));
 
-		if(all_motor_connected)
+		if (ArmSafety_IsLatched())
+		{
+			// 安全锁存期间所有 DM 电机只允许下发零力矩。
+			for (int i = 0; i < 7; i++)
+			{
+				motor[i].execute();
+			}
+		}
+		else if(all_motor_connected)
 		{
 			// 加上全补偿
 			// 注意：当代码在某处进程中断停止运行，motor[i].getStatus()会变为error，导致在使用motor[i].getAngle()等函数时卡在死循环中！！！
@@ -960,77 +1100,12 @@ void tskMotor(void *arg)
 		}
 		else
 		{
-			// DM电机无需复位，Robot_Prepared默认为1，部分补偿始终启用
+			// 防御性分支：不存在“部分电机继续控制”模式。
+			// 只要 all_motor_connected 为 false，就再次锁存并对全部电机下发零力矩。
+			ArmSafety_Trip();
 			for (int i = 0; i < 7; i++)
 			{
-				if (motor[i].getStatus() == MotorStatus::ready)
-				{
-					joint[i].updateJointData();
-				}
-			}
-
-			if (motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready)
-			{
-				// UpdateMotor0PidByPose();
-
-				// 7-DOF 重力补偿 (部分电机就绪时仍启用, MDH→补偿角度转换)
-				GravityCompension_Calculate(
-				    MDH2Gravity_J2(joint[1].getCurrentAngle()),
-				    MDH2Gravity_J3(joint[2].getCurrentAngle()),
-				    MDH2Gravity_J4(joint[3].getCurrentAngle()),
-				    MDH2Gravity_J5(joint[4].getCurrentAngle()),
-				    MDH2Gravity_J6(joint[5].getCurrentAngle()),
-				    &Gravity_feedforward[1], &Gravity_feedforward[2],
-				    &Gravity_feedforward[3], &Gravity_feedforward[4], &Gravity_feedforward[5]);
-				motor[1].setGravity_feedforward(Gravity_feedforward[1] * gravity_J2);
-				motor[2].setGravity_feedforward(Gravity_feedforward[2] * gravity_J3);
-				motor[3].setGravity_feedforward(Gravity_feedforward[3] * gravity_J4);
-				motor[4].setGravity_feedforward(Gravity_feedforward[4] * gravity_J5);
-				motor[5].setGravity_feedforward(Gravity_feedforward[5] * gravity_J6);
-			}
-			else
-			{
-				motor[1].setGravity_feedforward(0.0f);
-				motor[2].setGravity_feedforward(0.0f);
-				motor[3].setGravity_feedforward(0.0f);
-				motor[4].setGravity_feedforward(0.0f);
-				motor[5].setGravity_feedforward(0.0f);
-			}
-
-			if (motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready)
-			{
-				// 7-DOF J1 惯量补偿 (部分电机就绪, 优先轨迹加速度/回退微分)
-				{
-					const float a_traj = joint[0].getTrajectoryAcceleration(HAL_GetTick() + 1);
-					const float alpha_use = (fabsf(a_traj) > 1e-6f)
-						? a_traj * (3.14159265f / 180.0f) : alpha_j1;
-
-					InertiaCompension_Calculate(
-					    MDH2Inertia_J2(joint[1].getCurrentAngle()),
-					    MDH2Inertia_J3(joint[2].getCurrentAngle()),
-					    MDH2Inertia_J4(joint[3].getCurrentAngle()),
-					    MDH2Inertia_J5(joint[4].getCurrentAngle()),
-					    MDH2Inertia_J6(joint[5].getCurrentAngle()),
-					    alpha_use, f_torque1.f(motor[0].v_pid.Out),
-					    &Inertia_feedforward[0]);
-					motor[0].setInertia_feedforward(Inertia_feedforward[0] * inertia_J1);
-				}
-			}
-			else
-			{
-				motor[0].setInertia_feedforward(0.0f);
-			}
-
-			for (int i = 0; i < 7; i++)
-			{
-				if (motor[i].getStatus() == MotorStatus::ready)
-				{
-					motor[i].execute();
-				}
-				else
-				{
-					drive_dm_motor[i].setTorque(0.0f);
-				}
+				motor[i].execute();
 			}
 		}
 

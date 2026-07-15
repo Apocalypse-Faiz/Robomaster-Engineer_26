@@ -8,13 +8,14 @@ void DM_Motor::setPolar(int polar)
 {
     // 达妙电机库貌似没有这个功能
 }
-void DM_Motor::enableMotor()
+void DM_Motor::clearError()
 {
-    vTaskDelay(2);
     dm_motor->ClearError();
-    vTaskDelay(2);
+}
+
+void DM_Motor::startMotor()
+{
     dm_motor->startMotor();
-    vTaskDelay(2);
 }
 
 void DM_Motor::update(Motor &motor)

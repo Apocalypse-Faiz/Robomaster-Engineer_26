@@ -21,7 +21,8 @@ public:
     }
     void bindTxQueueHandle(QueueHandle_t _txQueue);
     void setPolar(int polar);
-    void enableMotor();
+    void clearError();
+    void startMotor();
     void update(Motor &motor) override;
     void setTorque(float target_torque) override;
 };

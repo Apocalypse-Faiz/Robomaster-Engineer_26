@@ -178,6 +178,8 @@ extern float speed_ff_gain[7]; // 速度前馈增益
 extern float acc_ff_gain[7];   // 加速度前馈增益
 
 extern bool all_motor_connected; // 所有电机连接状态
+void ArmSafety_Trip();
+bool ArmSafety_IsLatched();
 extern bool gimbal_lift_init_done; // 云台升降电机力矩复位标定完成标志
 extern float gimbal_lift_max_angle; // 云台升降电机标定后的最大角度 (度)
 extern float gimbal_lift_min_angle; // 云台升降电机标定后的最小角度 (度)

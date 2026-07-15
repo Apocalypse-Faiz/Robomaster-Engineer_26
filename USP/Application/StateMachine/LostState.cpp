@@ -13,14 +13,8 @@ void Lost_enterAction()
     lost_entry_state = g_top_state_id; // 记录进入 Lost 前的状态 (此时还未改为 Lost)
     g_top_state_id = TopStateId::Lost;
 
-    if (motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready && motor[3].getStatus() == MotorStatus::ready && motor[4].getStatus() == MotorStatus::ready && motor[5].getStatus() == MotorStatus::ready && motor[6].getStatus() == MotorStatus::ready)
-    {
-        for (uint8_t i = 0; i < 7; i++)
-        {
-            joint_trajectory_point_array[i].clear();
-            joint[i].stopTrajectoryPlanner();
-        }
-    }
+    // Lost 必须无条件触发全臂安全停机，不能等待所有电机 ready。
+    ArmSafety_Trip();
 
     LostState.action();
 }
@@ -28,15 +22,8 @@ void Lost_enterAction()
 void Lost_action(Event_t **pEvent)
 {
 
-
-    if (motor[0].getStatus() == MotorStatus::ready && motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready && motor[3].getStatus() == MotorStatus::ready && motor[4].getStatus() == MotorStatus::ready && motor[5].getStatus() == MotorStatus::ready && motor[6].getStatus() == MotorStatus::ready)
-    {
-        // 关节失能
-        for (uint8_t i = 0; i < 7; i++)
-        {
-            joint[i].setMode(JointMode::disabled);
-        }
-    }
+    // 持续压制其他任务可能写入的目标/模式，Lost 内绝不允许自动使能。
+    ArmSafety_Trip();
 
    
 
@@ -111,18 +98,8 @@ void Lost_exitAction()
     //     }
     // }
 
-    for (uint8_t i = 0; i < 7; i++)
-    {
-        if (motor[i].getStatus() == MotorStatus::ready)
-        {
-            joint[i].setMode(JointMode::angle);
-        }
-    }
-
-    if (Gimbal_Lift.getStatus() == MotorStatus::ready)
-    {
-        Gimbal_Lift.setMode(MotorMode::angle);
-    }
+    // 退出 Lost 不直接使能。链路正常后由 CheckMotorStatus()
+    // 自动清错、启动，并在 7 个 DM 连续 ready 20 ms 后安全恢复。
 
 #if !LOST_DEBUG_KEEP_CHASSIS
     toBottomdata.ChassisState = 1; // 使能底盘控制 (正常模式)
