@@ -310,13 +310,6 @@ void ClearArmFeedforward()
 		motor[i].setAcceleration_feedforward(0.0f);
 	}
 
-	Gimbal_Lift.setGravity_feedforward(0.0f);
-	Gimbal_Lift.setBackEMF_feedforward(0.0f);
-	Gimbal_Lift.setCoulomb_feedforward(0.0f);
-	Gimbal_Lift.setViscous_feedforward(0.0f);
-	Gimbal_Lift.setInertia_feedforward(0.0f);
-	Gimbal_Lift.setSpeed_feedforward(0.0f);
-	Gimbal_Lift.setAcceleration_feedforward(0.0f);
 }
 
 void ReleaseArmSafetyStop()
@@ -329,11 +322,6 @@ void ReleaseArmSafetyStop()
 		joint[i].setMode(JointMode::angle);
 		// setMode(angle) 先把目标置为当前角度，再将规划器同步到该目标。
 		joint[i].stopTrajectoryPlanner();
-	}
-
-	if (Gimbal_Lift.getStatus() == MotorStatus::ready)
-	{
-		Gimbal_Lift.setMode(MotorMode::angle);
 	}
 
 	all_motor_connected = true;
@@ -363,7 +351,6 @@ void ArmSafety_Trip()
 		// setMode() 会在电机 error 时拒绝写入，因此再强制设置电机层模式。
 		motor[i].forceSetMode(MotorMode::disabled);
 	}
-	Gimbal_Lift.forceSetMode(MotorMode::disabled);
 	gripper.emergencyStop();
 }
 
@@ -987,9 +974,9 @@ void tskMotor(void *arg)
 
 		Gimbal_Lift.update(); // 更新云台升降电机数据
 
-		if (!ArmSafety_IsLatched() &&
-			(DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED ||
-			 (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C && VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)))
+		if (ArmControlLinkEstablished() &&
+			(g_top_state_id != TopStateId::Lost) &&
+			(g_top_state_id != TopStateId::None))
 		{
 			Gimbal_Lift_Init(); // 云台升降电机力矩复位标定
 		}
