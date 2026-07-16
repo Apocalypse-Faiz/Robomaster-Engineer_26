@@ -273,7 +273,8 @@ enum class DmRecoveryPhase : uint8_t
 	Idle,
 	SendClearError,
 	SendStart,
-	WaitReady
+	WaitReady,
+	WaitControlLink
 };
 
 bool ArmControlLinkEstablished()
@@ -396,12 +397,12 @@ void CheckMotorStatus()
 	}
 
 	const bool control_link_established = ArmControlLinkEstablished();
-	const bool top_state_blocks_recovery =
+	const bool top_state_blocks_control =
 		(g_top_state_id == TopStateId::Lost) || (g_top_state_id == TopStateId::None);
-	const bool recovery_allowed = control_link_established && !top_state_blocks_recovery;
+	const bool control_release_allowed = control_link_established && !top_state_blocks_control;
 
 	// 任意一个电机故障、遥控链路丢失或处于 Lost，都锁存全臂安全停机。
-	if (!all_ready || !control_link_established || top_state_blocks_recovery)
+	if (!all_ready || !control_link_established || top_state_blocks_control)
 	{
 		ArmSafety_Trip();
 	}
@@ -415,17 +416,10 @@ void CheckMotorStatus()
 	// 锁存期间每周期重申失能，防止其他任务覆盖安全模式。
 	ArmSafety_Trip();
 
-	if (!recovery_allowed)
-	{
-		recovery_phase = DmRecoveryPhase::Idle;
-		all_ready_stable_cnt = 0U;
-		return;
-	}
-
 	const TickType_t now_tick = xTaskGetTickCount();
 	if (recovery_phase == DmRecoveryPhase::Idle)
 	{
-		// 链路和顶层状态允许后自动开始恢复。
+		// 上电后即自动完成 DM 清错和启动；控制链路只限制角度控制的解除。
 		recovery_scan_idx = 0U;
 		all_ready_stable_cnt = 0U;
 		recovery_start_tick = now_tick;
@@ -433,7 +427,8 @@ void CheckMotorStatus()
 		recovery_phase = DmRecoveryPhase::SendClearError;
 	}
 
-	if ((now_tick - recovery_start_tick) >= DM_RECOVERY_TIMEOUT)
+	if ((recovery_phase != DmRecoveryPhase::WaitControlLink) &&
+		((now_tick - recovery_start_tick) >= DM_RECOVERY_TIMEOUT))
 	{
 		// 本轮未恢复则回到 Idle；下一周期会自动重新清错、启动。
 		recovery_phase = DmRecoveryPhase::Idle;
@@ -490,15 +485,38 @@ void CheckMotorStatus()
 
 			if (all_ready_stable_cnt >= ALL_READY_STABLE_TICKS)
 			{
-				// 1 ms 电机任务中连续 ready 20 次，即稳定 20 ms。
-				// 此处清除残留轨迹/前馈，重置 PID，并把目标同步到当前位置后自动恢复角度控制。
-				ReleaseArmSafetyStop();
-				recovery_phase = DmRecoveryPhase::Idle;
+				if (control_release_allowed)
+				{
+					// 连续 ready 20 ms 且控制链路有效，才恢复角度控制。
+					ReleaseArmSafetyStop();
+					recovery_phase = DmRecoveryPhase::Idle;
+				}
+				else
+				{
+					// DM 已启动，但遥控器未连接：保持全臂失能并等待控制链路。
+					recovery_phase = DmRecoveryPhase::WaitControlLink;
+				}
 			}
 		}
 		else
 		{
 			all_ready_stable_cnt = 0U;
+		}
+		return;
+
+	case DmRecoveryPhase::WaitControlLink:
+		if (!all_ready)
+		{
+			// 等待遥控器期间若电机再次故障，立即开始新一轮自动清错和启动。
+			recovery_phase = DmRecoveryPhase::Idle;
+			all_ready_stable_cnt = 0U;
+			return;
+		}
+
+		if (control_release_allowed)
+		{
+			ReleaseArmSafetyStop();
+			recovery_phase = DmRecoveryPhase::Idle;
 		}
 		return;
 
@@ -876,8 +894,8 @@ void tskMotor(void *arg)
 
 	Gimbal_Lift.setPidParameters({.v_Kp = 15, .v_Min = -10000, .v_Max = 10000, .a_Kp = 10, .a_Ki = 0.3, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 2});
 
-	// DM 电机不在这里阻塞使能。遥控链路建立且退出 Lost 后，
-	// CheckMotorStatus() 会用非阻塞状态机自动完成清错、启动和安全恢复。
+	// DM 电机不在这里阻塞使能。CheckMotorStatus() 上电后会自动清错、启动；
+	// 遥控链路建立且退出 Lost 后，才解除全臂失能并恢复角度控制。
 
 	DM4340P.setEncoderOffset(0x7348);
 	DM8009.setEncoderOffset(0x7370);
