@@ -345,8 +345,8 @@ float MobileNoOreAction_Joint[3][8] = {
 
 float MobileOreAction_Joint[2][8] =
     {
-        {0, 90, -10, 0, 0, 0, 0, 800},
-        {0, 135, -56.67, 0, -30, 0, 0, 800}};
+        {0, 50, 40, -77, 0, 0, 0, 600},
+        {0, 150, 145, -77, 0, 0, 0, 600}};
 
 float MobileTunnelAction_Joint[4][8] = {
     {0, 155, 77, 17, 85, -93, 5, 700},
