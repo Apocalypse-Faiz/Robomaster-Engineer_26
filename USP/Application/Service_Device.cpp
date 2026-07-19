@@ -1566,12 +1566,12 @@ void Sx_Referee(void *arg)
 		if (++cc_ctrl_cnt >= 5)
 		{
 			cc_ctrl_cnt = 0;
-			#pragma pack(1)
-			struct { float joint_angle[7]; } cc_ctrl_data;
-			#pragma pack()
+			float joint_angle[7];
+			uint8_t cc_ctrl_data[30] = {0};
 			for (int i = 0; i < 7; i++)
-				cc_ctrl_data.joint_angle[i] = joint[i].getCurrentAngle();
-			Referee.CC_controller_data_send(&cc_ctrl_data, sizeof(cc_ctrl_data));
+				joint_angle[i] = joint[i].getCurrentAngle();
+			memcpy(cc_ctrl_data, joint_angle, sizeof(joint_angle));
+			Referee.CC_controller_data_send(cc_ctrl_data, sizeof(cc_ctrl_data));
 		}
 
 		vTaskDelayUntil(&xLastWakeTime_t, pdMS_TO_TICKS(20)); // 50Hz 发送
