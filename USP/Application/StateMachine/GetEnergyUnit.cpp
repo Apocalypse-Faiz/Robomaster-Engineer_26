@@ -302,7 +302,7 @@ void executeJointTakeover()
     constexpr float custom_speed_ff_lpf_alpha = 0.150f;
     constexpr float custom_speed_ff_max_abs = 10.0f;   // rad/s
     constexpr float custom_speed_ff_max_slew = 25.0f; // rad/s^2
-    constexpr float custom_acc_ff_lpf_alpha = 0.080f;
+    constexpr float custom_acc_ff_lpf_alpha = 1.0f;
     constexpr float custom_acc_ff_max_abs = 3.0f;      // torque command
     constexpr float custom_acc_ff_max_slew = 30.0f;   // torque command/s
 
@@ -333,17 +333,21 @@ void executeJointTakeover()
                 const float max_step = custom_speed_ff_max_slew * dt;
                 speed_ff = joint_takeover_speed_ff[i] +
                            clampFloat(speed_ff - joint_takeover_speed_ff[i], -max_step, max_step);
-
-                // Short-cycle replanning makes desired acceleration discontinuous. Filter and
-                // rate-limit the torque-level acceleration feedforward before applying it.
-                acc_ff = clampFloat(acc_ff, -custom_acc_ff_max_abs, custom_acc_ff_max_abs);
-                acc_ff = joint_takeover_acc_ff[i] +
-                         custom_acc_ff_lpf_alpha * (acc_ff - joint_takeover_acc_ff[i]);
-
-                const float acc_max_step = custom_acc_ff_max_slew * dt;
-                acc_ff = joint_takeover_acc_ff[i] +
-                         clampFloat(acc_ff - joint_takeover_acc_ff[i], -acc_max_step, acc_max_step);
             }
+        }
+
+        if (smooth_feedforward)
+        {
+            // Short-cycle replanning makes desired acceleration discontinuous. Filter and
+            // rate-limit the torque-level acceleration feedforward before applying it.
+            // When the trajectory ends, the same path also ramps the previous FF back to zero.
+            acc_ff = clampFloat(acc_ff, -custom_acc_ff_max_abs, custom_acc_ff_max_abs);
+            acc_ff = joint_takeover_acc_ff[i] +
+                     custom_acc_ff_lpf_alpha * (acc_ff - joint_takeover_acc_ff[i]);
+
+            const float acc_max_step = custom_acc_ff_max_slew * dt;
+            acc_ff = joint_takeover_acc_ff[i] +
+                     clampFloat(acc_ff - joint_takeover_acc_ff[i], -acc_max_step, acc_max_step);
         }
 
         joint_takeover_speed_ff[i] = speed_ff;

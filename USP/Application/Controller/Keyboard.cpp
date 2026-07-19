@@ -102,8 +102,12 @@ void SetTargetChassisHeight(float target_height)
 
 void UpdateTargetChassisHeight()
 {
+    constexpr float chassis_height_feedback_offset = 0.007f;
+    static bool manual_height_command_was_active = false;
+
     if (toBottomdata.ChassisState != 2)
     {
+        manual_height_command_was_active = false;
         return;
     }
 
@@ -120,11 +124,6 @@ void UpdateTargetChassisHeight()
 #else
     const bool vt13_custom_height_enabled = false;
 #endif
-
-    if (!dr16_established && !vt13_established)
-    {
-        return;
-    }
 
     float updated_target_chassis_height = target_chassis_height;
     bool has_manual_command = false;
@@ -159,23 +158,30 @@ void UpdateTargetChassisHeight()
     }
 #endif
 
-    // 手动控制优先；自动对位阶段继续追目标；松开手动控制后保持当前高度。
+    // 手动控制优先；松键时只锁存一次当前高度，空闲时保持已锁存的目标。
     if (has_manual_command)
     {
+        align_to_target_active = false;
+    }
+    else if (manual_height_command_was_active)
+    {
+        updated_target_chassis_height = current_chassis_height + chassis_height_feedback_offset;
         align_to_target_active = false;
     }
     else if (align_to_target_active)
     {
         updated_target_chassis_height = target_chassis_height;
-        if (fabsf(current_chassis_height - target_chassis_height) < 2e-3f)
+        if (fabsf(current_chassis_height + chassis_height_feedback_offset - target_chassis_height) < 2e-3f)
         {
             align_to_target_active = false;
         }
     }
     else
     {
-        updated_target_chassis_height = current_chassis_height;
+        updated_target_chassis_height = target_chassis_height;
     }
+
+    manual_height_command_was_active = has_manual_command;
     target_chassis_height = constrain(updated_target_chassis_height,
                                       chassis_height_min,
                                       chassis_height_max);

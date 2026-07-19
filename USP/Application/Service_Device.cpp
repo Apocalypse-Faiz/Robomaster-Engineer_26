@@ -673,7 +673,7 @@ void Joint_limitSet()
 		/*关节软限位*/
 		joint[0].setJointParam(-170, 170, 10, -10);
 		joint[1].setJointParam(40, 155, -10, 10);	
-		joint[2].setJointParam(34, 150, -10, 10);
+		joint[2].setJointParam(32, 150, -10, 10);
 		joint[3].setJointParam(-77, 17, -10, 10);
 		joint[4].setJointParam(-165, 165, -10, 10); // J5关节在力矩复位后还要重新再限位一下
 		joint[5].setJointParam(-100, 102, -10, 10);
