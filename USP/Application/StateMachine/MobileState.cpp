@@ -33,7 +33,7 @@ void Mobile_action(Event_t **pEvent)
     static uint8_t mobile_state = 0;
     static uint8_t mobile_ore_repeat_remaining = 0;
     static uint8_t mobile_ore_trigger_last = 0;
-    const uint8_t mobile_ore_repeat_total = 5;
+    const uint8_t mobile_ore_repeat_total = 10;
     WS_indicator[0] = WS_Blue;
 
     if ((DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED) || (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C && VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED))
