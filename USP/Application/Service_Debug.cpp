@@ -112,6 +112,7 @@ void Task_VofaMonitor(void *arg){
 				joint[i].updateJointData();
 			}
 
+			// VofaMonitor::setDatas(0, toBottomdata.ChassisState, reBottomdata.ChassisState);
 			VofaMonitor::setDatas(0, joint[0].data.target_angle, joint[1].data.target_angle, joint[2].data.target_angle, joint[3].data.target_angle, joint[4].data.target_angle, joint[5].data.target_angle, joint[6].data.target_angle,joint[0].getCurrentAngle(), joint[1].getCurrentAngle(), joint[2].getCurrentAngle(), joint[3].getCurrentAngle(), joint[4].getCurrentAngle(), joint[5].getCurrentAngle(), joint[6].getCurrentAngle());
 			// VofaMonitor::setDatas(0, VT13.Datapack_custom.joint_angle[0], VT13.Datapack_custom.joint_angle[1], VT13.Datapack_custom.joint_angle[2], VT13.Datapack_custom.joint_angle[3], VT13.Datapack_custom.joint_angle[4], VT13.Datapack_custom.joint_angle[5], VT13.Datapack_custom.joint_angle[6]);
 			// VofaMonitor::setDatas(0, joint[0].data.target_angle, joint[1].data.target_angle, joint[2].data.target_angle, joint[3].data.target_angle, joint[4].data.target_angle, joint[5].data.target_angle, joint[6].data.target_angle);

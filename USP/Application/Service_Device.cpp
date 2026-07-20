@@ -615,6 +615,29 @@ void Gimbal_Lift_StepToGoal(float goal_deg, float step_deg)
 }
 
 /**
+ * @brief 根据关节正常范围选择 DM 上电等价圈对应的映射偏置
+ */
+static float SelectDmStartupOffset(float motor_angle,
+								 float mapping_k,
+								 float nominal_offset,
+								 float joint_min,
+								 float joint_max)
+{
+	// DM 位置反馈范围为 25 rad。上电时反馈可能选择相差 2*PI rad 的
+	// 等价分支；按当前 DM 驱动的 4*360 deg/25 rad 换算，会表现为
+	// 360*PI/3.125 ~= 361.91 deg 的关节角跳变。
+	static const float dm_equivalent_turn_deg = 360.0f * PI / 3.125f;
+	const float joint_center = 0.5f * (joint_min + joint_max);
+	const float nominal_angle = motor_angle * mapping_k + nominal_offset;
+	const float branch_f = (joint_center - nominal_angle) / dm_equivalent_turn_deg;
+	const int branch = (branch_f >= 0.0f)
+		? static_cast<int>(branch_f + 0.5f)
+		: static_cast<int>(branch_f - 0.5f);
+
+	return nominal_offset + branch * dm_equivalent_turn_deg;
+}
+
+/**
  * @brief 关节角度限位设置
  * @note 需要在获取电机初始角度后，做一些判断后再设置
  */
@@ -654,9 +677,21 @@ void Joint_limitSet()
 		// 只有初次上电的时候才会设置，复位之前暂时使用这些初始值，复位状态机中重新设置
 		// 对于DM电机初次上电时在这里就已经设置好了，DJI电机需要在复位状态机中设置
 		/*标定和极性设置*/
+		const float j2_offset = SelectDmStartupOffset(motor[1].getAngle(), 1.0f, 158.0f, 40.0f, 155.0f);
+		const float j3_offset = SelectDmStartupOffset(motor[2].getAngle(), 1.0f, 34.0f, 32.0f, 150.0f);
+		const float j2_angle = motor[1].getAngle() + j2_offset;
+		const float j3_angle = motor[2].getAngle() + j3_offset;
+
+		// 等待第一帧有效角度；异常反馈不能据此锁定上电偏置。
+		if (j2_angle < 0.0f || j2_angle > 360.0f ||
+			j3_angle < 0.0f || j3_angle > 360.0f)
+		{
+			return;
+		}
+
 		joint[0].setJointMapping(1, 0);
-		joint[1].setJointMapping(1, 158);
-		joint[2].setJointMapping(1, 34);
+		joint[1].setJointMapping(1, j2_offset);
+		joint[2].setJointMapping(1, j3_offset);
 		joint[3].setJointMapping(-1, -79);
 		joint[4].setJointMapping(-1, 0);
 		joint[5].setJointMapping(-1, 0.3);
