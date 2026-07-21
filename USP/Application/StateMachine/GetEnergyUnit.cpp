@@ -264,6 +264,17 @@ void executeCustomControlMode()
  */
 void executeVisionControlMode(bool vision_data_ready) 
 {
+    static bool last_f_key_state = false;
+    const bool f_key_pressed =
+        DR16.IsKeyPress(DR16_KEY_F) || VT13.IsKeyPress(VT13_KEY_F);
+
+    // F 键上升沿触发起始动作组；触发不依赖小电脑是否有新数据。
+    if (f_key_pressed && !last_f_key_state)
+    {
+        vision_controller.startSoftStart(joint, joint_trajectory_point_array, 7);
+    }
+    last_f_key_state = f_key_pressed;
+
     // 检查是否收到小电脑数据
     if (vision_data_ready)
     {

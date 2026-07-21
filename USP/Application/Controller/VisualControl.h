@@ -30,17 +30,18 @@ private:
     float previous_angles[7];   // 之前的目标角度
     float start_angles[7];      // 缓启动起始角度
     bool first;                 // 是否第一次进入视觉模式
+    bool soft_start_active;     // F 键起始动作是否正在执行
     
 public:
-    VisionController() : state(VISION_DISABLED), last_update_time(0) {
+    VisionController() : state(VISION_DISABLED), last_update_time(0), soft_start_active(false) {
         memset(previous_angles, 0, sizeof(previous_angles));
         // memset(start_angles, 0, sizeof(start_angles));
         start_angles[0] = 0;
-        start_angles[1] = 131;
-        start_angles[2] = 44;
-        start_angles[3] = 0;
+        start_angles[1] = 138.55;
+        start_angles[2] = 111.28;
+        start_angles[3] = -52.63;
         start_angles[4] = 0;
-        start_angles[5] = 0;
+        start_angles[5] = 55.06;
         start_angles[6] = 0;
         first = false;
     }
@@ -51,6 +52,11 @@ public:
     void update(VisionData& data, Joint joints[], 
                 TrajectoryPointArray trajectory_arrays[], 
                 uint8_t joint_count);
+
+    /**
+     * @brief 移动到视觉控制起始角度
+     */
+    void startSoftStart(Joint joints[], TrajectoryPointArray trajectory_arrays[], uint8_t joint_count);
     
     /**
      * @brief 重置控制器状态
@@ -77,11 +83,6 @@ private:
      * @brief 检查目标是否变化
      */
     bool checkTargetsChanged(VisionData& data);
-
-    /**
-     * @brief 启动缓启动过程
-     */
-    void startSoftStart(Joint joints[], TrajectoryPointArray trajectory_arrays[], uint8_t joint_count);
 
     /**
      * @brief 检查目标是否都为 0（此时相当于通信中断，单片机没有收到数据）
