@@ -273,8 +273,7 @@ enum class DmRecoveryPhase : uint8_t
 	Idle,
 	SendClearError,
 	SendStart,
-	WaitReady,
-	WaitControlLink
+	WaitReady
 };
 
 bool ArmControlLinkEstablished()
@@ -312,6 +311,23 @@ void ClearArmFeedforward()
 
 }
 
+void ClearMotorFeedforward(uint8_t motor_index)
+{
+	Gravity_feedforward[motor_index] = 0.0f;
+	BackEMF_feedforward[motor_index] = 0.0f;
+	Coulomb_feedforward[motor_index] = 0.0f;
+	Viscous_feedforward[motor_index] = 0.0f;
+	Inertia_feedforward[motor_index] = 0.0f;
+
+	motor[motor_index].setGravity_feedforward(0.0f);
+	motor[motor_index].setBackEMF_feedforward(0.0f);
+	motor[motor_index].setCoulomb_feedforward(0.0f);
+	motor[motor_index].setViscous_feedforward(0.0f);
+	motor[motor_index].setInertia_feedforward(0.0f);
+	motor[motor_index].setSpeed_feedforward(0.0f);
+	motor[motor_index].setAcceleration_feedforward(0.0f);
+}
+
 void ReleaseArmSafetyStop()
 {
 	ClearArmFeedforward();
@@ -319,12 +335,19 @@ void ReleaseArmSafetyStop()
 	for (uint8_t i = 0; i < 7U; i++)
 	{
 		joint_trajectory_point_array[i].clear();
-		joint[i].setMode(JointMode::angle);
-		// setMode(angle) 先把目标置为当前角度，再将规划器同步到该目标。
-		joint[i].stopTrajectoryPlanner();
+		if (motor[i].getStatus() == MotorStatus::ready)
+		{
+			joint[i].setMode(JointMode::angle);
+			// setMode(angle) 先把目标置为当前角度，再将规划器同步到该目标。
+			joint[i].stopTrajectoryPlanner();
+		}
+		else
+		{
+			joint[i].setMode(JointMode::disabled);
+			motor[i].forceSetMode(MotorMode::disabled);
+		}
 	}
 
-	all_motor_connected = true;
 	arm_safety_latched = false;
 }
 } // namespace
@@ -362,16 +385,53 @@ bool ArmSafety_IsLatched()
 void CheckMotorStatus()
 {
 	static constexpr uint8_t DM_MOTOR_COUNT = 7U;
-	static constexpr uint8_t ALL_READY_STABLE_TICKS = 20U;
+	static constexpr uint8_t READY_STABLE_TICKS = 20U;
 	const TickType_t DM_RECOVERY_FRAME_GAP = pdMS_TO_TICKS(2U);
 	const TickType_t DM_RECOVERY_TIMEOUT = pdMS_TO_TICKS(1000U);
 
 	static DmRecoveryPhase recovery_phase = DmRecoveryPhase::Idle;
 	static uint8_t recovery_scan_idx = 0U;
 	static uint8_t recovery_active_idx = 0U;
-	static uint8_t all_ready_stable_cnt = 0U;
+	static uint8_t motor_fault_latched[DM_MOTOR_COUNT] = {0U};
+	static uint8_t motor_ready_stable_cnt[DM_MOTOR_COUNT] = {0U};
+	static uint8_t control_link_stable_cnt = 0U;
 	static TickType_t recovery_last_action_tick = 0U;
 	static TickType_t recovery_start_tick = 0U;
+
+	const bool control_link_established = ArmControlLinkEstablished();
+	const bool top_state_blocks_control =
+		(g_top_state_id == TopStateId::Lost) || (g_top_state_id == TopStateId::None);
+	const bool full_arm_stop_required = !control_link_established || top_state_blocks_control;
+
+	// 遥控链路丢失或处于 Lost/None 时仍锁存全臂安全停机。
+	if (full_arm_stop_required)
+	{
+		control_link_stable_cnt = 0U;
+		ArmSafety_Trip();
+	}
+	else if (ArmSafety_IsLatched())
+	{
+		if (control_link_stable_cnt < READY_STABLE_TICKS)
+		{
+			control_link_stable_cnt++;
+		}
+
+		if (control_link_stable_cnt >= READY_STABLE_TICKS)
+		{
+			// 链路连续有效后解除整臂锁存；仍故障的电机在下方继续单独隔离。
+			ReleaseArmSafetyStop();
+			control_link_stable_cnt = 0U;
+		}
+		else
+		{
+			// 等待链路稳定期间持续重申整臂失能。
+			ArmSafety_Trip();
+		}
+	}
+	else
+	{
+		control_link_stable_cnt = 0U;
+	}
 
 	bool all_ready = true;
 	for (uint8_t i = 0; i < DM_MOTOR_COUNT; i++)
@@ -379,47 +439,72 @@ void CheckMotorStatus()
 		if (motor[i].getStatus() != MotorStatus::ready)
 		{
 			all_ready = false;
-			break;
+			motor_ready_stable_cnt[i] = 0U;
+
+			if (motor_fault_latched[i] == 0U)
+			{
+				// 只终止故障关节的轨迹，其他关节继续按原逻辑运行。
+				joint_trajectory_point_array[i].clear();
+				joint[i].stopTrajectoryPlanner();
+				joint[i].setMode(JointMode::disabled);
+				motor_fault_latched[i] = 1U;
+			}
+
+			ClearMotorFeedforward(i);
+			// 状态异常时 setMode() 会拒绝写入，因此每周期强制保持零力矩模式。
+			motor[i].forceSetMode(MotorMode::disabled);
+		}
+		else if (motor_fault_latched[i] != 0U)
+		{
+			// 刚恢复通信的电机先保持停机，连续 ready 20 ms 后再单独恢复。
+			ClearMotorFeedforward(i);
+			motor[i].forceSetMode(MotorMode::disabled);
+
+			if (motor_ready_stable_cnt[i] < READY_STABLE_TICKS)
+			{
+				motor_ready_stable_cnt[i]++;
+			}
+
+			if ((motor_ready_stable_cnt[i] >= READY_STABLE_TICKS) &&
+				!ArmSafety_IsLatched())
+			{
+				joint_trajectory_point_array[i].clear();
+				joint[i].setMode(JointMode::angle);
+				// 从当前位置恢复，避免沿用故障前的旧目标造成突跳。
+				joint[i].stopTrajectoryPlanner();
+				motor_fault_latched[i] = 0U;
+				motor_ready_stable_cnt[i] = 0U;
+			}
+		}
+		else
+		{
+			motor_ready_stable_cnt[i] = 0U;
 		}
 	}
 
-	const bool control_link_established = ArmControlLinkEstablished();
-	const bool top_state_blocks_control =
-		(g_top_state_id == TopStateId::Lost) || (g_top_state_id == TopStateId::None);
-	const bool control_release_allowed = control_link_established && !top_state_blocks_control;
+	// 该变量仅表示连接状态，不再作为整臂控制的使能条件。
+	all_motor_connected = all_ready;
 
-	// 任意一个电机故障、遥控链路丢失或处于 Lost，都锁存全臂安全停机。
-	if (!all_ready || !control_link_established || top_state_blocks_control)
+	const TickType_t now_tick = xTaskGetTickCount();
+	if (all_ready)
 	{
-		ArmSafety_Trip();
-	}
-
-	if (!ArmSafety_IsLatched())
-	{
-		all_motor_connected = all_ready;
+		recovery_phase = DmRecoveryPhase::Idle;
 		return;
 	}
 
-	// 锁存期间每周期重申失能，防止其他任务覆盖安全模式。
-	ArmSafety_Trip();
-
-	const TickType_t now_tick = xTaskGetTickCount();
 	if (recovery_phase == DmRecoveryPhase::Idle)
 	{
-		// 上电后即自动完成 DM 清错和启动；控制链路只限制角度控制的解除。
+		// 故障电机按顺序自动清错、启动，不阻塞其他电机的控制。
 		recovery_scan_idx = 0U;
-		all_ready_stable_cnt = 0U;
 		recovery_start_tick = now_tick;
 		recovery_last_action_tick = now_tick - DM_RECOVERY_FRAME_GAP;
 		recovery_phase = DmRecoveryPhase::SendClearError;
 	}
 
-	if ((recovery_phase != DmRecoveryPhase::WaitControlLink) &&
-		((now_tick - recovery_start_tick) >= DM_RECOVERY_TIMEOUT))
+	if ((now_tick - recovery_start_tick) >= DM_RECOVERY_TIMEOUT)
 	{
 		// 本轮未恢复则回到 Idle；下一周期会自动重新清错、启动。
 		recovery_phase = DmRecoveryPhase::Idle;
-		all_ready_stable_cnt = 0U;
 		return;
 	}
 
@@ -440,7 +525,6 @@ void CheckMotorStatus()
 		if (recovery_scan_idx >= DM_MOTOR_COUNT)
 		{
 			recovery_phase = DmRecoveryPhase::WaitReady;
-			all_ready_stable_cnt = 0U;
 			return;
 		}
 
@@ -463,48 +547,7 @@ void CheckMotorStatus()
 		return;
 
 	case DmRecoveryPhase::WaitReady:
-		if (all_ready)
-		{
-			if (all_ready_stable_cnt < ALL_READY_STABLE_TICKS)
-			{
-				all_ready_stable_cnt++;
-			}
-
-			if (all_ready_stable_cnt >= ALL_READY_STABLE_TICKS)
-			{
-				if (control_release_allowed)
-				{
-					// 连续 ready 20 ms 且控制链路有效，才恢复角度控制。
-					ReleaseArmSafetyStop();
-					recovery_phase = DmRecoveryPhase::Idle;
-				}
-				else
-				{
-					// DM 已启动，但遥控器未连接：保持全臂失能并等待控制链路。
-					recovery_phase = DmRecoveryPhase::WaitControlLink;
-				}
-			}
-		}
-		else
-		{
-			all_ready_stable_cnt = 0U;
-		}
-		return;
-
-	case DmRecoveryPhase::WaitControlLink:
-		if (!all_ready)
-		{
-			// 等待遥控器期间若电机再次故障，立即开始新一轮自动清错和启动。
-			recovery_phase = DmRecoveryPhase::Idle;
-			all_ready_stable_cnt = 0U;
-			return;
-		}
-
-		if (control_release_allowed)
-		{
-			ReleaseArmSafetyStop();
-			recovery_phase = DmRecoveryPhase::Idle;
-		}
+		// 等待故障电机反馈 ready；超时后由上面的逻辑重新发起恢复。
 		return;
 
 	case DmRecoveryPhase::Idle:
@@ -919,8 +962,8 @@ void tskMotor(void *arg)
 
 	Gimbal_Lift.setPidParameters({.v_Kp = 15, .v_Min = -10000, .v_Max = 10000, .a_Kp = 10, .a_Ki = 0.3, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 2});
 
-	// DM 电机不在这里阻塞使能。CheckMotorStatus() 上电后会自动清错、启动；
-	// 遥控链路建立且退出 Lost 后，才解除全臂失能并恢复角度控制。
+	// CheckMotorStatus() 会自动清错、启动故障 DM，并只隔离对应电机；
+	// 遥控链路建立且退出 Lost 后，才解除由链路/Lost 触发的全臂失能。
 
 	DM4340P.setEncoderOffset(0x7348);
 	DM8009.setEncoderOffset(0x7370);
@@ -1065,13 +1108,16 @@ void tskMotor(void *arg)
 				motor[i].execute();
 			}
 		}
-		else if(all_motor_connected)
+		else
 		{
 			// 加上全补偿
-			// 注意：当代码在某处进程中断停止运行，motor[i].getStatus()会变为error，导致在使用motor[i].getAngle()等函数时卡在死循环中！！！
+			// 故障电机保留最后一次有效关节数据，其他电机继续正常更新和控制。
 			for(int i = 0; i < 7; i++)
 			{
-				joint[i].updateJointData();
+				if (motor[i].getStatus() == MotorStatus::ready)
+				{
+					joint[i].updateJointData();
+				}
 			}
 
 			// DM电机无需复位，Robot_Prepared默认为1，补偿始终启用
@@ -1140,16 +1186,6 @@ void tskMotor(void *arg)
 			motor[4].execute();
 			motor[5].execute();
 			motor[6].execute();
-		}
-		else
-		{
-			// 防御性分支：不存在“部分电机继续控制”模式。
-			// 只要 all_motor_connected 为 false，就再次锁存并对全部电机下发零力矩。
-			ArmSafety_Trip();
-			for (int i = 0; i < 7; i++)
-			{
-				motor[i].execute();
-			}
 		}
 
 		Gimbal_Lift.execute();
