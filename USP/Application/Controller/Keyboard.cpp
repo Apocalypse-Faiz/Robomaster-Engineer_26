@@ -102,7 +102,7 @@ void SetTargetChassisHeight(float target_height)
 
 void UpdateTargetChassisHeight()
 {
-    constexpr float chassis_height_feedback_offset = 0.007f;
+    constexpr float chassis_height_feedback_offset = 0.000f;
     static bool manual_height_command_was_active = false;
 
     if (toBottomdata.ChassisState != 2)
@@ -171,7 +171,7 @@ void UpdateTargetChassisHeight()
     else if (align_to_target_active)
     {
         updated_target_chassis_height = target_chassis_height;
-        if (fabsf(current_chassis_height + chassis_height_feedback_offset - target_chassis_height) < 2e-3f)
+        if (fabsf(current_chassis_height + chassis_height_feedback_offset - target_chassis_height) < 0.01f)
         {
             align_to_target_active = false;
         }
@@ -241,6 +241,7 @@ void VT13_KeyBoard_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
 
     static float increas_buffer[4] = {0, 0, 0, 0};
     static int commanded_chassis_state = 1;
+    static int pending_chassis_state = 0;
     static int last_rebottom_chassis_state = 1;
     static bool last_f_key_state = false;
     static bool last_b_key_state = false;
@@ -252,6 +253,11 @@ void VT13_KeyBoard_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
     if (ChassisDisableToggle())
     {
         _ToBottomData.ChassisState = 0;
+        commanded_chassis_state = 1;
+        pending_chassis_state = 0;
+        last_rebottom_chassis_state = reBottomdata.ChassisState;
+        last_f_key_state = VT13.IsKeyPress(VT13_KEY_F);
+        last_b_key_state = VT13.IsKeyPress(VT13_KEY_C);
         chassis_control_struct.x = 0;
         chassis_control_struct.y = 0;
         chassis_control_struct.z = 0;
@@ -280,37 +286,61 @@ void VT13_KeyBoard_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
             temp_Speed = 3.75f;
         // }
 
-        if (commanded_chassis_state == 1)
+        const bool chassis_returned_normal =
+            (last_rebottom_chassis_state == 3 ||
+             last_rebottom_chassis_state == 4) &&
+            reBottomdata.ChassisState == 1;
+
+        if (chassis_returned_normal)
         {
-            if (f_rising_edge && !b_key_pressed) 
+            commanded_chassis_state = 1;
+
+            if (pending_chassis_state != 0)
             {
-                commanded_chassis_state = 3;
+                commanded_chassis_state = pending_chassis_state;
+                pending_chassis_state = 0;
+            }
+        }
+
+        if (reBottomdata.ChassisState == 4 && VT13.IsKeyPress(VT13_KEY_X))
+        {
+            commanded_chassis_state = 1;
+            pending_chassis_state = 0;
+        }
+        else if (commanded_chassis_state == 1)
+        {
+            int requested_chassis_state = 0;
+
+            if (f_rising_edge && !b_key_pressed)
+            {
+                requested_chassis_state = 3;
             }
             else if (b_rising_edge && !f_key_pressed)
             {
-                commanded_chassis_state = 4;
+                requested_chassis_state = 4;
             }
-        }
-        else if (last_rebottom_chassis_state == 3 && reBottomdata.ChassisState == 1)
-        {
-            commanded_chassis_state = 1;
-        }
-        else if (last_rebottom_chassis_state == 4)
-        {
-            if (VT13.IsKeyPress(VT13_KEY_X))
+
+            if (requested_chassis_state != 0)
             {
-                commanded_chassis_state = 1;
-            }
-            else if (reBottomdata.ChassisState == 1)
-            {
-                commanded_chassis_state = 1;
+                if (reBottomdata.ChassisState == 1)
+                {
+                    commanded_chassis_state = requested_chassis_state;
+                }
+                else if (reBottomdata.ChassisState == 3 ||
+                         reBottomdata.ChassisState == 4)
+                {
+                    pending_chassis_state = requested_chassis_state;
+                }
             }
         }
 
         if (commanded_chassis_state == 4 || commanded_chassis_state == 3)
         {
             if (last_rebottom_chassis_state == 0)
-            commanded_chassis_state = 1;
+            {
+                commanded_chassis_state = 1;
+                pending_chassis_state = 0;
+            }
         }
 
         _ToBottomData.ChassisState = commanded_chassis_state;
@@ -387,6 +417,7 @@ void VT13_KeyBoard_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
     {
         // _ToBottomData.ChassisState = 0;
         commanded_chassis_state = 1;
+        pending_chassis_state = 0;
         last_rebottom_chassis_state = reBottomdata.ChassisState;
         last_f_key_state = false;
         last_b_key_state = false;
