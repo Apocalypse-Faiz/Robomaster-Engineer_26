@@ -97,7 +97,7 @@ Motor motor[7] = {
     Motor(&drive_dm_motor[6])}; // 电机对象数组
 
 Motor Gimbal_Lift = Motor(&drive_dji_motor_2006); // 云台升降电机对象
-Servo_Classdef servo_gripper(&htim2, TIM_CHANNEL_2, 20000, 0.025f, 0.125f, 360); // 夹爪舵机对象
+Servo_Classdef servo_gripper(&htim2, TIM_CHANNEL_2, 20000, 0.025f, 0.125f, 180); // 夹爪舵机对象
 Gripper gripper(&servo_gripper); // 夹爪对象
 
 Special_Actuator2 special_actuator2(&motor[4], &motor[5]); // 双电机特殊执行器对象
