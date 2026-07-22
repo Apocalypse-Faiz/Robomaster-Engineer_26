@@ -605,7 +605,6 @@ void GetEnergyUnit_exitAction()
      custom_controller.reset();
      vision_controller.reset();
      action_group_controller.reset();
-     vision_start_chassis_height_locked = false;
 
      // 重置模式状态
      current_mode = ControlMode::ACTION_GROUP;

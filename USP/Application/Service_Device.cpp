@@ -720,8 +720,10 @@ void Joint_limitSet()
 		// 只有初次上电的时候才会设置，复位之前暂时使用这些初始值，复位状态机中重新设置
 		// 对于DM电机初次上电时在这里就已经设置好了，DJI电机需要在复位状态机中设置
 		/*标定和极性设置*/
-		const float j2_offset = SelectDmStartupOffset(motor[1].getAngle(), 1.0f, 158.0f, 40.0f, 155.0f);
-		const float j3_offset = SelectDmStartupOffset(motor[2].getAngle(), 1.0f, 34.0f, 32.0f, 150.0f);
+		// 相对最初代码坐标的累计校正：J2 +6.85°、J3 +7.8°、J4 +1.1°、J6 -0.4°。
+		// 将零点、选圈范围和软限位一起迁移，保持原有机械行程不变。
+		const float j2_offset = SelectDmStartupOffset(motor[1].getAngle(), 1.0f, 164.85f, 46.85f, 161.85f);
+		const float j3_offset = SelectDmStartupOffset(motor[2].getAngle(), 1.0f, 41.8f, 39.8f, 157.8f);
 		const float j7_offset = SelectDmStartupOffset(motor[6].getAngle(), -1.0f, 0.0f, -150.0f, 167.0f);
 		const float j2_angle = motor[1].getAngle() + j2_offset;
 		const float j3_angle = motor[2].getAngle() + j3_offset;
@@ -738,9 +740,9 @@ void Joint_limitSet()
 		joint[0].setJointMapping(1, 0);
 		joint[1].setJointMapping(1, j2_offset);
 		joint[2].setJointMapping(1, j3_offset);
-		joint[3].setJointMapping(-1, -79);
+		joint[3].setJointMapping(-1, -77.9f);
 		joint[4].setJointMapping(-1, 0);
-		joint[5].setJointMapping(-1, 0.3);
+		joint[5].setJointMapping(-1, -0.1f);
 		joint[6].setJointMapping(-1, j7_offset);
 
 		special_actuator3[0].calibrate();
@@ -753,11 +755,11 @@ void Joint_limitSet()
 
 		/*关节软限位*/
 		joint[0].setJointParam(-170, 170, 10, -10);
-		joint[1].setJointParam(40, 155, -10, 10);	
-		joint[2].setJointParam(32, 150, -10, 10);
-		joint[3].setJointParam(-77, 17, -10, 10);
+		joint[1].setJointParam(46.85f, 161.85f, -10, 10);	
+		joint[2].setJointParam(39.8f, 157.8f, -10, 10);
+		joint[3].setJointParam(-75.9f, 18.1f, -10, 10);
 		joint[4].setJointParam(-165, 165, -10, 10); // J5关节在力矩复位后还要重新再限位一下
-		joint[5].setJointParam(-100, 102, -10, 10);
+		joint[5].setJointParam(-100.4f, 101.6f, -10, 10);
 		joint[6].setJointParam(-150, 167, -10, 10);
 
 		Set_ok = 1;
@@ -781,11 +783,11 @@ static void UpdateMotor0PidByPose()
 	};
 
 	static const Motor0PidPosePoint pose_points[] = {
-		{64.07f, 1.85f, 0.064f, 0.0f, 5.7f},
-		{59.0f, 26.96f, 0.064f, 0.017f, 5.6f},
-		{59.82f, -25.88f, 0.06f, 0.0f, 6.4f},
-		{38.64f, -43.70f, 0.05f, 0.0f, 6.7f},
-		{41.32f, -38.43f, 0.067f, 0.0f, 5.7f},
+		{70.92f, 9.65f, 0.064f, 0.0f, 5.7f},
+		{65.85f, 34.76f, 0.064f, 0.017f, 5.6f},
+		{66.67f, -18.08f, 0.06f, 0.0f, 6.4f},
+		{45.49f, -35.90f, 0.05f, 0.0f, 6.7f},
+		{48.17f, -30.63f, 0.067f, 0.0f, 5.7f},
 	};
 
 	float j2_angle = joint[1].getCurrentAngle();
@@ -794,8 +796,8 @@ static void UpdateMotor0PidByPose()
 	float a_ki = 0.0f;
 	float v_kp = 0.0f;
 
-	// J2大于90度时使用固定参数。
-	if (j2_angle >= 90.0f)
+	// 坐标校正后 96.85° 对应原来的 90° 机械姿态。
+	if (j2_angle >= 96.85f)
 	{
 		a_kp = 0.07f;
 		a_ki = 0.017f;
