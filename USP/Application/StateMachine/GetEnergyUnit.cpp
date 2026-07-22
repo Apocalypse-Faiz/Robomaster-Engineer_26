@@ -16,6 +16,7 @@ static ControlMode current_mode = ControlMode::ACTION_GROUP;
 static CustomData custom_control_data;            // 自定义控制数据
 static VisionData vision_control_data;            // 视觉控制数据
 static constexpr float get_energy_unit_default_chassis_height_m = 0.357f;
+static constexpr float vision_start_chassis_height_m = 0.350f;
 
 // 模式切换状态
 static bool mode_changing = false;
@@ -65,7 +66,6 @@ void initControllers()
     // 初始化视觉控制数据
     vision_control_data.enable = false;
     vision_control_data.frequency = 33; // 30Hz控制频率
-    // vision_control_data.move_duration = 500; // 500ms移动时间
     
     // 重置所有控制器
     custom_controller.reset();
@@ -267,11 +267,13 @@ void executeVisionControlMode(bool vision_data_ready)
     static bool last_f_key_state = false;
     const bool f_key_pressed =
         DR16.IsKeyPress(DR16_KEY_F) || VT13.IsKeyPress(VT13_KEY_F);
+    const bool f_key_rising_edge = f_key_pressed && !last_f_key_state;
 
     // F 键上升沿触发起始动作组；触发不依赖小电脑是否有新数据。
-    if (f_key_pressed && !last_f_key_state)
+    if (f_key_rising_edge)
     {
         vision_controller.startSoftStart(joint, joint_trajectory_point_array, 7);
+        SetTargetChassisHeight(vision_start_chassis_height_m);
     }
     last_f_key_state = f_key_pressed;
 
@@ -603,6 +605,7 @@ void GetEnergyUnit_exitAction()
      custom_controller.reset();
      vision_controller.reset();
      action_group_controller.reset();
+     vision_start_chassis_height_locked = false;
 
      // 重置模式状态
      current_mode = ControlMode::ACTION_GROUP;

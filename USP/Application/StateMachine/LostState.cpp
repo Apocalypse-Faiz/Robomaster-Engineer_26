@@ -98,8 +98,8 @@ void Lost_exitAction()
     //     }
     // }
 
-    // 退出 Lost 不直接使能。链路正常后由 CheckMotorStatus()
-    // 自动清错、启动，并在 7 个 DM 连续 ready 20 ms 后安全恢复。
+    // 退出 Lost 不直接使能。链路连续正常后由 CheckMotorStatus() 解除全臂锁存；
+    // 仍故障的电机继续单独停机、自动清错和启动，不阻塞其他电机恢复控制。
 
 #if !LOST_DEBUG_KEEP_CHASSIS
     toBottomdata.ChassisState = 1; // 使能底盘控制 (正常模式)
