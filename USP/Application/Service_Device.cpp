@@ -679,12 +679,15 @@ void Joint_limitSet()
 		/*标定和极性设置*/
 		const float j2_offset = SelectDmStartupOffset(motor[1].getAngle(), 1.0f, 158.0f, 40.0f, 155.0f);
 		const float j3_offset = SelectDmStartupOffset(motor[2].getAngle(), 1.0f, 34.0f, 32.0f, 150.0f);
+		const float j7_offset = SelectDmStartupOffset(motor[6].getAngle(), -1.0f, 0.0f, -150.0f, 167.0f);
 		const float j2_angle = motor[1].getAngle() + j2_offset;
 		const float j3_angle = motor[2].getAngle() + j3_offset;
+		const float j7_angle = -motor[6].getAngle() + j7_offset;
 
 		// 等待第一帧有效角度；异常反馈不能据此锁定上电偏置。
 		if (j2_angle < 0.0f || j2_angle > 360.0f ||
-			j3_angle < 0.0f || j3_angle > 360.0f)
+			j3_angle < 0.0f || j3_angle > 360.0f ||
+			j7_angle < -180.0f || j7_angle > 180.0f)
 		{
 			return;
 		}
@@ -695,7 +698,7 @@ void Joint_limitSet()
 		joint[3].setJointMapping(-1, -79);
 		joint[4].setJointMapping(-1, 0);
 		joint[5].setJointMapping(-1, 0.3);
-		joint[6].setJointMapping(-1, 0);
+		joint[6].setJointMapping(-1, j7_offset);
 
 		special_actuator3[0].calibrate();
 		special_actuator3[1].calibrate();
@@ -998,9 +1001,9 @@ void tskMotor(void *arg)
 
 		UpdateTargetChassisHeight();
 
-		toBottomdata.chassis_control_struct.chassis_height = constrain(target_chassis_height - 0.007f,
-																		  chassis_height_min,
-																		  chassis_height_max);
+		toBottomdata.chassis_control_struct.chassis_height = constrain(target_chassis_height - 0.000f,
+																			  chassis_height_min,
+																			  chassis_height_max);
 
 		for (uint8_t i = 0; i < 7; i++)
 		{
@@ -1279,7 +1282,7 @@ void tskBoardCom(void *arg)
 						vision_latest_frame.joint_current[i] = joint[i].getCurrentAngle();
 						vision_latest_frame.torque_current[i] = joint[i].getCurrentTorque();
 					}
-					vision_latest_frame.chassis_height_current = current_chassis_height + 0.007f;
+					vision_latest_frame.chassis_height_current = current_chassis_height + 0.000f;
 					vision_latest_frame.seq_num = seq_num++;
 					vision_latest_frame.comm_flag = 0U;
 
