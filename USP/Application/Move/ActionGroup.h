@@ -132,7 +132,7 @@ extern float ExitStoreOre_RB[3][8];
 extern float TakeInOre_LF[2][8];
 extern float TakeInOre_RF[2][8];
 extern float TakeInOre_LB[2][8];
-extern float TakeInOre_RB[2][8];
+extern float TakeInOre_RB[3][8];
 extern float TakeinOreLF_end[2][8];
 extern float TakeinOreRF_end[2][8];
 extern float TakeinOreLB_end[2][8];
