@@ -9,7 +9,7 @@ struct ReBottomDataStructdef
     uint8_t ChassisState : 4; // 失能0 正常1 兑矿2 前腿3 后腿4
     float rfid_height;   // 单位: m
     float chassis_height; // 单位: m
-    float chassis_angle[2];    // 真实反馈 —— 底盘倾角（0：Pitch，1：roll）
+    float chassis_angle[2];    // 真实反馈 —— 底盘倾角，单位: rad（0：Pitch，1：Roll）
     float EndPosition[8];      // 真实反馈 —— 足末端位置（0-3：X坐标，4-7：Z坐标）（左前、右前、左后、右后）   
     uint8_t HighTempMotorNum : 4;   // 真实反馈 —— 高温电机数量（大于100度）
     uint8_t OverTempFlag : 1;      // 真实反馈 —— 过温标志位

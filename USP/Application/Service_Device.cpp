@@ -27,6 +27,12 @@
 /* Private define ------------------------------------------------------------*/
 #define ENABLE_J1_INERTIA_VALIDATION 0
 
+// 底盘姿态反馈使用弧度制；对应 10°收回、7°释放，并设置回差避免反复伸缩。
+static const float GIMBAL_LIFT_RETRACT_TILT_RAD = 0.17453293f;
+static const float GIMBAL_LIFT_RELEASE_TILT_RAD = 0.12217305f;
+static const uint32_t GIMBAL_LIFT_FEEDBACK_TIMEOUT_MS = 100U;
+static bool gimbal_lift_tilt_retract_active = false;
+
 /* Private variables ---------------------------------------------------------*/
 TaskHandle_t Motor_Handle;
 TaskHandle_t IMU_Handle;
@@ -626,6 +632,44 @@ void Gimbal_Lift_Init()
     }
 }
 
+static void Gimbal_Lift_UpdateTiltProtection()
+{
+    static uint32_t last_rx_ok_packets = 0U;
+    static TickType_t last_feedback_tick = 0U;
+
+    const TickType_t now_tick = xTaskGetTickCount();
+    const uint32_t rx_ok_packets = g_bottom_com_diag_stats.rx_ok_packets;
+    if (rx_ok_packets != last_rx_ok_packets)
+    {
+        last_rx_ok_packets = rx_ok_packets;
+        last_feedback_tick = now_tick;
+    }
+
+    // 未收到过有效反馈，或反馈中断时按危险姿态处理，避免误伸出。
+    if (rx_ok_packets == 0U ||
+        (now_tick - last_feedback_tick) > pdMS_TO_TICKS(GIMBAL_LIFT_FEEDBACK_TIMEOUT_MS))
+    {
+        gimbal_lift_tilt_retract_active = true;
+        return;
+    }
+
+    const float pitch_abs = fabsf(reBottomdata.chassis_angle[0]);
+    const float roll_abs = fabsf(reBottomdata.chassis_angle[1]);
+
+    if (!gimbal_lift_tilt_retract_active &&
+        (pitch_abs >= GIMBAL_LIFT_RETRACT_TILT_RAD ||
+         roll_abs >= GIMBAL_LIFT_RETRACT_TILT_RAD))
+    {
+        gimbal_lift_tilt_retract_active = true;
+    }
+    else if (gimbal_lift_tilt_retract_active &&
+             pitch_abs <= GIMBAL_LIFT_RELEASE_TILT_RAD &&
+             roll_abs <= GIMBAL_LIFT_RELEASE_TILT_RAD)
+    {
+        gimbal_lift_tilt_retract_active = false;
+    }
+}
+
 /**
  * @brief 云台升降电机步进式目标角设定
  * @param goal_deg  最终目标角度 (度), 0°=下限位, gimbal_lift_max_angle=上限位
@@ -644,6 +688,12 @@ void Gimbal_Lift_StepToGoal(float goal_deg, float step_deg)
     // 限位 clamp (力矩复位完成后才有意义)
     if (gimbal_lift_init_done)
     {
+        // 倾角保护优先于各状态请求的云台升降目标。
+        if (gimbal_lift_tilt_retract_active)
+        {
+            goal_deg = gimbal_lift_min_angle;
+        }
+
         goal_deg = std_lib::constrain(goal_deg, gimbal_lift_min_angle, gimbal_lift_max_angle);
     }
 
@@ -1001,7 +1051,7 @@ void tskMotor(void *arg)
 
 	vTaskDelay(1000);
 
-	Gimbal_Lift.setPidParameters({.v_Kp = 15, .v_Min = -10000, .v_Max = 10000, .a_Kp = 10, .a_Ki = 0.3, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 2});
+	Gimbal_Lift.setPidParameters({.v_Kp = 15, .v_Min = -10000, .v_Max = 10000, .a_Kp = 8, .a_Ki = 0.3, .a_Kd = 0, .a_Min = -6000, .a_Max = 6000, .a_IntSep = 0, .a_IntMax = 2});
 
 	// CheckMotorStatus() 会自动清错、启动故障 DM，并只隔离对应电机；
 	// 遥控链路建立且退出 Lost 后，才解除由链路/Lost 触发的全臂失能。
@@ -1095,12 +1145,19 @@ void tskMotor(void *arg)
 		}
 
 		Gimbal_Lift.update(); // 更新云台升降电机数据
+		Gimbal_Lift_UpdateTiltProtection();
 
 		if (ArmControlLinkEstablished() &&
 			(g_top_state_id != TopStateId::Lost) &&
 			(g_top_state_id != TopStateId::None))
 		{
 			Gimbal_Lift_Init(); // 云台升降电机力矩复位标定
+
+			// 电机任务在输出前再次执行倾角保护，覆盖不持续下发升降目标的状态。
+			if (gimbal_lift_init_done && gimbal_lift_tilt_retract_active)
+			{
+				Gimbal_Lift_StepToGoal(gimbal_lift_min_angle, 20.0f);
+			}
 		}
 
 		CheckMotorStatus();
