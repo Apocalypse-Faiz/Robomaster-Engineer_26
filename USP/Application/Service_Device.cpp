@@ -691,6 +691,45 @@ void Joint_limitSet()
 	static uint8_t Set_ok = 0;
 	if (Set_ok == 1)
 	{
+		// J1 位于中心区域时，J2 > 127 deg 与 J3 < 50 deg 不允许同时发生。
+		// 每周期先恢复基础软限位，再根据当前姿态收紧一侧；离开该区域后自动恢复。
+		static const float J1_COMBINED_LIMIT = 27.0f;
+		static const float J2_COMBINED_LIMIT = 127.0f;
+		static const float J3_COMBINED_LIMIT = 50.0f;
+		static const float J2_MIN_ANGLE = 46.85f;
+		static const float J2_MAX_ANGLE = 161.85f;
+		static const float J3_MIN_ANGLE = 39.8f;
+		static const float J3_MAX_ANGLE = 157.8f;
+
+		joint[1].setJointParam(J2_MIN_ANGLE, J2_MAX_ANGLE, -10, 10);
+		joint[2].setJointParam(J3_MIN_ANGLE, J3_MAX_ANGLE, -10, 10);
+
+		if (motor[0].getStatus() == MotorStatus::ready &&
+			motor[1].getStatus() == MotorStatus::ready &&
+			motor[2].getStatus() == MotorStatus::ready)
+		{
+			joint[0].updateJointData();
+			joint[1].updateJointData();
+			joint[2].updateJointData();
+
+			const float j1_angle = joint[0].getCurrentAngle();
+			const float j2_angle = joint[1].getCurrentAngle();
+			const float j3_angle = joint[2].getCurrentAngle();
+
+			if (fabsf(j1_angle) <= J1_COMBINED_LIMIT)
+			{
+				if (j2_angle > J2_COMBINED_LIMIT)
+				{
+					joint[2].setJointParam(J3_COMBINED_LIMIT, J3_MAX_ANGLE, -10, 10);
+				}
+
+				if (j3_angle < J3_COMBINED_LIMIT)
+				{
+					joint[1].setJointParam(J2_MIN_ANGLE, J2_COMBINED_LIMIT, -10, 10);
+				}
+			}
+		}
+
 		// J3的动态限位仅依赖J2角度，且只在J2对应电机ready时更新
 		// if (motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready)
 		// {
