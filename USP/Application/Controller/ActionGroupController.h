@@ -35,6 +35,12 @@ private:
     uint8_t get_ore_num[6];
     uint8_t ore_index;
 
+    // Manual belly-slot selection: false = OreBit auto selection, true = VT13 mouse-selected slot.
+    bool manual_slot_mode;
+    uint8_t manual_slot_index;
+    bool last_mouse_left_pressed;
+    bool last_mouse_right_pressed;
+
     // 入场动作组标志: init() 后首次 update() 自动触发一次起始动作组
     bool entry_action_pending = false;
 
@@ -77,6 +83,12 @@ public:
      * @brief 获取当前选择的矿石编号
      */
     uint8_t getSelectedOre() const { return ore_index; }
+
+    /** @brief Whether F/C currently use the mouse-selected belly slot. */
+    bool isManualSlotMode() const { return manual_slot_mode; }
+
+    /** @brief Selected belly slot, 0=LF, 1=RF, 2=LB, 3=RB. */
+    uint8_t getSelectedBellySlot() const { return manual_slot_index; }
     
     /**
      * @brief 设置UI模式
@@ -108,6 +120,9 @@ private:
      * @brief 处理选矿逻辑
      */
     void handleOreIndex();
+
+    /** @brief Toggle automatic/manual belly-slot selection and advance the manual index. */
+    void handleBellySlotSelection();
     
     /**
      * @brief 执行动作组

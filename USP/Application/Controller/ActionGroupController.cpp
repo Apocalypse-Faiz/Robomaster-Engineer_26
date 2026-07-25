@@ -22,9 +22,47 @@ void ActionGroupController::initFlags()
     memset(ore_ing, 0, sizeof(ore_ing));
     memset(get_ore_num, 0, sizeof(get_ore_num));
     ore_index = 0;
+    manual_slot_mode = false;
+    manual_slot_index = 0;
+    last_mouse_left_pressed = false;
+    last_mouse_right_pressed = false;
     action_enum = ActionGroup_enum::NuLLAction;
     add_once_flag = 0;
     last_action_done = 0;
+}
+
+/**
+ * @brief Handle VT13 mouse-controlled belly-slot selection.
+ *
+ * Left-click toggles between OreBit automatic selection and manual selection.
+ * While manual selection is active, each right-click advances LF->RF->LB->RB.
+ */
+void ActionGroupController::handleBellySlotSelection()
+{
+    const bool vt13_online =
+        VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED;
+    const bool mouse_left_pressed =
+        vt13_online && (VT13.GetPress_L() != 0U);
+    const bool mouse_right_pressed =
+        vt13_online && (VT13.GetPress_R() != 0U);
+
+    const bool mouse_left_rising =
+        mouse_left_pressed && !last_mouse_left_pressed;
+    const bool mouse_right_rising =
+        mouse_right_pressed && !last_mouse_right_pressed;
+
+    last_mouse_left_pressed = mouse_left_pressed;
+    last_mouse_right_pressed = mouse_right_pressed;
+
+    if (mouse_left_rising)
+    {
+        manual_slot_mode = !manual_slot_mode;
+    }
+
+    if (manual_slot_mode && mouse_right_rising)
+    {
+        manual_slot_index = (manual_slot_index + 1U) % 4U;
+    }
 }
 
 /**
@@ -216,6 +254,9 @@ void ActionGroupController::executeActionGroup(Joint joints[], TrajectoryPointAr
  */
 void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajectory_arrays[], Gripper& gripper, ToBottomDataStructdef& toBottomdata, ReBottomDataStructdef& reBottomdata) {
 
+    // Update the selection mode before processing F/C in this control cycle.
+    handleBellySlotSelection();
+
     // 检查动作组是否空闲
     bool action_free = true;
     for (uint8_t i = 0; i < 7; i++) 
@@ -248,17 +289,31 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
             TakeOre_enum::StoreOre_LF, TakeOre_enum::StoreOre_RF,
             TakeOre_enum::StoreOre_LB, TakeOre_enum::StoreOre_RB
         };
-        // 按优先级 LF→RF→LB→RB 找第一个空槽
-        for (int s = 0; s < 4; s++)
+        int selected_slot = -1;
+        if (manual_slot_mode)
         {
-            if (OreBit[s] == 0)
+            // Manual mode intentionally bypasses OreBit; the operator owns slot safety.
+            selected_slot = manual_slot_index;
+        }
+        else
+        {
+            // Automatic mode keeps the original LF->RF->LB->RB empty-slot search.
+            for (int s = 0; s < 4; s++)
             {
-                action_enum = store_actions[s];
-                add_once_flag = 1;
-                ore_ing[s] = 1;
-                take_ore_state = store_states[s];
-                break;
+                if (OreBit[s] == 0)
+                {
+                    selected_slot = s;
+                    break;
+                }
             }
+        }
+
+        if (selected_slot >= 0)
+        {
+            action_enum = store_actions[selected_slot];
+            add_once_flag = 1;
+            ore_ing[selected_slot] = 1;
+            take_ore_state = store_states[selected_slot];
         }
     }
     
@@ -426,18 +481,32 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
             TakeOre_enum::TakeInOre_LF, TakeOre_enum::TakeInOre_RF,
             TakeOre_enum::TakeInOre_LB, TakeOre_enum::TakeInOre_RB
         };
-        // 按优先级 LF→RF→LB→RB 找第一个有矿槽
-        for (int s = 0; s < 4; s++)
+        int selected_slot = -1;
+        if (manual_slot_mode)
         {
-            if (OreBit[s] == 1)
+            // Manual mode intentionally bypasses OreBit; the operator owns slot safety.
+            selected_slot = manual_slot_index;
+        }
+        else
+        {
+            // Automatic mode keeps the original LF->RF->LB->RB occupied-slot search.
+            for (int s = 0; s < 4; s++)
             {
-                if (gripper.getState() != GripperState::OPENING)
-                    gripper.open();
-                action_enum = takein_actions[s];
-                add_once_flag = 1;
-                take_ore_state = takein_states[s];
-                break;
+                if (OreBit[s] == 1)
+                {
+                    selected_slot = s;
+                    break;
+                }
             }
+        }
+
+        if (selected_slot >= 0)
+        {
+            if (gripper.getState() != GripperState::OPENING)
+                gripper.open();
+            action_enum = takein_actions[selected_slot];
+            add_once_flag = 1;
+            take_ore_state = takein_states[selected_slot];
         }
     }
     else

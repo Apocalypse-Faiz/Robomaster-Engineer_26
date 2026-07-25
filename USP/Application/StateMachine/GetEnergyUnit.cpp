@@ -462,9 +462,19 @@ void GetEnergyUnit_action(Event_t **pEvent)
         {
             if (current_mode == ControlMode::ACTION_GROUP)
             {
-                if (i == action_group_controller.getSelectedOre())
+                // 手动储取矿模式: LED1~LED4 对应 LF、RF、LB、RB；
+                // 自动模式: 保持原有 LED1~LED6 显示取矿编号的逻辑。
+                const bool show_belly_slot =
+                    action_group_controller.isManualSlotMode();
+                const uint8_t selected_indicator =
+                    show_belly_slot
+                        ? action_group_controller.getSelectedBellySlot()
+                        : action_group_controller.getSelectedOre();
+
+                if (i == selected_indicator)
                 {
-                    WS_indicator[i] = WS_Yellow;
+                    // 储矿槽索引用青色，原有取矿编号继续使用黄色。
+                    WS_indicator[i] = show_belly_slot ? WS_Cyan : WS_Yellow;
                 }
                 else
                 {
