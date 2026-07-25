@@ -743,42 +743,54 @@ void Joint_limitSet()
 	{
 		// J1 位于中心区域时，J2 > 127 deg 与 J3 < 50 deg 不允许同时发生。
 		// 每周期先恢复基础软限位，再根据当前姿态收紧一侧；离开该区域后自动恢复。
-		static const float J1_COMBINED_LIMIT = 27.0f;
-		static const float J2_COMBINED_LIMIT = 127.0f;
-		static const float J3_COMBINED_LIMIT = 50.0f;
-		static const float J2_MIN_ANGLE = 46.85f;
-		static const float J2_MAX_ANGLE = 161.85f;
-		static const float J3_MIN_ANGLE = 39.8f;
-		static const float J3_MAX_ANGLE = 157.8f;
+		// static const float J1_COMBINED_LIMIT = 27.0f;
+		// static const float J2_COMBINED_LIMIT = 127.0f;
+		// static const float J3_COMBINED_LIMIT = 50.0f;
+		// static const float J2_SECOND_COMBINED_LIMIT = 150.0f;
+		// static const float J3_SECOND_COMBINED_LIMIT = 112.0f;
+		// static const float J2_MIN_ANGLE = 46.85f;
+		// static const float J2_MAX_ANGLE = 161.85f;
+		// static const float J3_MIN_ANGLE = 39.8f;
+		// static const float J3_MAX_ANGLE = 157.8f;
 
-		joint[1].setJointParam(J2_MIN_ANGLE, J2_MAX_ANGLE, -10, 10);
-		joint[2].setJointParam(J3_MIN_ANGLE, J3_MAX_ANGLE, -10, 10);
+		// joint[1].setJointParam(J2_MIN_ANGLE, J2_MAX_ANGLE, -10, 10);
+		// joint[2].setJointParam(J3_MIN_ANGLE, J3_MAX_ANGLE, -10, 10);
 
-		if (motor[0].getStatus() == MotorStatus::ready &&
-			motor[1].getStatus() == MotorStatus::ready &&
-			motor[2].getStatus() == MotorStatus::ready)
-		{
-			joint[0].updateJointData();
-			joint[1].updateJointData();
-			joint[2].updateJointData();
+		// if (motor[0].getStatus() == MotorStatus::ready &&
+		// 	motor[1].getStatus() == MotorStatus::ready &&
+		// 	motor[2].getStatus() == MotorStatus::ready)
+		// {
+		// 	joint[0].updateJointData();
+		// 	joint[1].updateJointData();
+		// 	joint[2].updateJointData();
 
-			const float j1_angle = joint[0].getCurrentAngle();
-			const float j2_angle = joint[1].getCurrentAngle();
-			const float j3_angle = joint[2].getCurrentAngle();
+		// 	const float j1_angle = joint[0].getCurrentAngle();
+		// 	const float j2_angle = joint[1].getCurrentAngle();
+		// 	const float j3_angle = joint[2].getCurrentAngle();
 
-			if (fabsf(j1_angle) <= J1_COMBINED_LIMIT)
-			{
-				if (j2_angle > J2_COMBINED_LIMIT)
-				{
-					joint[2].setJointParam(J3_COMBINED_LIMIT, J3_MAX_ANGLE, -10, 10);
-				}
+		// 	if (fabsf(j1_angle) <= J1_COMBINED_LIMIT)
+		// 	{
+		// 		// 第二级联动限位：J2 > 150 deg 与 J3 < 112 deg 不允许同时发生。
+		// 		if (j2_angle > J2_COMBINED_LIMIT)
+		// 		{
+		// 			joint[2].setJointParam(J3_COMBINED_LIMIT, J3_MAX_ANGLE, -10, 10);
+		// 		}
+		// 		if (j2_angle > J2_SECOND_COMBINED_LIMIT)
+		// 		{
+		// 			joint[2].setJointParam(J3_SECOND_COMBINED_LIMIT, J3_MAX_ANGLE, -10, 10);
+		// 		}
 
-				if (j3_angle < J3_COMBINED_LIMIT)
-				{
-					joint[1].setJointParam(J2_MIN_ANGLE, J2_COMBINED_LIMIT, -10, 10);
-				}
-			}
-		}
+		// 		// 先应用第二级上限，再应用更严格的第一级上限，避免后者被覆盖。
+		// 		if (j3_angle < J3_SECOND_COMBINED_LIMIT)
+		// 		{
+		// 			joint[1].setJointParam(J2_MIN_ANGLE, J2_SECOND_COMBINED_LIMIT, -10, 10);
+		// 		}
+		// 		if (j3_angle < J3_COMBINED_LIMIT)
+		// 		{
+		// 			joint[1].setJointParam(J2_MIN_ANGLE, J2_COMBINED_LIMIT, -10, 10);
+		// 		}
+		// 	}
+		// }
 
 		// J3的动态限位仅依赖J2角度，且只在J2对应电机ready时更新
 		// if (motor[1].getStatus() == MotorStatus::ready && motor[2].getStatus() == MotorStatus::ready)
@@ -811,7 +823,7 @@ void Joint_limitSet()
 		/*标定和极性设置*/
 		// 相对最初代码坐标的累计校正：J2 +6.85°、J3 +7.8°、J4 +1.1°、J6 -0.4°。
 		// 将零点、选圈范围和软限位一起迁移，保持原有机械行程不变。
-		const float j2_offset = SelectDmStartupOffset(motor[1].getAngle(), 1.0f, 164.85f, 46.85f, 161.85f);
+		const float j2_offset = SelectDmStartupOffset(motor[1].getAngle(), 1.0f, 164.85f, 60.0f, 161.85f);
 		const float j3_offset = SelectDmStartupOffset(motor[2].getAngle(), 1.0f, 41.8f, 39.8f, 157.8f);
 		const float j7_offset = SelectDmStartupOffset(motor[6].getAngle(), -1.0f, 0.0f, -150.0f, 167.0f);
 		const float j2_angle = motor[1].getAngle() + j2_offset;
@@ -844,7 +856,7 @@ void Joint_limitSet()
 
 		/*关节软限位*/
 		joint[0].setJointParam(-170, 170, 10, -10);
-		joint[1].setJointParam(46.85f, 161.85f, -10, 10);	
+		joint[1].setJointParam(60.0f, 161.85f, -10, 10);	
 		joint[2].setJointParam(39.8f, 157.8f, -10, 10);
 		joint[3].setJointParam(-75.9f, 18.1f, -10, 10);
 		joint[4].setJointParam(-165, 165, -10, 10); // J5关节在力矩复位后还要重新再限位一下
