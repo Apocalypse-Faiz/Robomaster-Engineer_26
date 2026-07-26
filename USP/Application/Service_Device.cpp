@@ -823,26 +823,32 @@ void Joint_limitSet()
 		/*标定和极性设置*/
 		// 相对最初代码坐标的累计校正：J2 +6.85°、J3 +7.8°、J4 +1.1°、J6 -0.4°。
 		// 将零点、选圈范围和软限位一起迁移，保持原有机械行程不变。
+		const float j1_offset = SelectDmStartupOffset(motor[0].getAngle(), 1.0f, 0.0f, -170.0f, 170.0f);
 		const float j2_offset = SelectDmStartupOffset(motor[1].getAngle(), 1.0f, 164.85f, 60.0f, 161.85f);
 		const float j3_offset = SelectDmStartupOffset(motor[2].getAngle(), 1.0f, 41.8f, 39.8f, 157.8f);
+		const float j5_offset = SelectDmStartupOffset(motor[4].getAngle(), -1.0f, 0.0f, -165.0f, 165.0f);
 		const float j7_offset = SelectDmStartupOffset(motor[6].getAngle(), -1.0f, 0.0f, -150.0f, 167.0f);
+		const float j1_angle = motor[0].getAngle() + j1_offset;
 		const float j2_angle = motor[1].getAngle() + j2_offset;
 		const float j3_angle = motor[2].getAngle() + j3_offset;
+		const float j5_angle = motor[4].getAngle() + j5_offset;
 		const float j7_angle = -motor[6].getAngle() + j7_offset;
 
 		// 等待第一帧有效角度；异常反馈不能据此锁定上电偏置。
-		if (j2_angle < 0.0f || j2_angle > 360.0f ||
+		if (j1_angle < -180.0f || j1_angle > 180.0f ||
+			j2_angle < 0.0f || j2_angle > 360.0f ||
 			j3_angle < 0.0f || j3_angle > 360.0f ||
+			j5_angle < -180.0f || j5_angle > 180.0f ||
 			j7_angle < -180.0f || j7_angle > 180.0f)
 		{
 			return;
 		}
 
-		joint[0].setJointMapping(1, 0);
+		joint[0].setJointMapping(1, j1_offset);
 		joint[1].setJointMapping(1, j2_offset);
 		joint[2].setJointMapping(1, j3_offset);
 		joint[3].setJointMapping(-1, -77.9f);
-		joint[4].setJointMapping(-1, 0);
+		joint[4].setJointMapping(-1, j5_offset);
 		joint[5].setJointMapping(-1, -0.1f);
 		joint[6].setJointMapping(-1, j7_offset);
 

@@ -474,7 +474,7 @@ void GetEnergyUnit_action(Event_t **pEvent)
                 if (i == selected_indicator)
                 {
                     // 储矿槽索引用青色，原有取矿编号继续使用黄色。
-                    WS_indicator[i] = show_belly_slot ? WS_Cyan : WS_Yellow;
+                    WS_indicator[i] = show_belly_slot ? WS_Purple : WS_Yellow;
                 }
                 else
                 {
