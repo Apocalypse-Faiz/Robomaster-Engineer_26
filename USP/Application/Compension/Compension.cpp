@@ -57,8 +57,13 @@ static const float M2 = 0.846f;   // 连杆 2 质量 (沿用实测值)
 static const float M3 = 0.558f;    // 连杆 3 质量 (TODO: 旧版等效质量为 3.846,
                                   //   现拆分为 M3 + wrist, 需实测分离)
 static const float M4 = 1.068f;    // 连杆 4 质量: 结构件 4 + J5 电机 (TODO: 需实测)
-static const float MW = 1.258f;    // 腕部等效质量: J6电机 + J7电机 + 夹爪 + 负载 (不含J5, J5已归M4)
-                                  //   (TODO: 需实测, 含不同负载时可能需要动态更新)
+// 腕部质量必须按关节所在侧拆分，否则会把关节电机自身重量错误地算进该关节。
+// 所有关节均为电机直驱：J5 电机已包含在 M4；J6 电机位于 J6 输入侧；
+// J7 电机位于 J7 输入侧。下面按 DM-J4310 约 0.300 kg/台拆分，质心是依据
+// 原总质量/总质心做的一阶矩等效初值，实机/CAD 数据出来后应分别替换。
+static const float M_PRE_J6  = 0.490f;  // J6 电机，只作用于 J2~J5
+static const float M_PRE_J7  = 0.397f;  // J7 电机，只作用于 J2~J6
+static const float M_POST_J7 = 1.072f;  // J7 输出件 + 夹爪 + 能量单元，作用于 J2~J7
 
 // ── 质心位置 (m) ──────────────────────────────────
 // 各质心在对应连杆本地坐标系中的坐标 [x, 0, z]
@@ -76,18 +81,22 @@ static const float LC3Z = 0.0f;   // Z 分量 (沿用旧版实测值, 质心略�
 static const float LC4X = 0.04208f;     // X 分量 (TODO: 需实测, 暂取 L4 的一半)
 static const float LC4Z = 0.0f;   //0.05779f   // Z 分量 (TODO: 需实测, 连杆 4 通常较对称)
 
-// Wrist 质心 (在 wrist 系中, wrist 系与 {6} 系对齐, 位于 J6 之后):
-static const float LCWX = 0.05944f;     // X 分量: 腕部质心沿末端纵轴前伸 (TODO: 需实测)
-static const float LCWY = 0.01156f;         // Y 分量: J6 电机外置导致质心偏离 sagittal 平面 (TODO: 需实测)
-static const float LCWZ = -0.00531f;    // Z 分量: 腕部质心略高于末端中心线 (TODO: 需实测)
+// 三组质心分别在 J5、J6、J7 输出坐标系中表达，原点暂统一取 J6 轴交点。
+// 这些初值保持原 MW/LCW 的总一阶矩，不代表精确 CAD 数据。
+static const float C5X = 0.162298f, C5Y = 0.040972f, C5Z = -0.000028f;
+static const float C6X = 0.084193f, C6Y = 0.000718f, C6Z =  0.000052f;
+static const float C7X = 0.070107f, C7Y = 0.0f, C7Z = -0.009460f;
 
 // 注: MDH→本函数角度约定的转换全部由调用侧 MDH2xxx() 完成, 本函数不做偏置处理
 
 
-void GravityCompension_Calculate(float _J2, float _J3, float _J4, float _J5, float _J6,
-                                  float *tau_J2, float *tau_J3, float *tau_J4, float *tau_J5, float *tau_J6)
+void GravityCompension_Calculate(float _J2, float _J3, float _J4,
+                                  float _J5, float _J6, float _J7,
+                                  float *tau_J2, float *tau_J3, float *tau_J4,
+                                  float *tau_J5, float *tau_J6, float *tau_J7)
 {
-    if (tau_J2 == nullptr || tau_J3 == nullptr || tau_J4 == nullptr || tau_J5 == nullptr || tau_J6 == nullptr)
+    if (tau_J2 == nullptr || tau_J3 == nullptr || tau_J4 == nullptr ||
+        tau_J5 == nullptr || tau_J6 == nullptr || tau_J7 == nullptr)
     {
         return;
     }
@@ -115,6 +124,7 @@ void GravityCompension_Calculate(float _J2, float _J3, float _J4, float _J5, flo
 
     // J5: roll 角 (独立, 不参与 pitch 累加)
     const float p5 = _J5 * PI / 180.0f;
+    const float p7 = _J7 * PI / 180.0f;
 
     // J6: 绝对俯仰角 (wrist)
     const float a6 = (_J2 + _J3 + _J4 + _J6) * PI / 180.0f;
@@ -125,8 +135,8 @@ void GravityCompension_Calculate(float _J2, float _J3, float _J4, float _J5, flo
     const float c2 = cosf(a2), s2 = sinf(a2);
     const float c3 = cosf(a3), s3 = sinf(a3);
     const float c4 = cosf(a4), s4 = sinf(a4);
-    const float c6 = cosf(a6), s6 = sinf(a6);
     const float cp5 = cosf(p5), sp5 = sinf(p5);   // J5 roll: cos/sin(φ₅)
+    const float cp7 = cosf(p7), sp7 = sinf(p7);   // J7 roll
 
     // J6 相对 link4 的俯仰角 Δ = α₆ - α₄ (用于 wrist 质心的 3D 分解)
     const float delta = a6 - a4;
@@ -155,17 +165,42 @@ void GravityCompension_Calculate(float _J2, float _J3, float _J4, float _J5, flo
     // Link 4: 对 J2 的力臂 (= L₂ 全长投影 + L₃ 全长投影 + 对J4的力臂投影)
     const float arm4_J2 = L2 * c2 + L3 * c3 + arm4_J4;
 
-    // Wrist: 腕部质心在 sagittal 平面内的投影力臂 (供上游 J4/J3/J2 用, 不受 J5 影响)
-    //   armW_J6 = LCWX·cos(α₆) - LCWZ·sin(α₆), 是 wrist 质心在世界 X₀ 的投影.
-    //   上游 pitch 关节轴线始终 ∥ Y₀, 感知的是这个未调制的水平力臂.
-    const float armW_J6 = LCWX * c6 - LCWZ * s6;
+    // 腕部变换顺序：J7 roll -> J6 pitch -> J5 roll -> Link4 pitch。
+    // 对每个质量体同时求高度对 a4/J5/J6/J7 的偏导，避免旧实现中把
+    // J5 调制从上游关节力矩里漏掉。
+    const float c5_x = C5X;
+    const float c5_z4 = C5Y * sp5 + C5Z * cp5;
+    const float c5_da4 = c4 * c5_x - s4 * c5_z4;
+    const float c5_dj5 = c4 * (C5Y * cp5 - C5Z * sp5);
 
-    // Wrist: 对 J4 的力臂 (= L₄ 全长投影 + 腕部未调制力臂)
-    const float armW_J4 = L4 * c4 + armW_J6;
-    // Wrist: 对 J3 的力臂
-    const float armW_J3 = L3 * c3 + L4 * c4 + armW_J6;
-    // Wrist: 对 J2 的力臂
-    const float armW_J2 = L2 * c2 + L3 * c3 + L4 * c4 + armW_J6;
+    const float c6_x5 = cd * C6X - sd * C6Z;
+    const float c6_z5 = sd * C6X + cd * C6Z;
+    const float c6_z4 = C6Y * sp5 + c6_z5 * cp5;
+    const float c6_da4 = c4 * c6_x5 - s4 * c6_z4;
+    const float c6_dj5 = c4 * (C6Y * cp5 - c6_z5 * sp5);
+    const float c6_dj6 = -s4 * c6_z5 + c4 * cp5 * c6_x5;
+
+    const float c7_x6 = C7X;
+    const float c7_y6 = cp7 * C7Y - sp7 * C7Z;
+    const float c7_z6 = sp7 * C7Y + cp7 * C7Z;
+    const float c7_x5 = cd * c7_x6 - sd * c7_z6;
+    const float c7_z5 = sd * c7_x6 + cd * c7_z6;
+    const float c7_z4 = c7_y6 * sp5 + c7_z5 * cp5;
+    const float c7_da4 = c4 * c7_x5 - s4 * c7_z4;
+    const float c7_dj5 = c4 * (c7_y6 * cp5 - c7_z5 * sp5);
+    const float c7_dj6 = -s4 * c7_z5 + c4 * cp5 * c7_x5;
+
+    // d(Rx(J7)*C7)/dJ7 = [0, -z6, y6]，继续通过 J6/J5/a4 变换。
+    const float c7j7_x5 = -sd * c7_y6;
+    const float c7j7_y5 = -c7_z6;
+    const float c7j7_z5 =  cd * c7_y6;
+    const float c7_dj7 = s4 * c7j7_x5 +
+                         c4 * (sp5 * c7j7_y5 + cp5 * c7j7_z5);
+
+    const float wrist_mass = M_PRE_J6 + M_PRE_J7 + M_POST_J7;
+    const float wrist_da4 = M_PRE_J6 * c5_da4 +
+                            M_PRE_J7 * c6_da4 +
+                            M_POST_J7 * c7_da4;
 
     // ========================================================================
     // Step 4: 力矩合成 — τⱼ = Σ mᵢ · g · armᵢ_about_ⱼ
@@ -173,31 +208,32 @@ void GravityCompension_Calculate(float _J2, float _J3, float _J4, float _J5, flo
     // 每个关节的力矩 = 该关节之后所有质量体的重力贡献之和
     // 势能 U = Σ mᵢ·g·hᵢ, τⱼ = -∂U/∂αⱼ = Σ mᵢ·g·armᵢ_about_ⱼ
 
-    // J6 (腕部 pitch): 完整 ∂h_wrist/∂Δ, 不能简单用 cp5 调制
-    //   wrist 质心经 J6 pitch(Δ) → J5 roll(φ₅) → link4 俯仰(α₄) 变换:
-    //     wmid_x = LCWX·cosΔ − LCWZ·sinΔ   (J5 前中间系 x)
-    //     wmid_z = LCWX·sinΔ + LCWZ·cosΔ   (J5 前中间系 z)
-    //   τ_J6 = MW·g·[ wmid_x·cosφ₅·cosα₄ − wmid_z·sinα₄ ]
-    //   第二项 (−wmid_z·sinα₄) 不含 cosφ₅, 故 J5=±90° 且 link4 倾斜时仍有力矩.
-    const float wmid_x = LCWX * cd - LCWZ * sd;
-    const float wmid_z = LCWX * sd + LCWZ * cd;
-    *tau_J6 = G * MW * (wmid_x * cp5 * c4 - wmid_z * s4);
+    // J6 (腕部 pitch)
+    // J6 电机位于输入侧，M_PRE_J6 明确不进入 J6 力矩。
+    *tau_J6 = G * (M_PRE_J7 * c6_dj6 + M_POST_J7 * c7_dj6);
+
+    // J7 roll 只搬动其输出侧的夹爪/负载。
+    *tau_J7 = G * M_POST_J7 * c7_dj7;
 
     // J5 (腕部 roll): 仅当 wrist 质心偏离 J5 轴线时才有重力力矩
     //   主导项 LCWY (J6 电机外置的 Y 偏置), 经 J5 roll 摆到重力力臂上.
     //   τ_J5 = MW·g·∂h_wrist/∂φ₅
     //        = MW·g·cosα₄·[ LCWY·cosφ₅ − (LCWX·sinΔ + LCWZ·cosΔ)·sinφ₅ ]
     //   φ₅=0 且腕部水平(α₄=0): τ_J5 = MW·g·LCWY (外置电机翻转力矩最大)
-    *tau_J5 = G * MW * c4 * (LCWY * cp5 - (LCWX * sd + LCWZ * cd) * sp5);
+    *tau_J5 = G * (M_PRE_J6 * c5_dj5 +
+                    M_PRE_J7 * c6_dj5 +
+                    M_POST_J7 * c7_dj5);
 
     // J4 (肘后 pitch): Link 4 + Wrist 的贡献
-    *tau_J4 = G * (M4 * arm4_J4 + MW * armW_J4);
+    *tau_J4 = G * (M4 * arm4_J4 + wrist_mass * L4 * c4 + wrist_da4);
 
     // J3 (肘关节): Link 3 + Link 4 + Wrist 的贡献
-    *tau_J3 = G * (M3 * arm3_J3 + M4 * arm4_J3 + MW * armW_J3);
+    *tau_J3 = G * (M3 * arm3_J3 + M4 * arm4_J3 +
+                   wrist_mass * (L3 * c3 + L4 * c4) + wrist_da4);
 
     // J2 (肩关节): Link 2 + Link 3 + Link 4 + Wrist 的贡献
-    *tau_J2 = G * (M2 * arm2 + M3 * arm3_J2 + M4 * arm4_J2 + MW * armW_J2);
+    *tau_J2 = G * (M2 * arm2 + M3 * arm3_J2 + M4 * arm4_J2 +
+                   wrist_mass * (L2 * c2 + L3 * c3 + L4 * c4) + wrist_da4);
 }
 
 void BackEMFCompension_Calculate(float speed0, float speed1, float speed2, float speed3, float speed4, float speed5, float *backEMF0, float *backEMF1, float *backEMF2, float *backEMF3, float *backEMF4, float *backEMF5)

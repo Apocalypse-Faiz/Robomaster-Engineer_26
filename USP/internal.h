@@ -144,6 +144,7 @@ extern float gravity_J3;
 extern float gravity_J4;
 extern float gravity_J5;
 extern float gravity_J6;
+extern float gravity_J7;
 extern float inertia_J1;
 
 extern Motor_DM_classdef DM4340P;  // 达妙电机类，ID为3

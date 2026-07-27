@@ -10,11 +10,13 @@
  * @param _J4  Link 4 相对 Link 3 俯仰角 (度), 0°=共线, >0°=相对上仰
  * @param _J5  J5 roll 角 (度), 0°=腕部竖直, >0°=从后看顺时针
  * @param _J6  Wrist 相对 Link 4 俯仰角 (度), 0°=共线, >0°=相对上仰
+ * @param _J7  末端 roll 角 (度)
  * @param tau_J2 输出: J2 肩关节重力力矩 (Nm)
  * @param tau_J3 输出: J3 肘关节重力力矩 (Nm)
  * @param tau_J4 输出: J4 pitch 关节重力力矩 (Nm)
  * @param tau_J5 输出: J5 roll 关节重力力矩 (Nm, 由 wrist 质心 Y 偏置 LCWY 产生)
  * @param tau_J6 输出: J6 腕部 pitch 关节重力力矩 (Nm)
+ * @param tau_J7 输出: J7 末端 roll 关节重力力矩 (Nm)
  *
  * @note 坐标系与角度参考方向
  *   ========================
@@ -36,12 +38,16 @@
  *     M2  = 结构件 2 + J3 电机           (质心在 {2} 系)
  *     M3  = 结构件 3 + J4 电机           (质心在 {3} 系)
  *     M4  = 结构件 4 + J5 电机           (质心在 {4} 系)
- *     MW  = J6电机 + J7电机 + 夹爪 + 负载 (质心在 wrist/{6} 系)
+ *     M_PRE_J6  = J6直驱电机，只参与J2~J5（J5电机已归入M4）
+ *     M_PRE_J7  = J7电机，只参与J2~J6
+ *     M_POST_J7 = J7输出件、夹爪和负载，参与J2~J7
  *
  *   所有参数值需实机测量标定 (当前为估算值).
  */
-void GravityCompension_Calculate(float _J2, float _J3, float _J4, float _J5, float _J6,
-                                  float *tau_J2, float *tau_J3, float *tau_J4, float *tau_J5, float *tau_J6);
+void GravityCompension_Calculate(float _J2, float _J3, float _J4,
+                                  float _J5, float _J6, float _J7,
+                                  float *tau_J2, float *tau_J3, float *tau_J4,
+                                  float *tau_J5, float *tau_J6, float *tau_J7);
 
 void BackEMFCompension_Calculate(float speed0, float speed1, float speed2, float speed3, float speed4, float speed5, float *backEMF0, float *backEMF1, float *backEMF2, float *backEMF3, float *backEMF4, float *backEMF5);
 void CoulombCompension_Calculate(float speed0, float speed1, float speed2, float speed3, float speed4, float speed5, float *coulomb0, float *coulomb1, float *coulomb2, float *coulomb3, float *coulomb4, float *coulomb5);

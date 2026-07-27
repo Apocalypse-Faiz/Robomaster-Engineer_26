@@ -1012,6 +1012,11 @@ static inline float MDH2Gravity_J6(float mdh_j6) {
     return -mdh_j6;
 }
 
+static inline float MDH2Gravity_J7(float mdh_j7) {
+    // J7 roll，JointMapping 为 -1；零位定义为末端负载质心标定时的 roll=0。
+    return -mdh_j7;
+}
+
 // ── 惯量补偿用角度 ─────────────────────────────────
 // InertiaCompension_Calculate 期望 (与重力补偿完全一致):
 //   _J2: 绝对俯仰角 (度), 0°=水平前伸, >0°=上仰
@@ -1092,7 +1097,7 @@ void tskMotor(void *arg)
     angle_Out_Max = 20.0f;
     angle_I_Max = 0.0f;
     speed_kp = 0.0f;
-    speed_Out_Max = 20.0f;
+    speed_Out_Max = 30.0f;
 
     // angle_kp1 = 10.0f;
     // angle_ki1 = 0.0f;
@@ -1237,7 +1242,7 @@ void tskMotor(void *arg)
 			}
 
 			// DM电机无需复位，Robot_Prepared默认为1，补偿始终启用
-			// DR16_Debug_Ctrl();
+			DR16_Debug_Ctrl();
 			// UpdateMotor0PidByPose();
 
 				// ============================================================
@@ -1251,13 +1256,16 @@ void tskMotor(void *arg)
 				    MDH2Gravity_J4(joint[3].getCurrentAngle()),
 				    MDH2Gravity_J5(joint[4].getCurrentAngle()),
 				    MDH2Gravity_J6(joint[5].getCurrentAngle()),
+				    MDH2Gravity_J7(joint[6].getCurrentAngle()),
 				    &Gravity_feedforward[1], &Gravity_feedforward[2],
-				    &Gravity_feedforward[3], &Gravity_feedforward[4], &Gravity_feedforward[5]);
+				    &Gravity_feedforward[3], &Gravity_feedforward[4],
+				    &Gravity_feedforward[5], &Gravity_feedforward[6]);
 				motor[1].setGravity_feedforward(Gravity_feedforward[1] * gravity_J2);
 				motor[2].setGravity_feedforward(Gravity_feedforward[2] * gravity_J3);
 				motor[3].setGravity_feedforward(Gravity_feedforward[3] * gravity_J4);
 				motor[4].setGravity_feedforward(Gravity_feedforward[4] * gravity_J5);
 				motor[5].setGravity_feedforward(Gravity_feedforward[5] * gravity_J6);
+				motor[6].setGravity_feedforward(Gravity_feedforward[6] * gravity_J7);
 
 				// ============================================================
 				// 7-DOF J1 惯量补偿: 姿态 (J2~J6) 决定等效惯量 Ieq

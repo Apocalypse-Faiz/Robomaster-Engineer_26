@@ -159,7 +159,7 @@ float Inertia_feedforward[7] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; // �
 
 // 轨迹前馈调参增益 (每关节单独调, 从0开始慢慢加)
 float speed_ff_gain[7] = {2.6f, 0.6f, 2.0f, 1.2f, 0.0f, 0.0f, 0.0f}; // 速度前馈增益
-float acc_ff_gain[7]   = {0.18f, 0.35f, 0.42f, 0.0f, 0.0f, 0.0f, 0.0f}; // 加速度前馈增益 (含等效惯量换算)
+float acc_ff_gain[7]   = {0.18f, 0.35f, 0.42f, 0.0f, 0.0f, 0.0f, 0.0f}; // 加速度前馈增益 
 
 bool all_motor_connected = false; // 所有电机连接状态
 bool gimbal_lift_init_done = false; // 云台升降电机力矩复位标定完成标志
@@ -171,9 +171,10 @@ uint8_t Robot_Prepared = 1; // 机器人准备状态，DM电机无需力矩复�
 Indicator_Classdef Indicator(&htim1, &hdma_tim1_ch1, TIM_CHANNEL_1);           // 指示灯
 float gravity_J2 = 0.55f;
 float gravity_J3 = -1.7f;
-float gravity_J4 = 1.7f;   // J4 重力补偿增益 (TODO: 需实机调参, 初始建议 0.1~0.5)
-float gravity_J5 = 1.2f;   // J5 roll 重力补偿增益 (J6电机外置Y偏置产生, TODO: 实机调参)
-float gravity_J6 = 1.7f;  // J6 重力补偿增益 (TODO: 需实机调参, 初始建议 0.05~0.3)
+float gravity_J4 = 1.7f;   // J4 重力补偿增益
+float gravity_J5 = 1.2f;   // J5 roll 重力补偿增益 (J6电机外置Y偏置产生)
+float gravity_J6 = 1.7f;  // J6 重力补偿增益
+float gravity_J7 = 1.0f;  // J7 roll 重力补偿增益（先从 1.0 开始标定）
 float inertia_J1 = 0.0f;
 
 float chassis_height_min = 0.266f;
