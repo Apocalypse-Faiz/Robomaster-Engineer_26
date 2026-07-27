@@ -23,6 +23,8 @@
 #include "usbd_cdc_if.h"
 // #include "drv_VirtualCom.h"
 #include "ActionGroupController.h"
+#include "CustomControl.h"
+#include "VisualControl.h"
 
 /* Private define ------------------------------------------------------------*/
 #define ENABLE_J1_INERTIA_VALIDATION 0
@@ -32,6 +34,18 @@ static const float GIMBAL_LIFT_RETRACT_TILT_RAD = 0.17453293f;
 static const float GIMBAL_LIFT_RELEASE_TILT_RAD = 0.12217305f;
 static const uint32_t GIMBAL_LIFT_FEEDBACK_TIMEOUT_MS = 100U;
 static bool gimbal_lift_tilt_retract_active = false;
+
+// 除 CustomControl / VisionControl 外，其他控制模式使用的重补增益。
+// CustomControl / VisionControl 使用 System_DataPool.cpp 中可调的
+// gravity_J2~gravity_J7。
+static const float NON_CONTROLLER_GRAVITY_GAIN[6] = {
+	0.57f,  // J2
+	-1.2f,  // J3
+	1.0f,   // J4
+	0.55f,  // J5 roll
+	1.0f,   // J6 pitch
+	1.0f    // J7 roll
+};
 
 /* Private variables ---------------------------------------------------------*/
 TaskHandle_t Motor_Handle;
@@ -1255,12 +1269,11 @@ void tskMotor(void *arg)
 			}
 
 			// DM电机无需复位，Robot_Prepared默认为1，补偿始终启用
-			DR16_Debug_Ctrl();
+			// DR16_Debug_Ctrl();
 			// UpdateMotor0PidByPose();
 
 				// ============================================================
-				// 7-DOF 重力补偿: J2(肩), J3(肘), J4(肘后), J6(腕)
-				// J5 角度用于调制 J6 的有效俯仰分量 (cos φ₅)
+				// J2~J7 重力补偿：J2/J3/J4/J6 为 pitch，J5/J7 为 roll。
 				// MDH 关节角 → 补偿角度: 见 MDH2Gravity_xxx() 函数
 				// ============================================================
 				GravityCompension_Calculate(
@@ -1273,12 +1286,23 @@ void tskMotor(void *arg)
 				    &Gravity_feedforward[1], &Gravity_feedforward[2],
 				    &Gravity_feedforward[3], &Gravity_feedforward[4],
 				    &Gravity_feedforward[5], &Gravity_feedforward[6]);
-				motor[1].setGravity_feedforward(Gravity_feedforward[1] * gravity_J2);
-				motor[2].setGravity_feedforward(Gravity_feedforward[2] * gravity_J3);
-				motor[3].setGravity_feedforward(Gravity_feedforward[3] * gravity_J4);
-				motor[4].setGravity_feedforward(Gravity_feedforward[4] * gravity_J5);
-				motor[5].setGravity_feedforward(Gravity_feedforward[5] * gravity_J6);
-				motor[6].setGravity_feedforward(Gravity_feedforward[6] * gravity_J7);
+
+				const bool use_controller_gravity_gain =
+				    custom_controller.isEnabled() || vision_controller.isEnabled();
+
+				const float default_gravity_gain[6] = {
+				    gravity_J2, gravity_J3, gravity_J4,
+				    gravity_J5, gravity_J6, gravity_J7
+				};
+				const float *gravity_gain = use_controller_gravity_gain
+				    ? default_gravity_gain
+				    : NON_CONTROLLER_GRAVITY_GAIN;
+
+				for (uint8_t joint_index = 1U; joint_index < 7U; ++joint_index)
+				{
+				    motor[joint_index].setGravity_feedforward(
+				        Gravity_feedforward[joint_index] * gravity_gain[joint_index - 1U]);
+				}
 
 				// ============================================================
 				// 7-DOF J1 惯量补偿: 姿态 (J2~J6) 决定等效惯量 Ieq

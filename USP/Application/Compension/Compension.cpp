@@ -71,7 +71,7 @@ static const float M_POST_J7 = 1.072f;  // J7 输出件 + 夹爪 + 能量单元�
 //
 // Link 2 质心 (在 {2} 系中):
 static const float LC2X = 0.23893f;     // X 分量: 沿连杆 2 纵轴, 距 J2 轴的距离 (沿用实测值)
-static const float LC2Z = 0.0f;      // Z 分量: 连杆 2 通常对称, Z 偏移 ≈ 0
+static const float LC2Z = -0.0220f;      // Z 分量: 连杆 2 通常对称, Z 偏移 ≈ 0
 
 // Link 3 质心 (在 {3} 系中):
 static const float LC3X = 0.13063f;     // X 分量 (TODO: 沿用旧版 lc3x=0.119194 的近似值)
