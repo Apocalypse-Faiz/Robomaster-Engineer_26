@@ -272,7 +272,11 @@ void tskBackpackdrive(void *arg)
 
 namespace
 {
-volatile bool arm_safety_latched = false;
+// Power up with the arm disabled.  Even if the remote link is already
+// established, control must pass through the stable-link release path so that
+// every joint target is synchronized to its measured position before torque
+// output is enabled.
+volatile bool arm_safety_latched = true;
 
 enum class DmRecoveryPhase : uint8_t
 {
@@ -407,7 +411,17 @@ void CheckMotorStatus()
 	const bool control_link_established = ArmControlLinkEstablished();
 	const bool top_state_blocks_control =
 		(g_top_state_id == TopStateId::Lost) || (g_top_state_id == TopStateId::None);
-	const bool full_arm_stop_required = !control_link_established || top_state_blocks_control;
+	bool joint_reference_ready = true;
+	for (uint8_t i = 0; i < DM_MOTOR_COUNT; i++)
+	{
+		if ((motor[i].getStatus() != MotorStatus::ready) || !joint[i].isCalibrated())
+		{
+			joint_reference_ready = false;
+			break;
+		}
+	}
+	const bool full_arm_stop_required =
+		!control_link_established || top_state_blocks_control || !joint_reference_ready;
 
 	// 遥控链路丢失或处于 Lost/None 时仍锁存全臂安全停机。
 	if (full_arm_stop_required)
@@ -1178,13 +1192,12 @@ void tskMotor(void *arg)
 			}
 		}
 
+		Joint_limitSet();
 		CheckMotorStatus();
 
 		gripper.update(); // 更新夹爪数据
 		gripper.updateControl(); // 更新夹爪控制逻辑
 		
-		Joint_limitSet();
-
 #if ENABLE_J1_INERTIA_VALIDATION
 		if (!ArmSafety_IsLatched() && DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
 		{
