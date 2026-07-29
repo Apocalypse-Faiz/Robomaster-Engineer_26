@@ -16,7 +16,7 @@ static ControlMode current_mode = ControlMode::ACTION_GROUP;
 static CustomData custom_control_data;            // 自定义控制数据
 static VisionData vision_control_data;            // 视觉控制数据
 static constexpr float get_energy_unit_default_chassis_height_m = 0.357f;
-static constexpr float vision_start_chassis_height_m = 0.350f;
+static constexpr float vision_start_chassis_height_m = 0.460f;
 
 // 模式切换状态
 static bool mode_changing = false;

@@ -37,12 +37,12 @@ public:
         memset(previous_angles, 0, sizeof(previous_angles));
         // memset(start_angles, 0, sizeof(start_angles));
         start_angles[0] = 0;
-        start_angles[1] = 138.55;
-        start_angles[2] = 111.28;
-        start_angles[3] = -52.63;
+        start_angles[1] = 158.45;
+        start_angles[2] = 61.95;
+        start_angles[3] = 17.05;
         start_angles[4] = 0;
-        start_angles[5] = 55.06;
-        start_angles[6] = 0;
+        start_angles[5] = 58.13;
+        start_angles[6] = -34.87;
         first = false;
     }
     

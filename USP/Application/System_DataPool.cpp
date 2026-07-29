@@ -158,8 +158,8 @@ float Viscous_feedforward[7] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; // �
 float Inertia_feedforward[7] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}; // 惯量补偿数组
 
 // 轨迹前馈调参增益 (每关节单独调, 从0开始慢慢加)
-float speed_ff_gain[7] = {2.6f, 0.6f, 2.0f, 1.2f, 0.0f, 0.0f, 0.0f}; // 速度前馈增益
-float acc_ff_gain[7]   = {0.18f, 0.35f, 0.42f, 0.0f, 0.0f, 0.0f, 0.0f}; // 加速度前馈增益 
+float speed_ff_gain[7] = {2.6f, 0.6f, 2.5f, 2.3f, 0.6f, 0.8f, 2.0f}; // 速度前馈增益
+float acc_ff_gain[7]   = {0.18f, 0.2f, 0.0f, 0.0f, 0.03f, 0.0f, 0.01f}; // 加速度前馈增益 
 
 bool all_motor_connected = false; // 所有电机连接状态
 bool gimbal_lift_init_done = false; // 云台升降电机力矩复位标定完成标志

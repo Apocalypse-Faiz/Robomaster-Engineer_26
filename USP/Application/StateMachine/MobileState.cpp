@@ -23,9 +23,9 @@ void Mobile_action(Event_t **pEvent)
     static ActionGroup_enum action_enum = ActionGroup_enum::NuLLAction;
     static uint8_t Add_onlyOnce = 0;
     static uint8_t mobile_state = 0;
-    static uint8_t mobile_ore_repeat_remaining = 0;
-    static uint8_t mobile_ore_trigger_last = 0;
-    const uint8_t mobile_ore_repeat_total = 10;
+    // static uint8_t mobile_ore_repeat_remaining = 0;
+    // static uint8_t mobile_ore_trigger_last = 0;
+    // const uint8_t mobile_ore_repeat_total = 10;
     WS_indicator[0] = WS_Blue;
 
     if ((DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED) || (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C && VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED))
@@ -50,17 +50,19 @@ void Mobile_action(Event_t **pEvent)
                 break;
             }
         }
-        bool mobile_ore_trigger_active = VT13.GetTrigger();
-        bool mobile_ore_trigger_pressed = (mobile_ore_trigger_active == true && mobile_ore_trigger_last == 0);
+        // VT13 Trigger 触发并反复执行 Mobile_Ore 动作组的逻辑已停用。
+        // bool mobile_ore_trigger_active = VT13.GetTrigger();
+        // bool mobile_ore_trigger_pressed = (mobile_ore_trigger_active == true && mobile_ore_trigger_last == 0);
 
-        if (mobile_ore_repeat_remaining > 0 && Add_onlyOnce == 0 && action_free == true)
-        {
-            action_enum = ActionGroup_enum::Mobile_Ore;
-            Add_onlyOnce = 1;
-            mobile_state = 2;
-            mobile_ore_repeat_remaining--;
-        }
-        else if ((DR16.IsKeyPress(DR16_KEY_V) || VT13.IsKeyPress(VT13_KEY_V)) && Add_onlyOnce == 0 && action_free == true)
+        // if (mobile_ore_repeat_remaining > 0 && Add_onlyOnce == 0 && action_free == true)
+        // {
+        //     action_enum = ActionGroup_enum::Mobile_Ore;
+        //     Add_onlyOnce = 1;
+        //     mobile_state = 2;
+        //     mobile_ore_repeat_remaining--;
+        // }
+        // else
+        if ((DR16.IsKeyPress(DR16_KEY_V) || VT13.IsKeyPress(VT13_KEY_V)) && Add_onlyOnce == 0 && action_free == true)
         {
             action_enum = ActionGroup_enum::Mobile_NoOre;
             Add_onlyOnce = 1;
@@ -81,14 +83,14 @@ void Mobile_action(Event_t **pEvent)
             mobile_state = 3; // 折叠压缩状态
             // UI_Mode = 1;
         }
-        else if (mobile_ore_trigger_pressed == true && Add_onlyOnce == 0 && action_free == true)
-        {
-            action_enum = ActionGroup_enum::Mobile_Ore;
-            Add_onlyOnce = 1;
-            mobile_state = 2;
-            mobile_ore_repeat_remaining = mobile_ore_repeat_total - 1;
-        }
-        mobile_ore_trigger_last = mobile_ore_trigger_active;
+        // else if (mobile_ore_trigger_pressed == true && Add_onlyOnce == 0 && action_free == true)
+        // {
+        //     action_enum = ActionGroup_enum::Mobile_Ore;
+        //     Add_onlyOnce = 1;
+        //     mobile_state = 2;
+        //     mobile_ore_repeat_remaining = mobile_ore_repeat_total - 1;
+        // }
+        // mobile_ore_trigger_last = mobile_ore_trigger_active;
 
         /*选择动作组*/
         ActionGroup_Choose(joint_trajectory_point_array, action_enum, Add_onlyOnce);
