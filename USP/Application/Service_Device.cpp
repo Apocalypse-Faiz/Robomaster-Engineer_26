@@ -852,7 +852,7 @@ void Joint_limitSet()
 		// 相对最初代码坐标的累计校正：J2 +6.85°、J3 +7.8°、J4 +1.1°、J6 -0.4°。
 		// 将零点、选圈范围和软限位一起迁移，保持原有机械行程不变。
 		const float j1_offset = SelectDmStartupOffset(motor[0].getAngle(), 1.0f, 0.0f, -170.0f, 170.0f);
-		const float j2_offset = SelectDmStartupOffset(motor[1].getAngle(), 1.0f, 164.85f, 60.0f, 161.85f);
+		const float j2_offset = SelectDmStartupOffset(motor[1].getAngle(), 1.0f, 165.33f, 60.0f, 161.85f);
 		const float j3_offset = SelectDmStartupOffset(motor[2].getAngle(), 1.0f, 41.8f, 39.8f, 157.8f);
 		const float j5_offset = SelectDmStartupOffset(motor[4].getAngle(), -1.0f, 0.0f, -165.0f, 165.0f);
 		const float j7_offset = SelectDmStartupOffset(motor[6].getAngle(), -1.0f, 0.0f, -150.0f, 167.0f);
@@ -1108,7 +1108,7 @@ void tskMotor(void *arg)
 	// 遥控链路建立且退出 Lost 后，才解除由链路/Lost 触发的全臂失能。
 
 	DM4340P.setEncoderOffset(0x7348);
-	DM8009.setEncoderOffset(0x7370);
+	DM8009.setEncoderOffset(0x7F18);
 	DM4340_1.setEncoderOffset(0x4F6A);
 	DM4340_2.setEncoderOffset(0x9ECF);
 	DM4310_1.setEncoderOffset(0x720F);
