@@ -1,4 +1,5 @@
 #include "internal.h"
+#include "ActionGroupController.h"
 
 volatile BottomComDiagStats g_bottom_com_diag_stats = {0U, 0U, 0U, 0U};
 
@@ -27,6 +28,13 @@ uint8_t Bottomdata_Transmit(float _x, float _y, float _z)
 
     // ToBottomData_temp.L_Store = toBottomdata.L_Store;
     // ToBottomData_temp.R_Store = toBottomdata.R_Store;
+
+    ToBottomData_temp.GetOreIndex = action_group_controller.getSelectedOre();
+
+    ToBottomData_temp.OreBit[0] = OreBit[0];
+    ToBottomData_temp.OreBit[1] = OreBit[1];
+    ToBottomData_temp.OreBit[2] = OreBit[2];
+    ToBottomData_temp.OreBit[3] = OreBit[3];
 
     ToBottomData_temp.UI_mode = (uint8_t)UI_Mode; // UI界面赋值
 
