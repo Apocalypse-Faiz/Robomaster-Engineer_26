@@ -49,6 +49,7 @@ extern "C"
     void ExchangeEnergyUnit_stopExchange();
     bool ExchangeEnergyUnit_isExchanging();
     ExchangeState ExchangeEnergyUnit_getCurrentState();
+    bool ExchangeEnergyUnit_isVisionMode();
 }
 
 #endif

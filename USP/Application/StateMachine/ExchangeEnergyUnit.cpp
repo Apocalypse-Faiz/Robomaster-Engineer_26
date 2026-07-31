@@ -8,6 +8,11 @@
 uint8_t EnergyUnitCount = 0;         // 当前携带的能量单元数量
 // uint8_t ExchangeSuccessCount = 0;    // 成功兑换次数
 static ExchangeMode current_mode = ExchangeMode::ACTION_GROUP;
+
+bool ExchangeEnergyUnit_isVisionMode()
+{
+    return current_mode == ExchangeMode::VISION_CONTROL;
+}
 static ExchangeState current_state = ExchangeState::IDLE;
 static bool action_in_progress = false;
 static ActionGroup_enum current_action = ActionGroup_enum::NuLLAction;

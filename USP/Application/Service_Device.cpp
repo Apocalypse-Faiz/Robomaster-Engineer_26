@@ -25,6 +25,8 @@
 #include "ActionGroupController.h"
 #include "CustomControl.h"
 #include "VisualControl.h"
+#include "GetEnergyUnit.h"
+#include "ExchangeEnergyUnit.h"
 
 /* Private define ------------------------------------------------------------*/
 #define ENABLE_J1_INERTIA_VALIDATION 0
@@ -1481,7 +1483,12 @@ void tskBoardCom(void *arg)
 					}
 					vision_latest_frame.chassis_height_current = current_chassis_height + 0.000f;
 					vision_latest_frame.seq_num = seq_num++;
-					vision_latest_frame.comm_flag = 0U;
+					const bool vision_mode_active =
+						((g_top_state_id == TopStateId::GetEnergyUnit) &&
+						 GetEnergyUnit_isVisionMode()) ||
+						((g_top_state_id == TopStateId::ExchangeEnergyUnit) &&
+						 ExchangeEnergyUnit_isVisionMode());
+					vision_latest_frame.comm_flag = vision_mode_active ? 0U : 1U;
 
 					if (vision_pending_valid == 0U)
 					{
