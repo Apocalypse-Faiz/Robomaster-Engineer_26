@@ -18,6 +18,12 @@ bool GetEnergyUnit_isVisionMode()
 {
     return current_mode == ControlMode::VISION_CONTROL;
 }
+
+bool GetEnergyUnit_isActionGroupMode()
+{
+    return current_mode == ControlMode::ACTION_GROUP;
+}
+
 static CustomData custom_control_data;            // 自定义控制数据
 static VisionData vision_control_data;            // 视觉控制数据
 static constexpr float get_energy_unit_default_chassis_height_m = 0.373f;

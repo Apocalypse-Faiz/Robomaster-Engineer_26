@@ -1,5 +1,7 @@
 #include "internal.h"
 #include "ActionGroupController.h"
+#include "TopState.h"
+#include "GetEnergyUnit.h"
 
 volatile BottomComDiagStats g_bottom_com_diag_stats = {0U, 0U, 0U, 0U};
 
@@ -29,7 +31,10 @@ uint8_t Bottomdata_Transmit(float _x, float _y, float _z)
     // ToBottomData_temp.L_Store = toBottomdata.L_Store;
     // ToBottomData_temp.R_Store = toBottomdata.R_Store;
 
-    ToBottomData_temp.GetOreIndex = action_group_controller.getSelectedOre();
+    if ((g_top_state_id == TopStateId::GetEnergyUnit) && GetEnergyUnit_isActionGroupMode())
+    ToBottomData_temp.GetOreIndex = action_group_controller.getSelectedOre() + 1;
+    else
+    ToBottomData_temp.GetOreIndex = 0;
 
     ToBottomData_temp.OreBit[0] = OreBit[0];
     ToBottomData_temp.OreBit[1] = OreBit[1];

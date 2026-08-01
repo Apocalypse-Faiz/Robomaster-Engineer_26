@@ -10,6 +10,7 @@ extern "C"
     void GetEnergyUnit_action(Event_t **pEvent);
     void GetEnergyUnit_exitAction();
     bool GetEnergyUnit_isVisionMode();
+    bool GetEnergyUnit_isActionGroupMode();
 }
 
 #endif
