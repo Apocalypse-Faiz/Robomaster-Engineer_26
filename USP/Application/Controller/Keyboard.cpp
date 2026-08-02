@@ -522,18 +522,18 @@ void VT13_KeyBoard_MoveCtrl_Custom(ToBottomDataStructdef &_ToBottomData)
         // }
         // else
         // {
-            temp_Speed = 0.8f;
+            temp_Speed = 0.5f;
         // }
 
         if (VT13.IsKeyPress(VT13_KEY_D))
         {
-            increas_buffer[0] += 0.05;
+            increas_buffer[0] += 0.03;
             increas_buffer[0] = constrain(increas_buffer[0], 0.5, 1);
             temp_vy = 0.5 * temp_Speed * increas_buffer[0];
         }
         else if (VT13.IsKeyPress(VT13_KEY_A))
         {
-            increas_buffer[1] += 0.05;
+            increas_buffer[1] += 0.03;
             increas_buffer[1] = constrain(increas_buffer[1], 0.5, 1);
             temp_vy = -0.5 * temp_Speed * increas_buffer[1];
         }
@@ -546,14 +546,14 @@ void VT13_KeyBoard_MoveCtrl_Custom(ToBottomDataStructdef &_ToBottomData)
 
         if (VT13.IsKeyPress(VT13_KEY_S))
         {
-            increas_buffer[2] += 0.05;
+            increas_buffer[2] += 0.03;
             increas_buffer[2] = constrain(increas_buffer[2], 0.5, 1);
 
             temp_vx = -0.5 * temp_Speed * increas_buffer[2];
         }
         else if (VT13.IsKeyPress(VT13_KEY_W))
         {
-            increas_buffer[3] += 0.05;
+            increas_buffer[3] += 0.03;
             increas_buffer[3] = constrain(increas_buffer[3], 0.5, 1);
 
             temp_vx = 0.5 * temp_Speed * increas_buffer[3];
