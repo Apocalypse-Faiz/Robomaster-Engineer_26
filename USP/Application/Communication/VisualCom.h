@@ -10,6 +10,25 @@
 #define VISION_FRAME_CRC_SIZE          2U
 
 /*
+ * comm_flag values shared with the vision computer.
+ * 0/1 keep the existing control-mode status semantics; 2-4 are commands sent
+ * by the controller, and 5-9 are recognition/motion states returned by vision.
+ */
+enum VisionCommFlag
+{
+    VISION_COMM_CONTROL_ACTIVE = 0U,
+    VISION_COMM_CONTROL_INACTIVE = 1U,
+    VISION_COMM_START_RECOGNITION = 2U,
+    VISION_COMM_MOVE_TO_PREINSERT = 3U,
+    VISION_COMM_START_INSERTION = 4U,
+    VISION_COMM_RECOGNITION_FAILED = 5U,
+    VISION_COMM_RECOGNIZING = 6U,
+    VISION_COMM_RECOGNITION_SUCCEEDED = 7U,
+    VISION_COMM_SOLUTION_READY = 8U,
+    VISION_COMM_PREINSERT_REACHED = 9U
+};
+
+/*
  * Wire format (little-endian):
  * FE EE | agreed fixed payload | CRC16:u16
  * Frame boundaries are determined by the packed structure size agreed with

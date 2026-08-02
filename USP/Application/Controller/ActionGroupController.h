@@ -26,6 +26,33 @@ enum class TakeOre_enum {
     TakeinOreLF_end, TakeinOreRF_end, TakeinOreLB_end, TakeinOreRB_end
 };
 
+/* 一键四矿流程状态。取矿顺序固定为 2、3、5、6，储矿顺序为 LF、RF、LB、RB。 */
+enum class AutoFourOreState : uint8_t {
+    Idle = 0,
+    OpenGripper,
+    WaitOpenGripper,
+    WaitTakePrepare,
+    WaitCloseGripper,
+    WaitStore,
+    WaitRelease,
+    WaitExitToNextPrepare,
+    WaitExitStore,
+    Completed,
+    Aborted,
+    Fault
+};
+
+enum class AutoFourOreError : uint8_t {
+    None = 0,
+    Busy,
+    ArmNotCalibrated,
+    StorageNotEmpty,
+    GripperError,
+    GripperCommandOverridden,
+    ActionTimeout,
+    UserAborted
+};
+
 /* 动作组控制器类 - 专门处理动作组逻辑 */
 class ActionGroupController {
 private:
@@ -48,6 +75,18 @@ private:
     ActionGroup_enum action_enum;
     uint8_t add_once_flag;
     uint8_t last_action_done;
+
+    // 一键四矿状态变量
+    AutoFourOreState auto_four_ore_state;
+    AutoFourOreError auto_four_ore_error;
+    uint8_t auto_four_ore_count;
+    uint8_t auto_four_current_ore;
+    uint8_t auto_four_current_slot;
+    uint32_t auto_state_enter_tick;
+    bool auto_four_ore_active;
+    bool auto_stop_requested;
+    bool last_auto_start_pressed;
+    bool last_auto_abort_pressed;
 
     void initFlags(); // 仅清标志位, 不触发入场动作组 (供 reset 调用)
 
@@ -89,6 +128,18 @@ public:
 
     /** @brief Selected belly slot, 0=LF, 1=RF, 2=LB, 3=RB. */
     uint8_t getSelectedBellySlot() const { return manual_slot_index; }
+
+    /** @brief 一键四矿流程是否正在接管机械臂和夹爪。 */
+    bool isAutoFourOreRunning() const { return auto_four_ore_active; }
+
+    /** @brief 已成功储存的矿数，范围 0~4。 */
+    uint8_t getAutoFourOreCount() const { return auto_four_ore_count; }
+
+    /** @brief 获取一键四矿流程状态，便于调试或 UI 显示。 */
+    AutoFourOreState getAutoFourOreState() const { return auto_four_ore_state; }
+
+    /** @brief 获取最近一次一键四矿错误。 */
+    AutoFourOreError getAutoFourOreError() const { return auto_four_ore_error; }
     
     /**
      * @brief 设置UI模式
@@ -123,6 +174,15 @@ private:
 
     /** @brief Toggle automatic/manual belly-slot selection and advance the manual index. */
     void handleBellySlotSelection();
+
+    /** @brief 处理 Shift+V 启动、Shift+C 软中止及自动取储矿流程。 */
+    bool handleAutoFourOre(Joint joints[], Gripper& gripper, bool action_free);
+
+    /** @brief 将一个动作组提交给统一执行器。 */
+    void startActionGroup(ActionGroup_enum action);
+
+    /** @brief 进入自动流程故障/中止状态，不强制打断当前机械臂轨迹。 */
+    void stopAutoFourOre(AutoFourOreError error);
     
     /**
      * @brief 执行动作组

@@ -1,5 +1,51 @@
 #include "ActionGroup.h"
 #include "internal.h"
+
+namespace {
+
+void ClearJointTrajectory(TrajectoryPointArray trajectory[7])
+{
+    for (uint8_t joint = 0U; joint < 7U; ++joint)
+    {
+        trajectory[joint].clear();
+    }
+}
+
+void AppendJointTargets(TrajectoryPointArray trajectory[7], float targets[][8], int target_count)
+{
+    for (int point = 0; point < target_count; ++point)
+    {
+        for (uint8_t joint = 0U; joint < 7U; ++joint)
+        {
+            trajectory[joint].add(targets[point][7], targets[point][joint]);
+        }
+    }
+}
+
+void BuildContinuousTakeStoreTrajectory(
+    TrajectoryPointArray trajectory[7],
+    float take_ing[][8], int take_ing_count,
+    float take_end[][8], int take_end_count,
+    float store[][8], int store_count)
+{
+    ClearJointTrajectory(trajectory);
+    AppendJointTargets(trajectory, take_ing, take_ing_count);
+    AppendJointTargets(trajectory, take_end, take_end_count);
+    AppendJointTargets(trajectory, store, store_count);
+}
+
+void BuildContinuousExitPrepareTrajectory(
+    TrajectoryPointArray trajectory[7],
+    float exit_store[][8], int exit_store_count,
+    float take_prepare[][8], int take_prepare_count)
+{
+    ClearJointTrajectory(trajectory);
+    AppendJointTargets(trajectory, exit_store, exit_store_count);
+    AppendJointTargets(trajectory, take_prepare, take_prepare_count);
+}
+
+} // namespace
+
 /**
  * @brief 关节坐标系的动作组执行函数
  * @param _tpa1 轨迹点组
@@ -9,19 +55,8 @@
 void ActionGroup_WithJoint(TrajectoryPointArray _tpa1[7], float _a[][8], int _Num)
 {
     // 是否需要加一些判断条件？满足条件后才能执行动作组
-
-    for (uint8_t i = 0; i < 7; i++)
-    {
-        _tpa1[i].clear(); // 需要清空，不仅是节省空间，更是防止会产生两个不同动作的阶跃（一个结束和一个开始的）
-    }
-
-    for (uint8_t i = 0; i < _Num; i++)
-    {
-        for (uint8_t j = 0; j < 7; j++)
-        {
-            _tpa1[j].add(_a[i][7], _a[i][j]);
-        }
-    }
+    ClearJointTrajectory(_tpa1);
+    AppendJointTargets(_tpa1, _a, _Num);
 }
 
 
@@ -241,6 +276,55 @@ void ActionGroup_Choose(TrajectoryPointArray _tpa1[7], ActionGroup_enum _action_
             ActionGroup_WithJoint(_tpa1, TakeOre6_end, 2);
         }
         break;
+    case ActionGroup_enum::AutoTakeStoreOre2_LF:
+        if (_Add_onlyOnce == 1)
+        {
+            BuildContinuousTakeStoreTrajectory(
+                _tpa1, TakeOre2_ing, 2, TakeOre2_end, 2, StoreOre_LF, 2);
+        }
+        break;
+    case ActionGroup_enum::AutoTakeStoreOre3_RF:
+        if (_Add_onlyOnce == 1)
+        {
+            BuildContinuousTakeStoreTrajectory(
+                _tpa1, TakeOre3_ing, 2, TakeOre3_end, 2, StoreOre_RF, 2);
+        }
+        break;
+    case ActionGroup_enum::AutoTakeStoreOre5_LB:
+        if (_Add_onlyOnce == 1)
+        {
+            BuildContinuousTakeStoreTrajectory(
+                _tpa1, TakeOre5_ing, 2, TakeOre5_end, 2, StoreOre_LB, 2);
+        }
+        break;
+    case ActionGroup_enum::AutoTakeStoreOre6_RB:
+        if (_Add_onlyOnce == 1)
+        {
+            BuildContinuousTakeStoreTrajectory(
+                _tpa1, TakeOre6_ing, 2, TakeOre6_end, 2, StoreOre_RB, 2);
+        }
+        break;
+    case ActionGroup_enum::AutoExitLFToOre3Prepare:
+        if (_Add_onlyOnce == 1)
+        {
+            BuildContinuousExitPrepareTrajectory(
+                _tpa1, ExitStoreOre_LF, 2, TakeOre3_prepare, 2);
+        }
+        break;
+    case ActionGroup_enum::AutoExitRFToOre5Prepare:
+        if (_Add_onlyOnce == 1)
+        {
+            BuildContinuousExitPrepareTrajectory(
+                _tpa1, ExitStoreOre_RF, 2, TakeOre5_prepare, 2);
+        }
+        break;
+    case ActionGroup_enum::AutoExitLBToOre6Prepare:
+        if (_Add_onlyOnce == 1)
+        {
+            BuildContinuousExitPrepareTrajectory(
+                _tpa1, ExitStoreOre_LB, 2, TakeOre6_prepare, 2);
+        }
+        break;
     case ActionGroup_enum::ToActionGroup:
         if (_Add_onlyOnce == 1)
         {
@@ -413,14 +497,14 @@ float TakeOre1_prepare[2][8] =
 
 float TakeOre2_prepare[2][8] = 
 {
-    {27.03, 111.37, 89.31, -75.9, 57.08, -0.4, 0, 500},
-    {15.03, 99.46, 79.31, -75.9, 66.12, -10.94, -9.86, 500}
+    {27.03, 111.37, 89.31, -75.9, 57.08, -0.4, 0, 450},
+    {15.03, 99.46, 79.31, -75.9, 66.12, -10.94, -9.86, 450}
 };
 
 float TakeOre3_prepare[2][8] = 
 {
-    {18, 120.85, 118.8, -75.9, 66, -8.4, 46, 500},
-    {13.25, 97.94, 103.15, -75.9, 65.48, -12.22, 51.09, 500}
+    {18, 120.85, 118.8, -75.9, 66, -8.4, 46, 450},
+    {13.25, 97.94, 103.15, -75.9, 65.48, -12.22, 51.09, 450}
 };
 
 float TakeOre4_prepare[2][8] = 
@@ -431,16 +515,16 @@ float TakeOre4_prepare[2][8] =
 
 float TakeOre5_prepare[2][8] = 
 {
-    {-51, 129.85, 124.8, -75.9, -78, 22.6, -38, 500},
+    {-51, 129.85, 124.8, -75.9, -78, 22.6, -38, 450},
     // {-28.85, 101.57, 103.63, -75.9, -107.31, 1.71, -10.43, 500}
-    {-27.95, 97.26, 101.5, -75.9, -127.16, 6.36, 10.59, 500}  // 一键四矿版本
+    {-27.95, 97.26, 101.5, -75.9, -127.16, 6.36, 10.59, 450}  // 一键四矿版本
 };
 
 float TakeOre6_prepare[2][8] = 
 {
-    {-52, 129.85, 101.8, -75.9, -82, 19.6, 6, 500},
+    {-52, 129.85, 101.8, -75.9, -82, 19.6, 6, 450},
     // {-22.53, 105.06, 83.54, -75.9, -97.2, -4.7, 29.12, 500}
-    {-29.11, 101.52, 82.41, -75.9, -82.97, 3.06, 13.82, 500} // 一键四矿版本
+    {-29.11, 101.52, 82.41, -75.9, -82.97, 3.06, 13.82, 450} // 一键四矿版本
 };
 
 
@@ -456,14 +540,14 @@ float TakeOre2_ing[2][8] =
 {
     // {39.72, 110.31, -7.83, 52.47, 48.03, 10.47, 400},
     // {46.27, 102.55, -21.18, 56.91, 57.69, 9.59, 400}
-    {30.5, 87.08, 59.55, -75.9, 66.16, 2.9, -6.42, 500},
-    {30.5, 87.08, 59.55, -75.9, 66.16, -30.4, -6.42, 500}
+    {30.5, 87.08, 59.55, -75.9, 66.16, 2.9, -6.42, 350},
+    {30.5, 87.08, 59.55, -75.9, 66.16, -30.4, -6.42, 350}
 };
 
 float TakeOre3_ing[2][8] = 
 {
-    {31.77, 86.82, 98.07, -75.9, 79.52, 9.35, 22.85, 500},
-    {31.77, 86.82, 98.07, -75.9, 79.52, -20.4, 22.85, 500}
+    {31.77, 86.82, 98.07, -75.9, 79.52, 9.35, 22.85, 350},
+    {31.77, 86.82, 98.07, -75.9, 79.52, -20.4, 22.85, 350}
 };
 
 float TakeOre4_ing[2][8] = 
@@ -474,14 +558,14 @@ float TakeOre4_ing[2][8] =
 
 float TakeOre5_ing[2][8] = 
 {
-    {-42.56, 90.77,  105.43, -75.9, -131.92, 17.73, 20.76, 500},
-    {-42.56, 90.77, 105.43, -75.9, -131.92, -30.4, 20.76, 500}
+    {-42.56, 90.77,  105.43, -75.9, -131.92, 17.73, 20.76, 350},
+    {-42.56, 90.77, 105.43, -75.9, -131.92, -30.4, 20.76, 350}
 };
 
 float TakeOre6_ing[2][8] = 
 {
-    {-40.41, 97.48, 65.75, -75.9, -95.89, 11.95, 22.34, 500},
-    {-40.41, 97.48, 65.75, -75.9, -95.89, -30.4, 22.34, 500}
+    {-40.41, 97.48, 65.75, -75.9, -95.89, 11.95, 22.34, 350},
+    {-40.41, 97.48, 65.75, -75.9, -95.89, -30.4, 22.34, 350}
 };
         
 
@@ -494,14 +578,14 @@ float TakeOre1_end[2][8] =
 
 float TakeOre2_end[2][8] = 
 {
-    {32, 122.85, 102.8, -63.9, 43, -30.4, 0, 500},
-    {0, 160.85, 110.8, -26.9, 0, -42.4, 0, 500}
+    {32, 122.85, 102.8, -63.9, 43, -30.4, 0, 350},
+    {0, 160.85, 110.8, -26.9, 0, -42.4, 0, 350}
 };
 
 float TakeOre3_end[2][8] =
 {
-    {32, 124.85, 121.8, -75.9, 72, -20.4, 27, 500},
-    {0, 160.85, 110.8, -26.9, 0, -42.4, 0, 500}
+    {32, 124.85, 121.8, -75.9, 72, -20.4, 27, 350},
+    {0, 160.85, 110.8, -26.9, 0, -42.4, 0, 350}
 };
 
 float TakeOre4_end[2][8] = 
@@ -512,14 +596,14 @@ float TakeOre4_end[2][8] =
 
 float TakeOre5_end[2][8] = 
 {
-    {-39, 136.85, 119.8, -75.9, -136, -42.4, 0, 500},
-    {0, 160.85, 110.8, -26.9, 0, -42.4, 0, 500}
+    {-39, 136.85, 119.8, -75.9, -136, -42.4, 0, 350},
+    {0, 160.85, 110.8, -26.9, 0, -42.4, 0, 350}
 };
 
 float TakeOre6_end[2][8] = 
 {
-    {-35, 134.85, 107.8, -75.9, -50, -20.4, 10, 500},
-    {0, 160.85, 110.8, -26.9, 0, -42.4, 0, 500}
+    {-35, 134.85, 107.8, -75.9, -50, -20.4, 10, 350},
+    {0, 160.85, 110.8, -26.9, 0, -42.4, 0, 350}
 };
 
 // ============================================================================
@@ -531,48 +615,48 @@ float TakeOre6_end[2][8] =
 // ── 储存 (Store) ──────────────────────────────────
 float StoreOre_LF[2][8] = 
 {
-    {58.38, 142.02, 141.57, -75.9, 7.93, -17.77, -20.98, 500},
-    {46.95, 151.6, 145.8, -45.68, 33.72, -34.21, -41.13, 500}
+    {58.38, 142.02, 141.57, -75.9, 7.93, -17.77, -20.98, 350},
+    {46.95, 151.6, 145.8, -45.68, 33.72, -34.21, -41.13, 350}
 };
 float StoreOre_RF[2][8] = 
 {
-    {-74.35, 138.85, 138.26, -73.19, -12, -26.59, 24.13, 500},
-    {-82.53, 146.19, 154.23, -63.37, -12.94, -28.83, 26.5, 500}
+    {-74.35, 138.85, 138.26, -73.19, -12, -26.59, 24.13, 350},
+    {-82.53, 146.19, 154.23, -63.37, -12.94, -28.83, 26.5, 350}
 };
 float StoreOre_LB[2][8] = 
 {
     // {0, 160.85, 110.8, -26.9, 0, -42.4, 0, 500},
-    {161.27, 81.08, 106.53, -68.8, 7.73, -71, -10.76, 1200},
-    {161.27, 64.26, 119.93, -75.9, 6.54, -95.8, -4.89, 600}
+    {161.27, 81.08, 106.53, -68.8, 7.73, -71, -10.76, 900},
+    {157.27, 64.26, 117.93, -75.9, 6.54, -95.8, -4.89, 400}
 };
 float StoreOre_RB[2][8] = 
 {
     // {0, 160.85, 110.8, -26.9, 0, -42.4, 0, 500},
-    {-172.18, 81.7, 113.8, -75.9, 4.52, -71.9, -2.99, 1200},
-    {-167.01, 63.68, 118.59, -75.9, -0.73, -84.8, -3.93, 600}
+    {-172.18, 81.7, 113.8, -75.9, 4.52, -71.9, -2.99, 900},
+    {-167.01, 63.68, 118.59, -75.9, -0.73, -84.8, -3.93, 400}
 };
 
 // ── 退出储存 (ExitStore) ──────────────────────────
 float ExitStoreOre_LF[2][8] = 
 {
-    {46.96, 161.85, 100.1, -4.94, 26.67, -26.43, -28.56, 500},
-    {0, 160.85, 110.8, -26.9, 0, -42.4, 0, 500}
+    {46.96, 161.85, 100.1, -4.94, 26.67, -26.43, -28.56, 350},
+    {0, 160.85, 110.8, -26.9, 0, -42.4, 0, 350}
 };
 float ExitStoreOre_RF[2][8] = 
 {
-    {-80, 161.85, 122, -14.77, -5.8, -28.63, 21.2, 500},
-    {0, 160.85, 110.8, -26.9, 0, -42.4, 0, 500}
+    {-80, 161.85, 122, -14.77, -5.8, -28.63, 21.2, 350},
+    {0, 160.85, 110.8, -26.9, 0, -42.4, 0, 350}
 };
 float ExitStoreOre_LB[2][8] = 
 {
-    {151.13, 74.82, 124.61, -51.86, 16.08, -100.4, 0.63, 500},
-    {0, 160.85, 110.8, -26.9, 0, -42.4, 0, 1200}
+    {151.13, 74.82, 124.61, -51.86, 16.08, -100.4, 0.63, 350},
+    {0, 160.85, 110.8, -26.9, 0, -42.4, 0, 900}
 };
 float ExitStoreOre_RB[3][8] = 
 {
-    {-166.68, 75.46, 137.49, -75.72, -2.79, -97.82, -2.04, 500},
-    {-83, 117.85, 107.8, -51.9, 0, -70.4, 0, 600},
-    {0, 160.85, 110.8, -26.9, 0, -42.4, 0, 600}
+    {-166.68, 75.46, 137.49, -75.72, -2.79, -97.82, -2.04, 350},
+    {-83, 117.85, 107.8, -51.9, 0, -70.4, 0, 450},
+    {0, 160.85, 110.8, -26.9, 0, -42.4, 0, 450}
 };
 
 // ── 取出 (TakeIn) ─────────────────────────────────

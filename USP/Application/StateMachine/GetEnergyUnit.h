@@ -11,6 +11,7 @@ extern "C"
     void GetEnergyUnit_exitAction();
     bool GetEnergyUnit_isVisionMode();
     bool GetEnergyUnit_isActionGroupMode();
+    uint8_t GetEnergyUnit_getVisionCommand();
 }
 
 #endif

@@ -56,7 +56,18 @@ enum class ActionGroup_enum
     TakeOre4_end,   // 取矿结束
     TakeOre5_end,   // 取矿结束
     TakeOre6_end,   // 取矿结束
-    
+
+    // 一键四矿专用连续轨迹：取出、回收、储矿在同一次 CQC 规划中完成
+    AutoTakeStoreOre2_LF,
+    AutoTakeStoreOre3_RF,
+    AutoTakeStoreOre5_LB,
+    AutoTakeStoreOre6_RB,
+
+    // 一键四矿专用连续轨迹：退出当前储矿槽并直接到达下一矿准备位
+    AutoExitLFToOre3Prepare,
+    AutoExitRFToOre5Prepare,
+    AutoExitLBToOre6Prepare,
+
     TakeLandOre_prepare, // 准备取地矿
     TakeLandOre_ing,     // 取地矿进行
     TakeLandOre_end, // 取地矿结束

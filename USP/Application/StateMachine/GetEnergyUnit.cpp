@@ -35,6 +35,11 @@ static uint32_t mode_change_time = 0;
 static TickType_t last_vision_rx_tick = 0U;
 static bool vision_frame_received = false;
 static constexpr uint32_t vision_link_timeout_ms = 100U;
+static uint8_t vision_comm_status = VISION_COMM_CONTROL_ACTIVE;
+static volatile uint8_t vision_command_latched = 0U;
+static bool last_vision_z_key_state = false;
+static bool last_vision_x_key_state = false;
+static bool last_vision_c_key_state = false;
 
 static float joint_takeover_speed_ff[7] = {0.0f};
 static float joint_takeover_acc_ff[7] = {0.0f};
@@ -52,6 +57,146 @@ static void resetVisionLinkState()
 {
     last_vision_rx_tick = 0U;
     vision_frame_received = false;
+}
+
+static void resetVisionInteractionState()
+{
+    vision_command_latched = 0U;
+    vision_comm_status = VISION_COMM_CONTROL_ACTIVE;
+    last_vision_z_key_state = false;
+    last_vision_x_key_state = false;
+    last_vision_c_key_state = false;
+}
+
+static void requestVisionCommand(uint8_t command)
+{
+    vision_command_latched = command;
+}
+
+uint8_t GetEnergyUnit_getVisionCommand()
+{
+    return vision_command_latched;
+}
+
+static void updateVisionCommStatus(uint8_t comm_flag)
+{
+    switch (comm_flag)
+    {
+        case VISION_COMM_RECOGNITION_FAILED:
+        case VISION_COMM_RECOGNIZING:
+        case VISION_COMM_RECOGNITION_SUCCEEDED:
+        case VISION_COMM_SOLUTION_READY:
+        case VISION_COMM_PREINSERT_REACHED:
+            vision_comm_status = comm_flag;
+            break;
+
+        default:
+            /* Keep the last recognition state when normal control frames use 0/1. */
+            break;
+    }
+}
+
+static void handleVisionCommandInput()
+{
+    const bool vt13_linked =
+        (VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED) &&
+        (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C);
+    const bool z_key_pressed = vt13_linked && VT13.IsKeyPress(VT13_KEY_Z);
+    const bool x_key_pressed = vt13_linked && VT13.IsKeyPress(VT13_KEY_X);
+    const bool c_key_pressed = vt13_linked && VT13.IsKeyPress(VT13_KEY_C);
+
+    if (z_key_pressed && !last_vision_z_key_state)
+    {
+        requestVisionCommand(VISION_COMM_START_RECOGNITION);
+        vision_comm_status = VISION_COMM_CONTROL_ACTIVE;
+    }
+
+    /* X is valid only after vision reports that the solution is ready. */
+    if (x_key_pressed && !last_vision_x_key_state &&
+        vision_comm_status == VISION_COMM_SOLUTION_READY)
+    {
+        requestVisionCommand(VISION_COMM_MOVE_TO_PREINSERT);
+        vision_comm_status = VISION_COMM_CONTROL_ACTIVE;
+    }
+
+    /* C is valid only after vision confirms that pre-insertion has been reached. */
+    if (c_key_pressed && !last_vision_c_key_state &&
+        vision_comm_status == VISION_COMM_PREINSERT_REACHED)
+    {
+        requestVisionCommand(VISION_COMM_START_INSERTION);
+        vision_comm_status = VISION_COMM_CONTROL_ACTIVE;
+    }
+
+    last_vision_z_key_state = z_key_pressed;
+    last_vision_x_key_state = x_key_pressed;
+    last_vision_c_key_state = c_key_pressed;
+}
+
+static void applyVisionCommIndicator(uint32_t tick_ms)
+{
+    if (current_mode != ControlMode::VISION_CONTROL)
+    {
+        return;
+    }
+
+    WS_colorType colors[6];
+    bool override_indicator = true;
+
+    switch (vision_comm_status)
+    {
+        case VISION_COMM_RECOGNITION_FAILED:
+            /* Recognition failed: all LEDs flash red at 4 Hz. */
+            for (uint8_t i = 0U; i < 6U; i++)
+            {
+                colors[i] = (((tick_ms / 125U) & 0x01U) == 0U) ? WS_Red : WS_Black;
+            }
+            break;
+
+        case VISION_COMM_RECOGNIZING:
+            /* Recognition in progress: one yellow LED runs around the board. */
+            for (uint8_t i = 0U; i < 6U; i++)
+            {
+                colors[i] = (i == ((tick_ms / 120U) % 6U)) ? WS_Yellow : WS_Black;
+            }
+            break;
+
+        case VISION_COMM_RECOGNITION_SUCCEEDED:
+            /* Recognition succeeded: steady green. */
+            for (uint8_t i = 0U; i < 6U; i++)
+            {
+                colors[i] = WS_Green;
+            }
+            break;
+
+        case VISION_COMM_SOLUTION_READY:
+            /* Solution ready: alternating cyan/white prompts the operator to press X. */
+            for (uint8_t i = 0U; i < 6U; i++)
+            {
+                const uint8_t phase = (uint8_t)((tick_ms / 250U) & 0x01U);
+                colors[i] = (((i & 0x01U) ^ phase) != 0U) ? WS_White : WS_Cyan;
+            }
+            break;
+
+        case VISION_COMM_PREINSERT_REACHED:
+            /* Pre-insertion reached: steady blue prompts the operator to press C. */
+            for (uint8_t i = 0U; i < 6U; i++)
+            {
+                colors[i] = WS_Blue;
+            }
+            break;
+
+        default:
+            override_indicator = false;
+            break;
+    }
+
+    if (override_indicator)
+    {
+        for (uint8_t i = 0U; i < 6U; i++)
+        {
+            WS_indicator[i] = colors[i];
+        }
+    }
 }
 
 static void resetJointTakeoverFeedforward()
@@ -130,6 +275,7 @@ void switchControlMode(ControlMode new_mode)
             vision_control_data.enable = false;
             vision_controller.reset();
             resetVisionLinkState();
+            resetVisionInteractionState();
             break;
     }
     
@@ -150,6 +296,7 @@ void switchControlMode(ControlMode new_mode)
         case ControlMode::VISION_CONTROL:
             vision_control_data.enable = true;
             resetVisionLinkState();
+            resetVisionInteractionState();
             break;
     }
 }
@@ -288,6 +435,8 @@ void executeVisionControlMode(bool vision_data_ready)
     }
     last_f_key_state = f_key_pressed;
 
+    handleVisionCommandInput();
+
     // 检查是否收到小电脑数据
     if (vision_data_ready)
     {
@@ -402,6 +551,7 @@ void GetEnergyUnit_enterAction()
 
     mode_changing = false;
     resetVisionLinkState();
+    resetVisionInteractionState();
 
     // 进入取能量单元状态时，默认将底盘高度目标设置为 0.35m
     toBottomdata.ChassisState = 2;
@@ -434,6 +584,11 @@ void GetEnergyUnit_action(Event_t **pEvent)
     {
         vision_link_alive =
             ((current_tick - last_vision_rx_tick) < pdMS_TO_TICKS(vision_link_timeout_ms));
+    }
+
+    if (vision_data_ready)
+    {
+        updateVisionCommStatus(reVisiondata.comm_flag);
     }
 
 
@@ -517,6 +672,8 @@ void GetEnergyUnit_action(Event_t **pEvent)
         }
     }
 
+    applyVisionCommIndicator(HAL_GetTick());
+
     switch (current_mode)
     {
         case ControlMode::ACTION_GROUP :
@@ -597,15 +754,19 @@ void GetEnergyUnit_action(Event_t **pEvent)
 
     handleModeSwitchInput(); 
 
-    if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
+    // 一键四矿运行时夹爪由 ActionGroupController 独占，避免 E 键覆盖自动开合命令。
+    if (!action_group_controller.isAutoFourOreRunning())
     {
-        Keyboard_Grippers();
-        // Keyboard_Store(toBottomdata);
-    }
-    if (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C && VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
-    {
-        VT13_KeyBoard_Grip();
-        // VT13_KeyboardStoreGrippers(toBottomdata);
+        if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
+        {
+            Keyboard_Grippers();
+            // Keyboard_Store(toBottomdata);
+        }
+        if (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C && VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
+        {
+            VT13_KeyBoard_Grip();
+            // VT13_KeyboardStoreGrippers(toBottomdata);
+        }
     }
 
 }
@@ -631,4 +792,5 @@ void GetEnergyUnit_exitAction()
      current_mode = ControlMode::ACTION_GROUP;
      mode_changing = false;
      resetVisionLinkState();
+     resetVisionInteractionState();
 }

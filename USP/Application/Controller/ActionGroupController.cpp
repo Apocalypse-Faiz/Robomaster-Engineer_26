@@ -2,6 +2,43 @@
 #include "ActionGroup.h"
 #include "Keyboard.h"
 
+namespace {
+
+constexpr uint8_t AUTO_FOUR_ORE_COUNT = 4U;
+constexpr uint32_t AUTO_GRIPPER_OPEN_TIME_MS = 600U;
+constexpr uint32_t AUTO_GRIPPER_CLOSE_TIME_MS = 700U;
+constexpr uint32_t AUTO_ORE_DROP_SETTLE_TIME_MS = 400U;
+constexpr uint32_t AUTO_ACTION_TIMEOUT_MS = 5000U;
+
+// 数组使用零基索引，因此 {1,2,4,5} 对应实际的 2、3、5、6 号矿。
+const uint8_t auto_ore_sequence[AUTO_FOUR_ORE_COUNT] = {1U, 2U, 4U, 5U};
+
+const ActionGroup_enum auto_take_prepare_actions[6] = {
+    ActionGroup_enum::TakeOre1_prepare, ActionGroup_enum::TakeOre2_prepare,
+    ActionGroup_enum::TakeOre3_prepare, ActionGroup_enum::TakeOre4_prepare,
+    ActionGroup_enum::TakeOre5_prepare, ActionGroup_enum::TakeOre6_prepare
+};
+
+const ActionGroup_enum auto_take_store_actions[AUTO_FOUR_ORE_COUNT] = {
+    ActionGroup_enum::AutoTakeStoreOre2_LF,
+    ActionGroup_enum::AutoTakeStoreOre3_RF,
+    ActionGroup_enum::AutoTakeStoreOre5_LB,
+    ActionGroup_enum::AutoTakeStoreOre6_RB
+};
+
+const ActionGroup_enum auto_exit_store_actions[4] = {
+    ActionGroup_enum::ExitStoreOre_LF, ActionGroup_enum::ExitStoreOre_RF,
+    ActionGroup_enum::ExitStoreOre_LB, ActionGroup_enum::ExitStoreOre_RB
+};
+
+const ActionGroup_enum auto_exit_to_next_prepare_actions[AUTO_FOUR_ORE_COUNT - 1U] = {
+    ActionGroup_enum::AutoExitLFToOre3Prepare,
+    ActionGroup_enum::AutoExitRFToOre5Prepare,
+    ActionGroup_enum::AutoExitLBToOre6Prepare
+};
+
+} // namespace
+
 /* 全局动作组控制器实例 */
 ActionGroupController action_group_controller;
 
@@ -29,6 +66,290 @@ void ActionGroupController::initFlags()
     action_enum = ActionGroup_enum::NuLLAction;
     add_once_flag = 0;
     last_action_done = 0;
+
+    auto_four_ore_state = AutoFourOreState::Idle;
+    auto_four_ore_error = AutoFourOreError::None;
+    auto_four_ore_count = 0U;
+    auto_four_current_ore = auto_ore_sequence[0];
+    auto_four_current_slot = 0U;
+    auto_state_enter_tick = 0U;
+    auto_four_ore_active = false;
+    auto_stop_requested = false;
+    last_auto_start_pressed = false;
+    last_auto_abort_pressed = false;
+}
+
+void ActionGroupController::startActionGroup(ActionGroup_enum action)
+{
+    action_enum = action;
+    add_once_flag = 1U;
+    last_action_done = 0U;
+    auto_state_enter_tick = HAL_GetTick();
+}
+
+void ActionGroupController::stopAutoFourOre(AutoFourOreError error)
+{
+    auto_four_ore_active = false;
+    auto_stop_requested = false;
+    auto_four_ore_error = error;
+    auto_four_ore_state = (error == AutoFourOreError::UserAborted)
+        ? AutoFourOreState::Aborted
+        : AutoFourOreState::Fault;
+    take_ore_state = TakeOre_enum::Zero;
+    action_enum = ActionGroup_enum::NuLLAction;
+    add_once_flag = 0U;
+    last_action_done = 0U;
+}
+
+/**
+ * @brief 一键四矿状态机。
+ *
+ * Shift+V 上升沿启动，Shift+C 请求中止。机械臂动作使用轨迹空闲作为
+ * 完成判据；PWM 夹爪没有反馈，因此开合完成使用固定等待时间判断。
+ */
+bool ActionGroupController::handleAutoFourOre(Joint joints[], Gripper& gripper, bool action_free)
+{
+    const bool dr16_online =
+        DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED;
+    const bool vt13_online =
+        VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED &&
+        VT13.GetModeSwitch() != MS_Status_Typedef::MS_C;
+
+    const bool start_pressed =
+        (dr16_online && DR16.IsKeyPress(DR16_KEY_SHIFT) && DR16.IsKeyPress(DR16_KEY_V)) ||
+        (vt13_online && VT13.IsKeyPress(VT13_KEY_SHIFT) && VT13.IsKeyPress(VT13_KEY_V));
+    const bool abort_pressed =
+        (dr16_online && DR16.IsKeyPress(DR16_KEY_SHIFT) && DR16.IsKeyPress(DR16_KEY_C)) ||
+        (vt13_online && VT13.IsKeyPress(VT13_KEY_SHIFT) && VT13.IsKeyPress(VT13_KEY_C));
+
+    const bool start_rising = start_pressed && !last_auto_start_pressed;
+    const bool abort_rising = abort_pressed && !last_auto_abort_pressed;
+    last_auto_start_pressed = start_pressed;
+    last_auto_abort_pressed = abort_pressed;
+
+    if (auto_four_ore_active && abort_rising)
+    {
+        // 已经进入取矿动作后，先安全完成当前矿并退出储矿槽，再停止后续循环。
+        auto_stop_requested = true;
+    }
+
+    if (!auto_four_ore_active && start_rising)
+    {
+        auto_four_ore_count = 0U;
+        auto_four_current_slot = 0U;
+        auto_four_current_ore = auto_ore_sequence[0];
+        ore_index = auto_four_current_ore;
+        auto_four_ore_error = AutoFourOreError::None;
+        auto_stop_requested = false;
+
+        if (!action_free || take_ore_state != TakeOre_enum::Zero || add_once_flag != 0U)
+        {
+            stopAutoFourOre(AutoFourOreError::Busy);
+            return true;
+        }
+
+        for (uint8_t i = 0U; i < 7U; ++i)
+        {
+            if (!joints[i].isCalibrated())
+            {
+                stopAutoFourOre(AutoFourOreError::ArmNotCalibrated);
+                return true;
+            }
+        }
+
+        for (uint8_t slot = 0U; slot < 4U; ++slot)
+        {
+            if (OreBit[slot] != 0U)
+            {
+                stopAutoFourOre(AutoFourOreError::StorageNotEmpty);
+                return true;
+            }
+        }
+
+        if (gripper.getState() == GripperState::ERROR)
+        {
+            stopAutoFourOre(AutoFourOreError::GripperError);
+            return true;
+        }
+
+        auto_four_ore_active = true;
+        auto_four_ore_state = AutoFourOreState::OpenGripper;
+        auto_state_enter_tick = HAL_GetTick();
+        take_ore_state = TakeOre_enum::Zero;
+        last_action_done = 0U;
+    }
+
+    // Shift 组合键按住期间必须吞掉普通 V/C，避免同时触发原有手动逻辑。
+    if (!auto_four_ore_active)
+    {
+        return start_pressed || abort_pressed;
+    }
+
+    const uint32_t now = HAL_GetTick();
+
+    if (gripper.getState() == GripperState::ERROR)
+    {
+        stopAutoFourOre(AutoFourOreError::GripperError);
+        return true;
+    }
+
+    if (auto_stop_requested &&
+        (auto_four_ore_state == AutoFourOreState::OpenGripper ||
+         auto_four_ore_state == AutoFourOreState::WaitOpenGripper))
+    {
+        stopAutoFourOre(AutoFourOreError::UserAborted);
+        return true;
+    }
+
+    switch (auto_four_ore_state)
+    {
+        case AutoFourOreState::OpenGripper:
+            gripper.open();
+            auto_state_enter_tick = now;
+            auto_four_ore_state = AutoFourOreState::WaitOpenGripper;
+            break;
+
+        case AutoFourOreState::WaitOpenGripper:
+            if (gripper.getState() != GripperState::OPENING)
+            {
+                stopAutoFourOre(AutoFourOreError::GripperCommandOverridden);
+            }
+            else if ((uint32_t)(now - auto_state_enter_tick) >= AUTO_GRIPPER_OPEN_TIME_MS)
+            {
+                startActionGroup(auto_take_prepare_actions[auto_four_current_ore]);
+                auto_four_ore_state = AutoFourOreState::WaitTakePrepare;
+            }
+            break;
+
+        case AutoFourOreState::WaitTakePrepare:
+            if (action_free)
+            {
+                gripper.close();
+                auto_state_enter_tick = now;
+                auto_four_ore_state = AutoFourOreState::WaitCloseGripper;
+            }
+            else if ((uint32_t)(now - auto_state_enter_tick) >= AUTO_ACTION_TIMEOUT_MS)
+            {
+                stopAutoFourOre(AutoFourOreError::ActionTimeout);
+            }
+            break;
+
+        case AutoFourOreState::WaitCloseGripper:
+            if (gripper.getState() != GripperState::CLOSING)
+            {
+                stopAutoFourOre(AutoFourOreError::GripperCommandOverridden);
+            }
+            else if ((uint32_t)(now - auto_state_enter_tick) >= AUTO_GRIPPER_CLOSE_TIME_MS)
+            {
+                auto_four_current_slot = auto_four_ore_count;
+                if (OreBit[auto_four_current_slot] != 0U)
+                {
+                    stopAutoFourOre(AutoFourOreError::StorageNotEmpty);
+                    break;
+                }
+
+                startActionGroup(auto_take_store_actions[auto_four_ore_count]);
+                auto_four_ore_state = AutoFourOreState::WaitStore;
+            }
+            break;
+
+        case AutoFourOreState::WaitStore:
+            if (action_free)
+            {
+                gripper.open();
+                auto_state_enter_tick = now;
+                auto_four_ore_state = AutoFourOreState::WaitRelease;
+            }
+            else if ((uint32_t)(now - auto_state_enter_tick) >= AUTO_ACTION_TIMEOUT_MS)
+            {
+                stopAutoFourOre(AutoFourOreError::ActionTimeout);
+            }
+            break;
+
+        case AutoFourOreState::WaitRelease:
+            if (gripper.getState() != GripperState::OPENING)
+            {
+                stopAutoFourOre(AutoFourOreError::GripperCommandOverridden);
+            }
+            else if ((uint32_t)(now - auto_state_enter_tick) >= AUTO_ORE_DROP_SETTLE_TIME_MS)
+            {
+                const bool has_next_ore =
+                    (auto_four_ore_count + 1U) < AUTO_FOUR_ORE_COUNT;
+                if (has_next_ore && !auto_stop_requested)
+                {
+                    startActionGroup(
+                        auto_exit_to_next_prepare_actions[auto_four_ore_count]);
+                    auto_four_ore_state = AutoFourOreState::WaitExitToNextPrepare;
+                }
+                else
+                {
+                    startActionGroup(auto_exit_store_actions[auto_four_current_slot]);
+                    auto_four_ore_state = AutoFourOreState::WaitExitStore;
+                }
+            }
+            break;
+
+        case AutoFourOreState::WaitExitToNextPrepare:
+            if (action_free)
+            {
+                ++auto_four_ore_count;
+                if (auto_stop_requested)
+                {
+                    stopAutoFourOre(AutoFourOreError::UserAborted);
+                    break;
+                }
+
+                auto_four_current_ore = auto_ore_sequence[auto_four_ore_count];
+                ore_index = auto_four_current_ore;
+                gripper.close();
+                auto_state_enter_tick = now;
+                auto_four_ore_state = AutoFourOreState::WaitCloseGripper;
+            }
+            else if ((uint32_t)(now - auto_state_enter_tick) >= AUTO_ACTION_TIMEOUT_MS)
+            {
+                stopAutoFourOre(AutoFourOreError::ActionTimeout);
+            }
+            break;
+
+        case AutoFourOreState::WaitExitStore:
+            if (action_free)
+            {
+                ++auto_four_ore_count;
+                if (auto_stop_requested)
+                {
+                    stopAutoFourOre(AutoFourOreError::UserAborted);
+                }
+                else if (auto_four_ore_count >= AUTO_FOUR_ORE_COUNT)
+                {
+                    auto_four_ore_active = false;
+                    auto_four_ore_state = AutoFourOreState::Completed;
+                    auto_four_ore_error = AutoFourOreError::None;
+                    take_ore_state = TakeOre_enum::Zero;
+                    action_enum = ActionGroup_enum::NuLLAction;
+                }
+                else
+                {
+                    auto_four_current_ore = auto_ore_sequence[auto_four_ore_count];
+                    ore_index = auto_four_current_ore;
+                    auto_four_ore_state = AutoFourOreState::OpenGripper;
+                    auto_state_enter_tick = now;
+                }
+            }
+            else if ((uint32_t)(now - auto_state_enter_tick) >= AUTO_ACTION_TIMEOUT_MS)
+            {
+                stopAutoFourOre(AutoFourOreError::ActionTimeout);
+            }
+            break;
+
+        case AutoFourOreState::Idle:
+        case AutoFourOreState::Completed:
+        case AutoFourOreState::Aborted:
+        case AutoFourOreState::Fault:
+        default:
+            break;
+    }
+
+    return true;
 }
 
 /**
@@ -254,32 +575,62 @@ void ActionGroupController::executeActionGroup(Joint joints[], TrajectoryPointAr
  */
 void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajectory_arrays[], Gripper& gripper, ToBottomDataStructdef& toBottomdata, ReBottomDataStructdef& reBottomdata) {
 
-    // Update the selection mode before processing F/C in this control cycle.
-    handleBellySlotSelection();
+    // 自动流程运行期间固定使用 LF->RF->LB->RB，不响应手动槽位选择。
+    if (!auto_four_ore_active)
+    {
+        handleBellySlotSelection();
+    }
 
     // 检查动作组是否空闲
     bool action_free = true;
-    for (uint8_t i = 0; i < 7; i++) 
+    for (uint8_t i = 0; i < 7; i++)
     {
-        if (joints[i].isTrajectoryPlannerFree() == false) 
+        if (joints[i].isTrajectoryPlannerFree() == false)
         {
             action_free = false;
             break;
         }
     }
 
-    // init() 后首次 update 自动触发一次入场起始动作组
-    // 必须作为 if-else 链的第一个分支: 否则下方 else 会把 action_enum 覆盖成 NuLLAction,
-    // 而 add_once_flag 仍为 1, 导致对空轨迹数组 startTrajectoryPlanner → CQC 越界 → 死锁
-    if (entry_action_pending && action_free == true)
+    // 手动 V/C 只在没有 Shift/Ctrl 修饰键时有效，避免组合键分两帧到达时
+    // 误触发单次取矿或取肚矿。WASD 等其他按键仍可与手动动作同时使用。
+    const bool manual_take_key_pressed =
+        (DR16.IsKeyPress(DR16_KEY_V) &&
+         !DR16.IsKeyPress(DR16_KEY_SHIFT) &&
+         !DR16.IsKeyPress(DR16_KEY_CTRL)) ||
+        (VT13.IsKeyPress(VT13_KEY_V) &&
+         !VT13.IsKeyPress(VT13_KEY_SHIFT) &&
+         !VT13.IsKeyPress(VT13_KEY_CTRL));
+    const bool manual_takeout_key_pressed =
+        (DR16.IsKeyPress(DR16_KEY_C) &&
+         !DR16.IsKeyPress(DR16_KEY_SHIFT) &&
+         !DR16.IsKeyPress(DR16_KEY_CTRL)) ||
+        (VT13.IsKeyPress(VT13_KEY_C) &&
+         !VT13.IsKeyPress(VT13_KEY_SHIFT) &&
+         !VT13.IsKeyPress(VT13_KEY_CTRL));
+
+    bool auto_owns_cycle = false;
+
+    // 入场动作完成前不接受其他动作，避免空轨迹或动作组互相覆盖。
+    if (entry_action_pending)
     {
-        entry_action_pending = false;
-        action_enum = ActionGroup_enum::ToActionGroup;
-        add_once_flag = 1;
+        auto_owns_cycle = true;
+        if (action_free)
+        {
+            entry_action_pending = false;
+            startActionGroup(ActionGroup_enum::ToActionGroup);
+        }
     }
+    else
+    {
+        auto_owns_cycle = handleAutoFourOre(joints, gripper, action_free);
+    }
+
+    if (!auto_owns_cycle)
+    {
     // 储矿逻辑 — 根据 OreBit 自动选空槽 (优先级: LF>RF>LB>RB)
     //   F 键触发储存, 自动寻找第一个 OreBit[s]==0 的槽位
-    else if (action_free == true && (DR16.IsKeyPress(DR16_KEY_F) || VT13.IsKeyPress(VT13_KEY_F)) && gripper.getState() == GripperState::CLOSING && take_ore_state == TakeOre_enum::Zero)
+    if (action_free == true && (DR16.IsKeyPress(DR16_KEY_F) || VT13.IsKeyPress(VT13_KEY_F)) && gripper.getState() == GripperState::CLOSING && take_ore_state == TakeOre_enum::Zero)
     {
         static const ActionGroup_enum store_actions[4] = {
             ActionGroup_enum::StoreOre_LF, ActionGroup_enum::StoreOre_RF,
@@ -318,7 +669,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
     }
     
             //取矿1
-            else if(get_ore_num[0] == 1 && action_free == true && take_ore_state == TakeOre_enum::Zero && /*gripper.isObjectGripped() == false &&*/ (DR16.IsKeyPress(DR16_KEY_V) || VT13.IsKeyPress(VT13_KEY_V)))
+            else if(get_ore_num[0] == 1 && action_free == true && take_ore_state == TakeOre_enum::Zero && /*gripper.isObjectGripped() == false &&*/ manual_take_key_pressed)
             {
                 action_enum = ActionGroup_enum::TakeOre1_prepare;
                 if (gripper.getState() != GripperState::OPENING)
@@ -329,7 +680,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 take_ore_state = TakeOre_enum::TakeOre1_prepare;
                 // UI_Mode = 1;
             }
-            else if(action_free == true && take_ore_state == TakeOre_enum::TakeOre1_ing && /*gripper.isObjectGripped() == true gripper.getState() == GripperState::OPENING &&*/ (DR16.IsKeyPress(DR16_KEY_V) || VT13.IsKeyPress(VT13_KEY_V)))
+            else if(action_free == true && take_ore_state == TakeOre_enum::TakeOre1_ing && /*gripper.isObjectGripped() == true gripper.getState() == GripperState::OPENING &&*/ manual_take_key_pressed)
             {
                 action_enum = ActionGroup_enum::TakeOre1_ing;
                 add_once_flag = 1;
@@ -343,7 +694,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 // UI_Mode = 0;
             }
             //2
-            else if(get_ore_num[1] == 1 && action_free == true && take_ore_state == TakeOre_enum::Zero && /*gripper.isObjectGripped() == false &&*/ (DR16.IsKeyPress(DR16_KEY_V) || VT13.IsKeyPress(VT13_KEY_V)))
+            else if(get_ore_num[1] == 1 && action_free == true && take_ore_state == TakeOre_enum::Zero && /*gripper.isObjectGripped() == false &&*/ manual_take_key_pressed)
             {
                 action_enum = ActionGroup_enum::TakeOre2_prepare;
                 if (gripper.getState() != GripperState::OPENING)
@@ -354,7 +705,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 take_ore_state = TakeOre_enum::TakeOre2_prepare;
                 // UI_Mode = 1;
             }
-            else if(action_free == true && take_ore_state == TakeOre_enum::TakeOre2_ing && /*gripper.isObjectGripped() == true gripper.getState() == GripperState::CLOSING &&*/ (DR16.IsKeyPress(DR16_KEY_V) || VT13.IsKeyPress(VT13_KEY_V)))
+            else if(action_free == true && take_ore_state == TakeOre_enum::TakeOre2_ing && /*gripper.isObjectGripped() == true gripper.getState() == GripperState::CLOSING &&*/ manual_take_key_pressed)
             {
                 action_enum = ActionGroup_enum::TakeOre2_ing;
                 add_once_flag = 1;
@@ -368,7 +719,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 // UI_Mode = 0;
             }
             //3
-            else if(get_ore_num[2] == 1 && action_free == true && take_ore_state == TakeOre_enum::Zero && /*gripper.isObjectGripped() == false &&*/ (DR16.IsKeyPress(DR16_KEY_V) || VT13.IsKeyPress(VT13_KEY_V)))
+            else if(get_ore_num[2] == 1 && action_free == true && take_ore_state == TakeOre_enum::Zero && /*gripper.isObjectGripped() == false &&*/ manual_take_key_pressed)
             {
                 action_enum = ActionGroup_enum::TakeOre3_prepare;
                 if (gripper.getState() != GripperState::OPENING)
@@ -379,7 +730,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 take_ore_state = TakeOre_enum::TakeOre3_prepare;
                 // UI_Mode = 1;
             }
-            else if(action_free == true && take_ore_state == TakeOre_enum::TakeOre3_ing && /*gripper.isObjectGripped() == true gripper.getState() == GripperState::CLOSING &&*/ (DR16.IsKeyPress(DR16_KEY_V) || VT13.IsKeyPress(VT13_KEY_V)))
+            else if(action_free == true && take_ore_state == TakeOre_enum::TakeOre3_ing && /*gripper.isObjectGripped() == true gripper.getState() == GripperState::CLOSING &&*/ manual_take_key_pressed)
             {
                 action_enum = ActionGroup_enum::TakeOre3_ing;
                 add_once_flag = 1;
@@ -393,7 +744,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 // UI_Mode = 0;
             }
             //4
-            else if(get_ore_num[3] == 1 && action_free == true && take_ore_state == TakeOre_enum::Zero && /*gripper.isObjectGripped() == false &&*/ (DR16.IsKeyPress(DR16_KEY_V) || VT13.IsKeyPress(VT13_KEY_V)))
+            else if(get_ore_num[3] == 1 && action_free == true && take_ore_state == TakeOre_enum::Zero && /*gripper.isObjectGripped() == false &&*/ manual_take_key_pressed)
             {
                 action_enum = ActionGroup_enum::TakeOre4_prepare;
                 if (gripper.getState() != GripperState::OPENING)
@@ -404,7 +755,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 take_ore_state = TakeOre_enum::TakeOre4_prepare;
                 // UI_Mode = 1;
             }
-            else if(action_free == true && take_ore_state == TakeOre_enum::TakeOre4_ing && /*gripper.isObjectGripped() == true gripper.getState() == GripperState::CLOSING &&*/ (DR16.IsKeyPress(DR16_KEY_V) || VT13.IsKeyPress(VT13_KEY_V)))
+            else if(action_free == true && take_ore_state == TakeOre_enum::TakeOre4_ing && /*gripper.isObjectGripped() == true gripper.getState() == GripperState::CLOSING &&*/ manual_take_key_pressed)
             {
                 action_enum = ActionGroup_enum::TakeOre4_ing;
                 add_once_flag = 1;
@@ -418,7 +769,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 // UI_Mode = 0;
             }
             //5
-            else if(get_ore_num[4] == 1 && action_free == true && take_ore_state == TakeOre_enum::Zero && /*gripper.isObjectGripped() == false &&*/ (DR16.IsKeyPress(DR16_KEY_V) || VT13.IsKeyPress(VT13_KEY_V)))
+            else if(get_ore_num[4] == 1 && action_free == true && take_ore_state == TakeOre_enum::Zero && /*gripper.isObjectGripped() == false &&*/ manual_take_key_pressed)
             {
                 action_enum = ActionGroup_enum::TakeOre5_prepare;
                 if (gripper.getState() != GripperState::OPENING)
@@ -429,7 +780,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 take_ore_state = TakeOre_enum::TakeOre5_prepare;
                 // UI_Mode = 1;
             }
-            else if(action_free == true && take_ore_state == TakeOre_enum::TakeOre5_ing && /*gripper.isObjectGripped() == true gripper.getState() == GripperState::CLOSING &&*/ (DR16.IsKeyPress(DR16_KEY_V) || VT13.IsKeyPress(VT13_KEY_V)))
+            else if(action_free == true && take_ore_state == TakeOre_enum::TakeOre5_ing && /*gripper.isObjectGripped() == true gripper.getState() == GripperState::CLOSING &&*/ manual_take_key_pressed)
             {
                 action_enum = ActionGroup_enum::TakeOre5_ing;
                 add_once_flag = 1;
@@ -443,7 +794,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 // UI_Mode = 0;
             }
             //6
-            else if(get_ore_num[5] == 1 && action_free == true && take_ore_state == TakeOre_enum::Zero && /*gripper.isObjectGripped() == false &&*/ (DR16.IsKeyPress(DR16_KEY_V) || VT13.IsKeyPress(VT13_KEY_V)))
+            else if(get_ore_num[5] == 1 && action_free == true && take_ore_state == TakeOre_enum::Zero && /*gripper.isObjectGripped() == false &&*/ manual_take_key_pressed)
             {
                 action_enum = ActionGroup_enum::TakeOre6_prepare;
                 if (gripper.getState() != GripperState::OPENING)
@@ -454,7 +805,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
                 take_ore_state = TakeOre_enum::TakeOre6_prepare;
                 // UI_Mode = 1;
             }
-            else if(action_free == true && take_ore_state == TakeOre_enum::TakeOre6_ing && /*gripper.isObjectGripped() == true gripper.getState() == GripperState::CLOSING &&*/ (DR16.IsKeyPress(DR16_KEY_V) || VT13.IsKeyPress(VT13_KEY_V)))
+            else if(action_free == true && take_ore_state == TakeOre_enum::TakeOre6_ing && /*gripper.isObjectGripped() == true gripper.getState() == GripperState::CLOSING &&*/ manual_take_key_pressed)
             {
                 action_enum = ActionGroup_enum::TakeOre6_ing;
                 add_once_flag = 1;
@@ -471,7 +822,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
     
     // 取肚矿逻辑 — 根据 OreBit 自动选有矿槽 (优先级: LF>RF>LB>RB)
     //   C 键触发取出, 自动寻找第一个 OreBit[s]==1 的槽位
-    else if (action_free == true && (DR16.IsKeyPress(DR16_KEY_C) || VT13.IsKeyPress(VT13_KEY_C) || VT13.Datapack_custom.TakeOut) && take_ore_state == TakeOre_enum::Zero)
+    else if (action_free == true && (manual_takeout_key_pressed || VT13.Datapack_custom.TakeOut) && take_ore_state == TakeOre_enum::Zero)
     {
         static const ActionGroup_enum takein_actions[4] = {
             ActionGroup_enum::TakeInOre_LF, ActionGroup_enum::TakeInOre_RF,
@@ -550,21 +901,32 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
             break;
         }
     }
+    }
 
     // 执行动作组
     executeActionGroup(joints, trajectory_arrays);
-    
-    // 处理储矿过程
-    handleStoreOre(joints, gripper, toBottomdata, reBottomdata);
-    
-    // 处理取矿过程
-    handleTakeOre(joints, gripper, toBottomdata);
 
-    // 处理矿石编号
-    handleOreIndex();
-    
-    // 处理取肚矿过程
-    handleTakeBellyOre(joints, gripper, toBottomdata);
+    // 自动流程接管期间禁止手动夹爪和手动取储矿状态机改写控制状态。
+    if (!auto_owns_cycle && !auto_four_ore_active)
+    {
+        handleStoreOre(joints, gripper, toBottomdata, reBottomdata);
+        handleTakeOre(joints, gripper, toBottomdata);
+        handleOreIndex();
+        handleTakeBellyOre(joints, gripper, toBottomdata);
+    }
+
+    bool execution_free = true;
+    for (uint8_t i = 0U; i < 7U; ++i)
+    {
+        if (!joints[i].isTrajectoryPlannerFree())
+        {
+            execution_free = false;
+            break;
+        }
+    }
+    last_action_done =
+        (!entry_action_pending && !auto_four_ore_active && execution_free &&
+         add_once_flag == 0U && take_ore_state == TakeOre_enum::Zero) ? 1U : 0U;
 }
 
 /**
@@ -578,5 +940,5 @@ void ActionGroupController::reset()
 
 int ActionGroupController::isActionGroupCompleted()
 {
-    return !add_once_flag;
+    return last_action_done;
 }

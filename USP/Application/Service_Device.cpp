@@ -1483,12 +1483,25 @@ void tskBoardCom(void *arg)
 					}
 					vision_latest_frame.chassis_height_current = current_chassis_height + 0.000f;
 					vision_latest_frame.seq_num = seq_num++;
+					const bool get_energy_vision_mode_active =
+						(g_top_state_id == TopStateId::GetEnergyUnit) &&
+						GetEnergyUnit_isVisionMode();
 					const bool vision_mode_active =
-						((g_top_state_id == TopStateId::GetEnergyUnit) &&
-						 GetEnergyUnit_isVisionMode()) ||
+						get_energy_vision_mode_active ||
 						((g_top_state_id == TopStateId::ExchangeEnergyUnit) &&
 						 ExchangeEnergyUnit_isVisionMode());
-					vision_latest_frame.comm_flag = vision_mode_active ? 0U : 1U;
+					const uint8_t vision_command_latched =
+						get_energy_vision_mode_active
+							? GetEnergyUnit_getVisionCommand()
+							: 0U;
+					const uint8_t vision_default_comm_flag =
+						vision_mode_active
+							? VISION_COMM_CONTROL_ACTIVE
+							: VISION_COMM_CONTROL_INACTIVE;
+					vision_latest_frame.comm_flag =
+						(vision_command_latched != 0U)
+							? vision_command_latched
+							: vision_default_comm_flag;
 
 					if (vision_pending_valid == 0U)
 					{
