@@ -11,6 +11,8 @@ private:
     uint32_t last_feedback_sequence = 0U;
     TickType_t last_feedback_tick = 0U;
     bool feedback_received = false;
+    float last_valid_angle = 0.0f;
+    bool angle_initialized = false;
 
 public:
     explicit DM_Motor(Motor_DM_classdef *dm_motor)
