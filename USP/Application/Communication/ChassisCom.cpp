@@ -32,9 +32,16 @@ uint8_t Bottomdata_Transmit(float _x, float _y, float _z)
     // ToBottomData_temp.R_Store = toBottomdata.R_Store;
 
     if ((g_top_state_id == TopStateId::GetEnergyUnit) && GetEnergyUnit_isActionGroupMode())
-    ToBottomData_temp.GetOreIndex = action_group_controller.getSelectedOre() + 1;
+    {
+        ToBottomData_temp.GetOreIndex =
+            action_group_controller.isAutoFourOreRunning()
+                ? 7U
+                : (uint8_t)(action_group_controller.getSelectedOre() + 1U);
+    }
     else
-    ToBottomData_temp.GetOreIndex = 0;
+    {
+        ToBottomData_temp.GetOreIndex = 0U;
+    }
 
     ToBottomData_temp.OreBit[0] = OreBit[0];
     ToBottomData_temp.OreBit[1] = OreBit[1];
