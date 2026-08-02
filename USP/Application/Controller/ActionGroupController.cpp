@@ -104,7 +104,7 @@ void ActionGroupController::stopAutoFourOre(AutoFourOreError error)
 /**
  * @brief 一键四矿状态机。
  *
- * Shift+V 上升沿启动，Shift+C 请求中止。机械臂动作使用轨迹空闲作为
+ * Shift+V 上升沿启动，Shift+C 锁存软中止请求，当前动作完成后再退出。机械臂动作使用轨迹空闲作为
  * 完成判据；PWM 夹爪没有反馈，因此开合完成使用固定等待时间判断。
  */
 bool ActionGroupController::handleAutoFourOre(Joint joints[], Gripper& gripper, bool action_free)
@@ -129,8 +129,9 @@ bool ActionGroupController::handleAutoFourOre(Joint joints[], Gripper& gripper, 
 
     if (auto_four_ore_active && abort_rising)
     {
-        // 已经进入取矿动作后，先安全完成当前矿并退出储矿槽，再停止后续循环。
+        // 不打断当前轨迹；在下一个安全动作边界退出自动流程。
         auto_stop_requested = true;
+        auto_four_ore_error = AutoFourOreError::UserAborted;
     }
 
     if (!auto_four_ore_active && start_rising)
@@ -193,6 +194,7 @@ bool ActionGroupController::handleAutoFourOre(Joint joints[], Gripper& gripper, 
         return true;
     }
 
+    // 尚未提交取矿动作时可以直接退出，不需要额外回归轨迹。
     if (auto_stop_requested &&
         (auto_four_ore_state == AutoFourOreState::OpenGripper ||
          auto_four_ore_state == AutoFourOreState::WaitOpenGripper))
@@ -224,9 +226,16 @@ bool ActionGroupController::handleAutoFourOre(Joint joints[], Gripper& gripper, 
         case AutoFourOreState::WaitTakePrepare:
             if (action_free)
             {
-                gripper.close();
-                auto_state_enter_tick = now;
-                auto_four_ore_state = AutoFourOreState::WaitCloseGripper;
+                if (auto_stop_requested)
+                {
+                    stopAutoFourOre(AutoFourOreError::UserAborted);
+                }
+                else
+                {
+                    gripper.close();
+                    auto_state_enter_tick = now;
+                    auto_four_ore_state = AutoFourOreState::WaitCloseGripper;
+                }
             }
             else if ((uint32_t)(now - auto_state_enter_tick) >= AUTO_ACTION_TIMEOUT_MS)
             {
@@ -241,6 +250,12 @@ bool ActionGroupController::handleAutoFourOre(Joint joints[], Gripper& gripper, 
             }
             else if ((uint32_t)(now - auto_state_enter_tick) >= AUTO_GRIPPER_CLOSE_TIME_MS)
             {
+                if (auto_stop_requested)
+                {
+                    stopAutoFourOre(AutoFourOreError::UserAborted);
+                    break;
+                }
+
                 auto_four_current_slot = auto_four_ore_count;
                 if (OreBit[auto_four_current_slot] != 0U)
                 {
