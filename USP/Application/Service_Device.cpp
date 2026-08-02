@@ -361,7 +361,7 @@ void ReleaseArmSafetyStop()
 	for (uint8_t i = 0; i < 7U; i++)
 	{
 		joint_trajectory_point_array[i].clear();
-		if (motor[i].getStatus() == MotorStatus::ready)
+		if ((motor[i].getStatus() == MotorStatus::ready) && joint[i].isCalibrated())
 		{
 			joint[i].setMode(JointMode::angle);
 			// setMode(angle) 先把目标置为当前角度，再将规划器同步到该目标。
@@ -427,19 +427,11 @@ void CheckMotorStatus()
 	const bool control_link_established = ArmControlLinkEstablished();
 	const bool top_state_blocks_control =
 		(g_top_state_id == TopStateId::Lost) || (g_top_state_id == TopStateId::None);
-	bool joint_reference_ready = true;
-	for (uint8_t i = 0; i < DM_MOTOR_COUNT; i++)
-	{
-		if ((motor[i].getStatus() != MotorStatus::ready) || !joint[i].isCalibrated())
-		{
-			joint_reference_ready = false;
-			break;
-		}
-	}
 	const bool full_arm_stop_required =
-		!control_link_established || top_state_blocks_control || !joint_reference_ready;
+		!control_link_established || top_state_blocks_control;
 
-	// 遥控链路丢失或处于 Lost/None 时仍锁存全臂安全停机。
+	// 只有遥控链路丢失或处于 Lost/None 时锁存全臂安全停机。
+	// 单个 DM 电机掉线、报错或未标定均由下方逐电机逻辑单独隔离。
 	if (full_arm_stop_required)
 	{
 		control_link_stable_cnt = 0U;

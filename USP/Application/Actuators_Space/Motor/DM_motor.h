@@ -8,6 +8,9 @@ class DM_Motor : public Motor_
 {
 private:
     Motor_DM_classdef *dm_motor = nullptr;
+    uint32_t last_feedback_sequence = 0U;
+    TickType_t last_feedback_tick = 0U;
+    bool feedback_received = false;
 
 public:
     explicit DM_Motor(Motor_DM_classdef *dm_motor)
