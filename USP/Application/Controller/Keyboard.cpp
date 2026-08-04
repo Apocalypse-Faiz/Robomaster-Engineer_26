@@ -273,6 +273,24 @@ void VT13_KeyBoard_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
         const bool f_rising_edge = f_key_pressed && !last_f_key_state;
         const bool b_rising_edge = b_key_pressed && !last_b_key_state;
 
+        // 从 GetEnergyUnit 返回 Mobile 时，清除离开前锁存的前/后腿命令。
+        // 在底盘确认退出模式2之前持续下发正常模式，并禁止底盘移动。
+        if (reBottomdata.ChassisState == 2U)
+        {
+            commanded_chassis_state = 1;
+            pending_chassis_state = 0;
+            _ToBottomData.ChassisState = 1U;
+            chassis_control_struct.x = 0.0f;
+            chassis_control_struct.y = 0.0f;
+            chassis_control_struct.z = 0.0f;
+            _ToBottomData.chassis_control_struct = chassis_control_struct;
+
+            last_rebottom_chassis_state = reBottomdata.ChassisState;
+            last_f_key_state = f_key_pressed;
+            last_b_key_state = b_key_pressed;
+            return;
+        }
+
         // if (VT13.IsKeyPress(VT13_KEY_SHIFT))
         // {
         //     temp_Speed = 1.5;
@@ -510,7 +528,31 @@ void VT13_KeyBoard_MoveCtrl_Custom(ToBottomDataStructdef &_ToBottomData)
 
     if(VT13.GetModeSwitch() == MS_Status_Typedef::MS_N)
     {
-        _ToBottomData.ChassisState = 2;
+        const uint8_t chassis_feedback = reBottomdata.ChassisState;
+
+        // 前腿/后腿模式不能直接切到兑矿模式：先回正常模式，期间禁止底盘移动。
+        if (chassis_feedback == 3U || chassis_feedback == 4U)
+        {
+            _ToBottomData.ChassisState = 1U;
+            chassis_control_struct.x = 0.0f;
+            chassis_control_struct.y = 0.0f;
+            chassis_control_struct.z = 0.0f;
+            _ToBottomData.chassis_control_struct = chassis_control_struct;
+            return;
+        }
+
+        // 正常模式确认后请求兑矿模式；反馈真正进入模式2之前继续保持静止。
+        if (chassis_feedback == 1U)
+        {
+            _ToBottomData.ChassisState = 2U;
+            chassis_control_struct.x = 0.0f;
+            chassis_control_struct.y = 0.0f;
+            chassis_control_struct.z = 0.0f;
+            _ToBottomData.chassis_control_struct = chassis_control_struct;
+            return;
+        }
+
+        _ToBottomData.ChassisState = 2U;
 
         // if (VT13.IsKeyPress(VT13_KEY_SHIFT))
         // {
