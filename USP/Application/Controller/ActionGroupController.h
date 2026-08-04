@@ -26,7 +26,7 @@ enum class TakeOre_enum {
     TakeinOreLF_end, TakeinOreRF_end, TakeinOreLB_end, TakeinOreRB_end
 };
 
-/* 一键四矿流程状态。取矿顺序固定为 2、3、5、6，储矿顺序为 LF、RF、LB、RB。 */
+/* 一键四矿流程状态。取矿顺序固定为 2、3、6、5，储矿顺序为 LF、LB、RF、RB。 */
 enum class AutoFourOreState : uint8_t {
     Idle = 0,
     OpenGripper,
@@ -37,6 +37,7 @@ enum class AutoFourOreState : uint8_t {
     WaitRelease,
     WaitExitToNextPrepare,
     WaitExitStore,
+    WaitAbortReturn,
     Completed,
     Aborted,
     Fault
@@ -84,7 +85,6 @@ private:
     uint8_t auto_four_current_slot;
     uint32_t auto_state_enter_tick;
     bool auto_four_ore_active;
-    bool auto_stop_requested;
     bool last_auto_start_pressed;
     bool last_auto_abort_pressed;
 
@@ -175,8 +175,9 @@ private:
     /** @brief Toggle automatic/manual belly-slot selection and advance the manual index. */
     void handleBellySlotSelection();
 
-    /** @brief 处理 Shift+V 启动、Shift+C 软中止及自动取储矿流程。 */
-    bool handleAutoFourOre(Joint joints[], Gripper& gripper, bool action_free);
+    /** @brief 处理 Shift+V 启动、Shift+C 急停回归及自动取储矿流程。 */
+    bool handleAutoFourOre(Joint joints[], TrajectoryPointArray trajectory_arrays[],
+                           Gripper& gripper, bool action_free);
 
     /** @brief 将一个动作组提交给统一执行器。 */
     void startActionGroup(ActionGroup_enum action);

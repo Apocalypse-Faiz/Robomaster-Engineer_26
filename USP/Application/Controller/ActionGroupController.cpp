@@ -77,7 +77,6 @@ void ActionGroupController::initFlags()
     auto_four_current_slot = 0U;
     auto_state_enter_tick = 0U;
     auto_four_ore_active = false;
-    auto_stop_requested = false;
     last_auto_start_pressed = false;
     last_auto_abort_pressed = false;
 }
@@ -93,7 +92,6 @@ void ActionGroupController::startActionGroup(ActionGroup_enum action)
 void ActionGroupController::stopAutoFourOre(AutoFourOreError error)
 {
     auto_four_ore_active = false;
-    auto_stop_requested = false;
     auto_four_ore_error = error;
     auto_four_ore_state = (error == AutoFourOreError::UserAborted)
         ? AutoFourOreState::Aborted
@@ -107,10 +105,12 @@ void ActionGroupController::stopAutoFourOre(AutoFourOreError error)
 /**
  * @brief 一键四矿状态机。
  *
- * Shift+V 上升沿启动，Shift+C 锁存软中止请求，当前动作完成后再退出。机械臂动作使用轨迹空闲作为
- * 完成判据；PWM 夹爪没有反馈，因此开合完成使用固定等待时间判断。
+ * Shift+V 上升沿启动；Shift+C 立即停止当前轨迹并执行 ToActionGroup，
+ * 回归完成后退出。PWM 夹爪没有反馈，因此开合完成使用固定等待时间判断。
  */
-bool ActionGroupController::handleAutoFourOre(Joint joints[], Gripper& gripper, bool action_free)
+bool ActionGroupController::handleAutoFourOre(
+    Joint joints[], TrajectoryPointArray trajectory_arrays[],
+    Gripper& gripper, bool action_free)
 {
     const bool dr16_online =
         DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED;
@@ -130,11 +130,21 @@ bool ActionGroupController::handleAutoFourOre(Joint joints[], Gripper& gripper, 
     last_auto_start_pressed = start_pressed;
     last_auto_abort_pressed = abort_pressed;
 
-    if (auto_four_ore_active && abort_rising)
+    if (auto_four_ore_active && abort_rising &&
+        auto_four_ore_state != AutoFourOreState::WaitAbortReturn)
     {
-        // 不打断当前轨迹；在下一个安全动作边界退出自动流程。
-        auto_stop_requested = true;
+        // 硬中止当前一键四矿轨迹，并清除尚未执行的旧目标点。
+        for (uint8_t i = 0U; i < 7U; ++i)
+        {
+            joints[i].stopTrajectoryPlanner();
+            trajectory_arrays[i].clear();
+        }
+
         auto_four_ore_error = AutoFourOreError::UserAborted;
+        take_ore_state = TakeOre_enum::Zero;
+        startActionGroup(ActionGroup_enum::ToActionGroup);
+        auto_four_ore_state = AutoFourOreState::WaitAbortReturn;
+        return true;
     }
 
     if (!auto_four_ore_active && start_rising)
@@ -144,7 +154,6 @@ bool ActionGroupController::handleAutoFourOre(Joint joints[], Gripper& gripper, 
         auto_four_current_ore = auto_ore_sequence[0];
         ore_index = auto_four_current_ore;
         auto_four_ore_error = AutoFourOreError::None;
-        auto_stop_requested = false;
 
         if (!action_free || take_ore_state != TakeOre_enum::Zero || add_once_flag != 0U)
         {
@@ -197,15 +206,6 @@ bool ActionGroupController::handleAutoFourOre(Joint joints[], Gripper& gripper, 
         return true;
     }
 
-    // 尚未提交取矿动作时可以直接退出，不需要额外回归轨迹。
-    if (auto_stop_requested &&
-        (auto_four_ore_state == AutoFourOreState::OpenGripper ||
-         auto_four_ore_state == AutoFourOreState::WaitOpenGripper))
-    {
-        stopAutoFourOre(AutoFourOreError::UserAborted);
-        return true;
-    }
-
     switch (auto_four_ore_state)
     {
         case AutoFourOreState::OpenGripper:
@@ -229,16 +229,9 @@ bool ActionGroupController::handleAutoFourOre(Joint joints[], Gripper& gripper, 
         case AutoFourOreState::WaitTakePrepare:
             if (action_free)
             {
-                if (auto_stop_requested)
-                {
-                    stopAutoFourOre(AutoFourOreError::UserAborted);
-                }
-                else
-                {
-                    gripper.close();
-                    auto_state_enter_tick = now;
-                    auto_four_ore_state = AutoFourOreState::WaitCloseGripper;
-                }
+                gripper.close();
+                auto_state_enter_tick = now;
+                auto_four_ore_state = AutoFourOreState::WaitCloseGripper;
             }
             else if ((uint32_t)(now - auto_state_enter_tick) >= AUTO_ACTION_TIMEOUT_MS)
             {
@@ -253,12 +246,6 @@ bool ActionGroupController::handleAutoFourOre(Joint joints[], Gripper& gripper, 
             }
             else if ((uint32_t)(now - auto_state_enter_tick) >= AUTO_GRIPPER_CLOSE_TIME_MS)
             {
-                if (auto_stop_requested)
-                {
-                    stopAutoFourOre(AutoFourOreError::UserAborted);
-                    break;
-                }
-
                 auto_four_current_slot = auto_slot_sequence[auto_four_ore_count];
                 if (OreBit[auto_four_current_slot] != 0U)
                 {
@@ -293,7 +280,7 @@ bool ActionGroupController::handleAutoFourOre(Joint joints[], Gripper& gripper, 
             {
                 const bool has_next_ore =
                     (auto_four_ore_count + 1U) < AUTO_FOUR_ORE_COUNT;
-                if (has_next_ore && !auto_stop_requested)
+                if (has_next_ore)
                 {
                     startActionGroup(
                         auto_exit_to_next_prepare_actions[auto_four_ore_count]);
@@ -311,12 +298,6 @@ bool ActionGroupController::handleAutoFourOre(Joint joints[], Gripper& gripper, 
             if (action_free)
             {
                 ++auto_four_ore_count;
-                if (auto_stop_requested)
-                {
-                    stopAutoFourOre(AutoFourOreError::UserAborted);
-                    break;
-                }
-
                 auto_four_current_ore = auto_ore_sequence[auto_four_ore_count];
                 ore_index = auto_four_current_ore;
                 gripper.close();
@@ -333,11 +314,7 @@ bool ActionGroupController::handleAutoFourOre(Joint joints[], Gripper& gripper, 
             if (action_free)
             {
                 ++auto_four_ore_count;
-                if (auto_stop_requested)
-                {
-                    stopAutoFourOre(AutoFourOreError::UserAborted);
-                }
-                else if (auto_four_ore_count >= AUTO_FOUR_ORE_COUNT)
+                if (auto_four_ore_count >= AUTO_FOUR_ORE_COUNT)
                 {
                     auto_four_ore_active = false;
                     auto_four_ore_state = AutoFourOreState::Completed;
@@ -352,6 +329,17 @@ bool ActionGroupController::handleAutoFourOre(Joint joints[], Gripper& gripper, 
                     auto_four_ore_state = AutoFourOreState::OpenGripper;
                     auto_state_enter_tick = now;
                 }
+            }
+            else if ((uint32_t)(now - auto_state_enter_tick) >= AUTO_ACTION_TIMEOUT_MS)
+            {
+                stopAutoFourOre(AutoFourOreError::ActionTimeout);
+            }
+            break;
+
+        case AutoFourOreState::WaitAbortReturn:
+            if (action_free && add_once_flag == 0U)
+            {
+                stopAutoFourOre(AutoFourOreError::UserAborted);
             }
             else if ((uint32_t)(now - auto_state_enter_tick) >= AUTO_ACTION_TIMEOUT_MS)
             {
@@ -593,7 +581,7 @@ void ActionGroupController::executeActionGroup(Joint joints[], TrajectoryPointAr
  */
 void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajectory_arrays[], Gripper& gripper, ToBottomDataStructdef& toBottomdata, ReBottomDataStructdef& reBottomdata) {
 
-    // 自动流程运行期间固定使用 LF->RF->LB->RB，不响应手动槽位选择。
+    // 自动流程运行期间不响应手动槽位选择。
     if (!auto_four_ore_active)
     {
         handleBellySlotSelection();
@@ -641,7 +629,8 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
     }
     else
     {
-        auto_owns_cycle = handleAutoFourOre(joints, gripper, action_free);
+        auto_owns_cycle =
+            handleAutoFourOre(joints, trajectory_arrays, gripper, action_free);
     }
 
     if (!auto_owns_cycle)
