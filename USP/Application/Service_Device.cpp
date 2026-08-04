@@ -293,6 +293,9 @@ namespace
 // every joint target is synchronized to its measured position before torque
 // output is enabled.
 volatile bool arm_safety_latched = true;
+// 冷启动阶段必须等待全部关节建立有效参考后才能首次放行。
+// 首次安全放行完成后，运行期单个电机故障不再触发整臂停机。
+bool arm_startup_completed = false;
 
 enum class DmRecoveryPhase : uint8_t
 {
@@ -427,11 +430,23 @@ void CheckMotorStatus()
 	const bool control_link_established = ArmControlLinkEstablished();
 	const bool top_state_blocks_control =
 		(g_top_state_id == TopStateId::Lost) || (g_top_state_id == TopStateId::None);
+	bool joint_reference_ready = true;
+	for (uint8_t i = 0U; i < DM_MOTOR_COUNT; ++i)
+	{
+		if ((motor[i].getStatus() != MotorStatus::ready) || !joint[i].isCalibrated())
+		{
+			joint_reference_ready = false;
+			break;
+		}
+	}
+	const bool startup_reference_missing =
+		!arm_startup_completed && !joint_reference_ready;
 	const bool full_arm_stop_required =
-		!control_link_established || top_state_blocks_control;
+		!control_link_established || top_state_blocks_control || startup_reference_missing;
 
-	// 只有遥控链路丢失或处于 Lost/None 时锁存全臂安全停机。
-	// 单个 DM 电机掉线、报错或未标定均由下方逐电机逻辑单独隔离。
+	// 冷启动首次放行前，全部关节必须具有有效反馈和零点参考。
+	// 首次放行后，单个 DM 掉线或报错由下方逐电机逻辑单独隔离；
+	// 遥控链路丢失或处于 Lost/None 仍然触发整臂安全停机。
 	if (full_arm_stop_required)
 	{
 		control_link_stable_cnt = 0U;
@@ -446,8 +461,9 @@ void CheckMotorStatus()
 
 		if (control_link_stable_cnt >= READY_STABLE_TICKS)
 		{
-			// 链路连续有效后解除整臂锁存；仍故障的电机在下方继续单独隔离。
+			// 首次放行时 joint_reference_ready 必然为 true；后续链路重连不再要求故障电机阻塞整臂恢复。
 			ReleaseArmSafetyStop();
+			arm_startup_completed = true;
 			control_link_stable_cnt = 0U;
 		}
 		else
@@ -1808,16 +1824,29 @@ void Sx_Referee(void *arg)
 		// 具备自定义数据功能，如工程
 		Referee.CC_data_input(CC_ID_ENGINEER_V2, (uint8_t *)&engineer_data_2_cc, sizeof(engineer_data_2_cc), CC_MESSAGE_SELF, 0);
 
-		// 自定义控制器数据 (0x0309, 10Hz): 7 个关节角, 50Hz 每 5 次发一次
+		// 自定义控制器数据 (0x0309, 10Hz): 7 个关节角 + 当前控制模式, 50Hz 每 5 次发一次
 		static uint8_t cc_ctrl_cnt = 0;
 		if (++cc_ctrl_cnt >= 5)
 		{
 			cc_ctrl_cnt = 0;
 			float joint_angle[7];
 			uint8_t cc_ctrl_data[30] = {0};
+			uint8_t control_mode = 0U;
 			for (int i = 0; i < 7; i++)
 				joint_angle[i] = joint[i].getCurrentAngle();
+
+			if (g_top_state_id == TopStateId::GetEnergyUnit)
+			{
+				if (GetEnergyUnit_isActionGroupMode())
+					control_mode = 1U;
+				else if (GetEnergyUnit_isVisionMode())
+					control_mode = 3U;
+				else
+					control_mode = 2U;
+			}
+
 			memcpy(cc_ctrl_data, joint_angle, sizeof(joint_angle));
+			cc_ctrl_data[sizeof(joint_angle)] = control_mode;
 			Referee.CC_controller_data_send(cc_ctrl_data, sizeof(cc_ctrl_data));
 		}
 
