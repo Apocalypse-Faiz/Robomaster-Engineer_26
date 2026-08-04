@@ -5,13 +5,16 @@
 namespace {
 
 constexpr uint8_t AUTO_FOUR_ORE_COUNT = 4U;
-constexpr uint32_t AUTO_GRIPPER_OPEN_TIME_MS = 600U;
-constexpr uint32_t AUTO_GRIPPER_CLOSE_TIME_MS = 700U;
-constexpr uint32_t AUTO_ORE_DROP_SETTLE_TIME_MS = 400U;
+constexpr uint32_t AUTO_GRIPPER_OPEN_TIME_MS = 0U;
+constexpr uint32_t AUTO_GRIPPER_CLOSE_TIME_MS = 300U;
+constexpr uint32_t AUTO_ORE_DROP_SETTLE_TIME_MS = 0U;
 constexpr uint32_t AUTO_ACTION_TIMEOUT_MS = 5000U;
 
-// 数组使用零基索引，因此 {1,2,4,5} 对应实际的 2、3、5、6 号矿。
-const uint8_t auto_ore_sequence[AUTO_FOUR_ORE_COUNT] = {1U, 2U, 4U, 5U};
+// 数组使用零基索引，因此 {1,2,5,4} 对应实际的 2、3、6、5 号矿。
+const uint8_t auto_ore_sequence[AUTO_FOUR_ORE_COUNT] = {1U, 2U, 5U, 4U};
+
+// 储矿顺序：左前、左后、右前、右后。
+const uint8_t auto_slot_sequence[AUTO_FOUR_ORE_COUNT] = {0U, 2U, 1U, 3U};
 
 const ActionGroup_enum auto_take_prepare_actions[6] = {
     ActionGroup_enum::TakeOre1_prepare, ActionGroup_enum::TakeOre2_prepare,
@@ -21,9 +24,9 @@ const ActionGroup_enum auto_take_prepare_actions[6] = {
 
 const ActionGroup_enum auto_take_store_actions[AUTO_FOUR_ORE_COUNT] = {
     ActionGroup_enum::AutoTakeStoreOre2_LF,
-    ActionGroup_enum::AutoTakeStoreOre3_RF,
-    ActionGroup_enum::AutoTakeStoreOre5_LB,
-    ActionGroup_enum::AutoTakeStoreOre6_RB
+    ActionGroup_enum::AutoTakeStoreOre3_LB,
+    ActionGroup_enum::AutoTakeStoreOre6_RF,
+    ActionGroup_enum::AutoTakeStoreOre5_RB
 };
 
 const ActionGroup_enum auto_exit_store_actions[4] = {
@@ -33,8 +36,8 @@ const ActionGroup_enum auto_exit_store_actions[4] = {
 
 const ActionGroup_enum auto_exit_to_next_prepare_actions[AUTO_FOUR_ORE_COUNT - 1U] = {
     ActionGroup_enum::AutoExitLFToOre3Prepare,
-    ActionGroup_enum::AutoExitRFToOre5Prepare,
-    ActionGroup_enum::AutoExitLBToOre6Prepare
+    ActionGroup_enum::AutoExitLBToOre6Prepare,
+    ActionGroup_enum::AutoExitRFToOre5Prepare
 };
 
 } // namespace
@@ -256,7 +259,7 @@ bool ActionGroupController::handleAutoFourOre(Joint joints[], Gripper& gripper, 
                     break;
                 }
 
-                auto_four_current_slot = auto_four_ore_count;
+                auto_four_current_slot = auto_slot_sequence[auto_four_ore_count];
                 if (OreBit[auto_four_current_slot] != 0U)
                 {
                     stopAutoFourOre(AutoFourOreError::StorageNotEmpty);

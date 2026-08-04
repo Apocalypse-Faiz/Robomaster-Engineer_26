@@ -30,7 +30,11 @@ void BuildContinuousTakeStoreTrajectory(
 {
     ClearJointTrajectory(trajectory);
     AppendJointTargets(trajectory, take_ing, take_ing_count);
-    AppendJointTargets(trajectory, take_end, take_end_count);
+    // TakeOreX_end 的最后一点是公共回中位。连续储矿时跳过该点，
+    // 直接从取矿回收位进入储矿；储矿后的 ExitStore_X 仍保留回中位。
+    const int take_end_without_home_count =
+        (take_end_count > 0) ? (take_end_count - 1) : 0;
+    AppendJointTargets(trajectory, take_end, take_end_without_home_count);
     AppendJointTargets(trajectory, store, store_count);
 }
 
@@ -283,25 +287,25 @@ void ActionGroup_Choose(TrajectoryPointArray _tpa1[7], ActionGroup_enum _action_
                 _tpa1, TakeOre2_ing, 2, TakeOre2_end, 2, StoreOre_LF, 2);
         }
         break;
-    case ActionGroup_enum::AutoTakeStoreOre3_RF:
+    case ActionGroup_enum::AutoTakeStoreOre3_LB:
         if (_Add_onlyOnce == 1)
         {
             BuildContinuousTakeStoreTrajectory(
-                _tpa1, TakeOre3_ing, 2, TakeOre3_end, 2, StoreOre_RF, 2);
+                _tpa1, TakeOre3_ing, 2, TakeOre3_end, 2, StoreOre_LB, 2);
         }
         break;
-    case ActionGroup_enum::AutoTakeStoreOre5_LB:
+    case ActionGroup_enum::AutoTakeStoreOre6_RF:
         if (_Add_onlyOnce == 1)
         {
             BuildContinuousTakeStoreTrajectory(
-                _tpa1, TakeOre5_ing, 2, TakeOre5_end, 2, StoreOre_LB, 2);
+                _tpa1, TakeOre6_ing, 2, TakeOre6_end, 2, StoreOre_RF, 2);
         }
         break;
-    case ActionGroup_enum::AutoTakeStoreOre6_RB:
+    case ActionGroup_enum::AutoTakeStoreOre5_RB:
         if (_Add_onlyOnce == 1)
         {
             BuildContinuousTakeStoreTrajectory(
-                _tpa1, TakeOre6_ing, 2, TakeOre6_end, 2, StoreOre_RB, 2);
+                _tpa1, TakeOre5_ing, 2, TakeOre5_end, 2, StoreOre_RB, 2);
         }
         break;
     case ActionGroup_enum::AutoExitLFToOre3Prepare:
