@@ -1421,7 +1421,7 @@ void tskBoardCom(void *arg)
 
 		if ((cur_vt13_middle != 0U) && (last_vt13_middle_state == 0U))
 		{
-			ui_mode_count = 5U;
+			ui_mode_count = 10U;
 		}
 
 		if (ui_mode_count > 0U)
