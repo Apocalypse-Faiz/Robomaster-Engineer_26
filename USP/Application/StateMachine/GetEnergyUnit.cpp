@@ -35,10 +35,21 @@ static uint32_t mode_change_time = 0;
 static TickType_t last_vision_rx_tick = 0U;
 static bool vision_frame_received = false;
 static constexpr uint32_t vision_link_timeout_ms = 100U;
+static constexpr uint8_t vision_indicator_success = 0xFEU;
+static constexpr uint8_t vision_indicator_waiting = 0xFFU;
 static uint8_t vision_comm_status = VISION_COMM_CONTROL_ACTIVE;
+static uint8_t vision_next_command = VISION_TX_RECOGNIZE_AND_PREINSERT;
+static uint8_t vision_pending_feedback = 0U;
 static volatile uint32_t vision_command_request = 0U;
 static bool last_vision_z_key_state = false;
 static bool last_vision_x_key_state = false;
+static bool last_vision_c_key_state = false;
+static bool last_vision_v_key_state = false;
+static bool last_vision_b_key_state = false;
+static bool last_vision_shift_a_key_state = false;
+static bool last_vision_shift_d_key_state = false;
+static bool last_vision_ctrl_a_key_state = false;
+static bool last_vision_ctrl_d_key_state = false;
 
 static float joint_takeover_speed_ff[7] = {0.0f};
 static float joint_takeover_acc_ff[7] = {0.0f};
@@ -63,14 +74,31 @@ static void resetVisionInteractionState()
     const uint32_t next_generation = (vision_command_request >> 8U) + 1U;
     vision_command_request = (next_generation << 8U);
     vision_comm_status = VISION_COMM_CONTROL_ACTIVE;
+    vision_next_command = VISION_TX_RECOGNIZE_AND_PREINSERT;
+    vision_pending_feedback = 0U;
     last_vision_z_key_state = false;
     last_vision_x_key_state = false;
+    last_vision_c_key_state = false;
+    last_vision_v_key_state = false;
+    last_vision_b_key_state = false;
+    last_vision_shift_a_key_state = false;
+    last_vision_shift_d_key_state = false;
+    last_vision_ctrl_a_key_state = false;
+    last_vision_ctrl_d_key_state = false;
 }
 
 static void requestVisionCommand(uint8_t command)
 {
     const uint32_t next_generation = (vision_command_request >> 8U) + 1U;
     vision_command_request = (next_generation << 8U) | command;
+}
+
+static void beginVisionCommand(uint8_t command)
+{
+    requestVisionCommand(command);
+    vision_next_command = 0U;
+    vision_pending_feedback = command + 8U;
+    vision_comm_status = vision_indicator_waiting;
 }
 
 uint32_t GetEnergyUnit_getVisionCommandRequest()
@@ -80,41 +108,111 @@ uint32_t GetEnergyUnit_getVisionCommandRequest()
 
 static void updateVisionCommStatus(uint8_t comm_flag)
 {
-    switch (comm_flag)
+    if ((vision_pending_feedback == VISION_RX_RECOGNITION_SUCCEEDED) &&
+        (comm_flag == VISION_RX_RECOGNITION_FAILED))
     {
-        case VISION_COMM_RECOGNITION_FAILED:
-        case VISION_COMM_SOLUTION_FAILED:
-            vision_comm_status = comm_flag;
-            break;
+        vision_pending_feedback = 0U;
+        vision_next_command = VISION_TX_RECOGNIZE_AND_PREINSERT;
+        vision_comm_status = comm_flag;
+        return;
+    }
 
-        default:
-            /* Keep the last recognition state when normal control frames use 0/1. */
-            break;
+    if ((vision_pending_feedback == VISION_RX_RECOGNITION_SUCCEEDED) &&
+        (comm_flag == VISION_RX_SOLUTION_FAILED))
+    {
+        /* Keep waiting for 10 after the chassis position is adjusted. */
+        vision_comm_status = comm_flag;
+        return;
+    }
+
+    if ((vision_pending_feedback != 0U) && (comm_flag == vision_pending_feedback))
+    {
+        const uint8_t completed_command = comm_flag - 8U;
+        vision_pending_feedback = 0U;
+        vision_next_command = (completed_command < VISION_TX_ROTATE_RIGHT_5)
+                                ? (completed_command + 1U)
+                                : 0U;
+        vision_comm_status = vision_indicator_success;
     }
 }
 
-static void handleVisionCommandInput()
+static void handleVisionCommandInput(bool commands_enabled)
 {
-    const bool vt13_linked =
-        (VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED) &&
-        (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C);
-    const bool z_key_pressed = vt13_linked && VT13.IsKeyPress(VT13_KEY_Z);
-    const bool x_key_pressed = vt13_linked && VT13.IsKeyPress(VT13_KEY_X);
+    const bool vt13_online =
+        (VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED);
+    const bool z_key_pressed = vt13_online && VT13.IsKeyPress(VT13_KEY_Z);
+    const bool x_key_pressed = vt13_online && VT13.IsKeyPress(VT13_KEY_X);
+    const bool c_key_pressed = vt13_online && VT13.IsKeyPress(VT13_KEY_C);
+    const bool v_key_pressed = vt13_online && VT13.IsKeyPress(VT13_KEY_V);
+    const bool b_key_pressed = vt13_online && VT13.IsKeyPress(VT13_KEY_B);
+    const bool shift_pressed = vt13_online && VT13.IsKeyPress(VT13_KEY_SHIFT);
+    const bool ctrl_pressed = vt13_online && VT13.IsKeyPress(VT13_KEY_CTRL);
+    const bool a_key_pressed = vt13_online && VT13.IsKeyPress(VT13_KEY_A);
+    const bool d_key_pressed = vt13_online && VT13.IsKeyPress(VT13_KEY_D);
+    const bool shift_a_key_pressed = shift_pressed && !ctrl_pressed && a_key_pressed;
+    const bool shift_d_key_pressed = shift_pressed && !ctrl_pressed && d_key_pressed;
+    const bool ctrl_a_key_pressed = ctrl_pressed && !shift_pressed && a_key_pressed;
+    const bool ctrl_d_key_pressed = ctrl_pressed && !shift_pressed && d_key_pressed;
 
-    if (z_key_pressed && !last_vision_z_key_state)
+    if (commands_enabled)
     {
-        requestVisionCommand(VISION_COMM_RECOGNIZE_AND_PREINSERT);
-        vision_comm_status = VISION_COMM_CONTROL_ACTIVE;
-    }
-
-    if (x_key_pressed && !last_vision_x_key_state)
-    {
-        requestVisionCommand(VISION_COMM_START_INSERTION);
-        vision_comm_status = VISION_COMM_START_INSERTION;
+        if ((vision_next_command == VISION_TX_RECOGNIZE_AND_PREINSERT) &&
+            z_key_pressed && !last_vision_z_key_state &&
+            vision_controller.isNearStartPose(joint, 7U, 5.0f))
+        {
+            beginVisionCommand(VISION_TX_RECOGNIZE_AND_PREINSERT);
+        }
+        else if ((vision_next_command == VISION_TX_START_INSERTION) &&
+                 x_key_pressed && !last_vision_x_key_state)
+        {
+            beginVisionCommand(VISION_TX_START_INSERTION);
+        }
+        else if ((vision_next_command == VISION_TX_CONFIRM) &&
+                 c_key_pressed && !last_vision_c_key_state)
+        {
+            beginVisionCommand(VISION_TX_CONFIRM);
+        }
+        else if ((vision_next_command == VISION_TX_PUSH_UP) &&
+                 v_key_pressed && !last_vision_v_key_state)
+        {
+            beginVisionCommand(VISION_TX_PUSH_UP);
+        }
+        else if ((vision_next_command == VISION_TX_FLIP) &&
+                 b_key_pressed && !last_vision_b_key_state)
+        {
+            beginVisionCommand(VISION_TX_FLIP);
+        }
+        else if ((vision_next_command == VISION_TX_ROTATE_LEFT_30) &&
+                 shift_a_key_pressed && !last_vision_shift_a_key_state)
+        {
+            beginVisionCommand(VISION_TX_ROTATE_LEFT_30);
+        }
+        else if ((vision_next_command == VISION_TX_ROTATE_RIGHT_30) &&
+                 shift_d_key_pressed && !last_vision_shift_d_key_state)
+        {
+            beginVisionCommand(VISION_TX_ROTATE_RIGHT_30);
+        }
+        else if ((vision_next_command == VISION_TX_ROTATE_LEFT_5) &&
+                 ctrl_a_key_pressed && !last_vision_ctrl_a_key_state)
+        {
+            beginVisionCommand(VISION_TX_ROTATE_LEFT_5);
+        }
+        else if ((vision_next_command == VISION_TX_ROTATE_RIGHT_5) &&
+                 ctrl_d_key_pressed && !last_vision_ctrl_d_key_state)
+        {
+            beginVisionCommand(VISION_TX_ROTATE_RIGHT_5);
+        }
     }
 
     last_vision_z_key_state = z_key_pressed;
     last_vision_x_key_state = x_key_pressed;
+    last_vision_c_key_state = c_key_pressed;
+    last_vision_v_key_state = v_key_pressed;
+    last_vision_b_key_state = b_key_pressed;
+    last_vision_shift_a_key_state = shift_a_key_pressed;
+    last_vision_shift_d_key_state = shift_d_key_pressed;
+    last_vision_ctrl_a_key_state = ctrl_a_key_pressed;
+    last_vision_ctrl_d_key_state = ctrl_d_key_pressed;
 }
 
 static void applyVisionCommIndicator(uint32_t tick_ms)
@@ -129,15 +227,15 @@ static void applyVisionCommIndicator(uint32_t tick_ms)
 
     switch (vision_comm_status)
     {
-        case VISION_COMM_START_INSERTION:
-            /* Insertion command active: steady cyan. */
+        case vision_indicator_waiting:
+            /* Waiting for vision feedback: one cyan LED runs around the board. */
             for (uint8_t i = 0U; i < 6U; i++)
             {
-                colors[i] = WS_Cyan;
+                colors[i] = (i == ((tick_ms / 120U) % 6U)) ? WS_Cyan : WS_Black;
             }
             break;
 
-        case VISION_COMM_RECOGNITION_FAILED:
+        case VISION_RX_RECOGNITION_FAILED:
             /* Recognition failed: all LEDs flash red at 4 Hz. */
             for (uint8_t i = 0U; i < 6U; i++)
             {
@@ -145,12 +243,20 @@ static void applyVisionCommIndicator(uint32_t tick_ms)
             }
             break;
 
-        case VISION_COMM_SOLUTION_FAILED:
+        case VISION_RX_SOLUTION_FAILED:
             /* Solution failed: alternating yellow/white prompts chassis repositioning. */
             for (uint8_t i = 0U; i < 6U; i++)
             {
                 const uint8_t phase = (uint8_t)((tick_ms / 250U) & 0x01U);
                 colors[i] = (((i & 0x01U) ^ phase) != 0U) ? WS_White : WS_Yellow;
+            }
+            break;
+
+        case vision_indicator_success:
+            /* Every completed operation uses the same steady-green indication. */
+            for (uint8_t i = 0U; i < 6U; i++)
+            {
+                colors[i] = WS_Green;
             }
             break;
 
@@ -401,10 +507,11 @@ void executeVisionControlMode(bool vision_data_ready)
     {
         vision_controller.startSoftStart(joint, joint_trajectory_point_array, 7);
         SetTargetChassisHeight(vision_start_chassis_height_m);
+        resetVisionInteractionState();
     }
     last_f_key_state = f_key_pressed;
 
-    handleVisionCommandInput();
+    handleVisionCommandInput(!f_key_pressed);
 
     // 检查是否收到小电脑数据
     if (vision_data_ready)

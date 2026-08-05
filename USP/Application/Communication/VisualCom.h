@@ -9,19 +9,39 @@
 #define VISION_FRAME_HEADER_SIZE       2U
 #define VISION_FRAME_CRC_SIZE          2U
 
-/*
- * comm_flag values shared with the vision computer.
- * 0/1 keep the existing control-mode status semantics. The controller sends
- * 2/3 as latched operation commands, and vision returns failure states 5/6.
- */
+/* comm_flag values shared with the vision computer. */
 enum VisionCommFlag
 {
     VISION_COMM_CONTROL_ACTIVE = 0U,
-    VISION_COMM_CONTROL_INACTIVE = 1U,
-    VISION_COMM_RECOGNIZE_AND_PREINSERT = 2U,
-    VISION_COMM_START_INSERTION = 3U,
-    VISION_COMM_RECOGNITION_FAILED = 5U,
-    VISION_COMM_SOLUTION_FAILED = 6U
+    VISION_COMM_CONTROL_INACTIVE = 1U
+};
+
+enum VisionTxCommand
+{
+    VISION_TX_RECOGNIZE_AND_PREINSERT = 2U,
+    VISION_TX_START_INSERTION = 3U,
+    VISION_TX_CONFIRM = 4U,
+    VISION_TX_PUSH_UP = 5U,
+    VISION_TX_FLIP = 6U,
+    VISION_TX_ROTATE_LEFT_30 = 7U,
+    VISION_TX_ROTATE_RIGHT_30 = 8U,
+    VISION_TX_ROTATE_LEFT_5 = 9U,
+    VISION_TX_ROTATE_RIGHT_5 = 10U
+};
+
+enum VisionRxStatus
+{
+    VISION_RX_RECOGNITION_FAILED = 5U,
+    VISION_RX_SOLUTION_FAILED = 6U,
+    VISION_RX_RECOGNITION_SUCCEEDED = 10U,
+    VISION_RX_INSERTION_COMPLETED = 11U,
+    VISION_RX_CONFIRM_COMPLETED = 12U,
+    VISION_RX_PUSH_UP_COMPLETED = 13U,
+    VISION_RX_FLIP_COMPLETED = 14U,
+    VISION_RX_ROTATE_LEFT_30_COMPLETED = 15U,
+    VISION_RX_ROTATE_RIGHT_30_COMPLETED = 16U,
+    VISION_RX_ROTATE_LEFT_5_COMPLETED = 17U,
+    VISION_RX_ROTATE_RIGHT_5_COMPLETED = 18U
 };
 
 /*

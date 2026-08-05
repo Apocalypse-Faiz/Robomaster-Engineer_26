@@ -1389,10 +1389,10 @@ void tskBoardCom(void *arg)
 	uint8_t bottom_period_tick = 0U;
 	TickType_t vision_busy_hold_ticks = 0U;
 	const TickType_t vision_busy_backoff_ticks = pdMS_TO_TICKS(2);
-	const uint8_t vision_command_zero_prefix_frames = 3U;
+	const TickType_t vision_command_duration_ticks = pdMS_TO_TICKS(500U);
 	uint32_t vision_last_command_request = 0U;
 	uint8_t vision_active_command = 0U;
-	uint8_t vision_zero_prefix_remaining = 0U;
+	TickType_t vision_command_start_tick = 0U;
 	xLastWakeTime_t = xTaskGetTickCount();
 	vTaskDelay(1000);
 	/* UI mode trigger: when VT13 middle mouse is pressed, set UI_Mode=1 for next 5 cycles */
@@ -1504,28 +1504,33 @@ void tskBoardCom(void *arg)
 						get_energy_vision_mode_active
 							? GetEnergyUnit_getVisionCommandRequest()
 							: 0U;
+					const TickType_t vision_command_now = xTaskGetTickCount();
 
 					if (!get_energy_vision_mode_active)
 					{
 						if ((vision_last_command_request != 0U) ||
-							(vision_active_command != 0U) ||
-							(vision_zero_prefix_remaining != 0U))
+							(vision_active_command != 0U))
 						{
 							vision_pending_valid = 0U;
 						}
 
 						vision_last_command_request = 0U;
 						vision_active_command = 0U;
-						vision_zero_prefix_remaining = 0U;
+						vision_command_start_tick = 0U;
 					}
 					else if (vision_command_request != vision_last_command_request)
 					{
 						vision_last_command_request = vision_command_request;
 						vision_active_command = (uint8_t)(vision_command_request & 0xFFU);
-						vision_zero_prefix_remaining =
-							(vision_active_command != 0U)
-								? vision_command_zero_prefix_frames
-								: 0U;
+						vision_command_start_tick = vision_command_now;
+						vision_pending_valid = 0U;
+					}
+					else if ((vision_active_command != 0U) &&
+						((vision_command_now - vision_command_start_tick) >=
+						 vision_command_duration_ticks))
+					{
+						vision_active_command = 0U;
+						vision_command_start_tick = 0U;
 						vision_pending_valid = 0U;
 					}
 
@@ -1534,11 +1539,9 @@ void tskBoardCom(void *arg)
 							? VISION_COMM_CONTROL_ACTIVE
 							: VISION_COMM_CONTROL_INACTIVE;
 					vision_latest_frame.comm_flag =
-						(vision_zero_prefix_remaining != 0U)
-							? VISION_COMM_CONTROL_ACTIVE
-							: ((vision_active_command != 0U)
-								? vision_active_command
-								: vision_default_comm_flag);
+						(vision_active_command != 0U)
+							? vision_active_command
+							: vision_default_comm_flag;
 
 					if (vision_pending_valid == 0U)
 					{
@@ -1557,16 +1560,6 @@ void tskBoardCom(void *arg)
 							tx_result = Visiondata_Transmist();
 							if (tx_result == USBD_OK)
 							{
-								if ((vision_zero_prefix_remaining != 0U) &&
-									(toVisiondata.comm_flag == VISION_COMM_CONTROL_ACTIVE))
-								{
-									vision_zero_prefix_remaining--;
-									if (vision_zero_prefix_remaining == 0U)
-									{
-										vision_latest_frame.comm_flag = vision_active_command;
-									}
-								}
-
 								if (toVisiondata.seq_num != vision_latest_frame.seq_num)
 								{
 									memcpy(&toVisiondata, &vision_latest_frame, sizeof(toVisiondata));

@@ -360,13 +360,16 @@ void VT13_KeyBoard_MoveCtrl(ToBottomDataStructdef &_ToBottomData)
         last_f_key_state = f_key_pressed;
         last_b_key_state = b_key_pressed;
 
-        if (VT13.IsKeyPress(VT13_KEY_D))
+        const bool chassis_strafe_enabled =
+            !VT13.IsKeyPress(VT13_KEY_SHIFT) && !VT13.IsKeyPress(VT13_KEY_CTRL);
+
+        if (chassis_strafe_enabled && VT13.IsKeyPress(VT13_KEY_D))
         {
             increas_buffer[0] += 0.05;
             increas_buffer[0] = constrain(increas_buffer[0], 0.5, 1);
             temp_vy = 0.8 * temp_Speed * increas_buffer[0];
         }
-        else if (VT13.IsKeyPress(VT13_KEY_A))
+        else if (chassis_strafe_enabled && VT13.IsKeyPress(VT13_KEY_A))
         {
             increas_buffer[1] += 0.05;
             increas_buffer[1] = constrain(increas_buffer[1], 0.5, 1);
@@ -560,13 +563,16 @@ void VT13_KeyBoard_MoveCtrl_Custom(ToBottomDataStructdef &_ToBottomData)
             temp_Speed = 0.5f;
         // }
 
-        if (VT13.IsKeyPress(VT13_KEY_D))
+        const bool chassis_strafe_enabled =
+            !VT13.IsKeyPress(VT13_KEY_SHIFT) && !VT13.IsKeyPress(VT13_KEY_CTRL);
+
+        if (chassis_strafe_enabled && VT13.IsKeyPress(VT13_KEY_D))
         {
             increas_buffer[0] += 0.03;
             increas_buffer[0] = constrain(increas_buffer[0], 0.5, 1);
             temp_vy = 0.5 * temp_Speed * increas_buffer[0];
         }
-        else if (VT13.IsKeyPress(VT13_KEY_A))
+        else if (chassis_strafe_enabled && VT13.IsKeyPress(VT13_KEY_A))
         {
             increas_buffer[1] += 0.03;
             increas_buffer[1] = constrain(increas_buffer[1], 0.5, 1);

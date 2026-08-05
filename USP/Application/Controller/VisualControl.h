@@ -57,6 +57,8 @@ public:
      * @brief 移动到视觉控制起始角度
      */
     void startSoftStart(Joint joints[], TrajectoryPointArray trajectory_arrays[], uint8_t joint_count);
+
+    bool isNearStartPose(Joint joints[], uint8_t joint_count, float tolerance_deg) const;
     
     /**
      * @brief 重置控制器状态

@@ -58,6 +58,24 @@ void VisionController::startSoftStart(Joint joints[], TrajectoryPointArray traje
     soft_start_active = true;
 }
 
+bool VisionController::isNearStartPose(Joint joints[], uint8_t joint_count, float tolerance_deg) const
+{
+    if ((joint_count < 7U) || (tolerance_deg < 0.0f))
+    {
+        return false;
+    }
+
+    for (uint8_t i = 0U; i < 7U; i++)
+    {
+        if (fabs(joints[i].getCurrentAngle() - start_angles[i]) > tolerance_deg)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 /**
  * @brief 检查目标是否都为 0
  */
