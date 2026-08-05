@@ -36,10 +36,9 @@ static TickType_t last_vision_rx_tick = 0U;
 static bool vision_frame_received = false;
 static constexpr uint32_t vision_link_timeout_ms = 100U;
 static uint8_t vision_comm_status = VISION_COMM_CONTROL_ACTIVE;
-static volatile uint8_t vision_command_latched = 0U;
+static volatile uint32_t vision_command_request = 0U;
 static bool last_vision_z_key_state = false;
 static bool last_vision_x_key_state = false;
-static bool last_vision_c_key_state = false;
 
 static float joint_takeover_speed_ff[7] = {0.0f};
 static float joint_takeover_acc_ff[7] = {0.0f};
@@ -61,21 +60,22 @@ static void resetVisionLinkState()
 
 static void resetVisionInteractionState()
 {
-    vision_command_latched = 0U;
+    const uint32_t next_generation = (vision_command_request >> 8U) + 1U;
+    vision_command_request = (next_generation << 8U);
     vision_comm_status = VISION_COMM_CONTROL_ACTIVE;
     last_vision_z_key_state = false;
     last_vision_x_key_state = false;
-    last_vision_c_key_state = false;
 }
 
 static void requestVisionCommand(uint8_t command)
 {
-    vision_command_latched = command;
+    const uint32_t next_generation = (vision_command_request >> 8U) + 1U;
+    vision_command_request = (next_generation << 8U) | command;
 }
 
-uint8_t GetEnergyUnit_getVisionCommand()
+uint32_t GetEnergyUnit_getVisionCommandRequest()
 {
-    return vision_command_latched;
+    return vision_command_request;
 }
 
 static void updateVisionCommStatus(uint8_t comm_flag)
@@ -83,10 +83,7 @@ static void updateVisionCommStatus(uint8_t comm_flag)
     switch (comm_flag)
     {
         case VISION_COMM_RECOGNITION_FAILED:
-        case VISION_COMM_RECOGNIZING:
-        case VISION_COMM_RECOGNITION_SUCCEEDED:
-        case VISION_COMM_SOLUTION_READY:
-        case VISION_COMM_PREINSERT_REACHED:
+        case VISION_COMM_SOLUTION_FAILED:
             vision_comm_status = comm_flag;
             break;
 
@@ -103,33 +100,21 @@ static void handleVisionCommandInput()
         (VT13.GetModeSwitch() != MS_Status_Typedef::MS_C);
     const bool z_key_pressed = vt13_linked && VT13.IsKeyPress(VT13_KEY_Z);
     const bool x_key_pressed = vt13_linked && VT13.IsKeyPress(VT13_KEY_X);
-    const bool c_key_pressed = vt13_linked && VT13.IsKeyPress(VT13_KEY_C);
 
     if (z_key_pressed && !last_vision_z_key_state)
     {
-        requestVisionCommand(VISION_COMM_START_RECOGNITION);
+        requestVisionCommand(VISION_COMM_RECOGNIZE_AND_PREINSERT);
         vision_comm_status = VISION_COMM_CONTROL_ACTIVE;
     }
 
-    /* X is valid only after vision reports that the solution is ready. */
-    if (x_key_pressed && !last_vision_x_key_state &&
-        vision_comm_status == VISION_COMM_SOLUTION_READY)
-    {
-        requestVisionCommand(VISION_COMM_MOVE_TO_PREINSERT);
-        vision_comm_status = VISION_COMM_CONTROL_ACTIVE;
-    }
-
-    /* C is valid only after vision confirms that pre-insertion has been reached. */
-    if (c_key_pressed && !last_vision_c_key_state &&
-        vision_comm_status == VISION_COMM_PREINSERT_REACHED)
+    if (x_key_pressed && !last_vision_x_key_state)
     {
         requestVisionCommand(VISION_COMM_START_INSERTION);
-        vision_comm_status = VISION_COMM_CONTROL_ACTIVE;
+        vision_comm_status = VISION_COMM_START_INSERTION;
     }
 
     last_vision_z_key_state = z_key_pressed;
     last_vision_x_key_state = x_key_pressed;
-    last_vision_c_key_state = c_key_pressed;
 }
 
 static void applyVisionCommIndicator(uint32_t tick_ms)
@@ -144,6 +129,14 @@ static void applyVisionCommIndicator(uint32_t tick_ms)
 
     switch (vision_comm_status)
     {
+        case VISION_COMM_START_INSERTION:
+            /* Insertion command active: steady cyan. */
+            for (uint8_t i = 0U; i < 6U; i++)
+            {
+                colors[i] = WS_Cyan;
+            }
+            break;
+
         case VISION_COMM_RECOGNITION_FAILED:
             /* Recognition failed: all LEDs flash red at 4 Hz. */
             for (uint8_t i = 0U; i < 6U; i++)
@@ -152,36 +145,12 @@ static void applyVisionCommIndicator(uint32_t tick_ms)
             }
             break;
 
-        case VISION_COMM_RECOGNIZING:
-            /* Recognition in progress: one yellow LED runs around the board. */
-            for (uint8_t i = 0U; i < 6U; i++)
-            {
-                colors[i] = (i == ((tick_ms / 120U) % 6U)) ? WS_Yellow : WS_Black;
-            }
-            break;
-
-        case VISION_COMM_RECOGNITION_SUCCEEDED:
-            /* Recognition succeeded: steady green. */
-            for (uint8_t i = 0U; i < 6U; i++)
-            {
-                colors[i] = WS_Green;
-            }
-            break;
-
-        case VISION_COMM_SOLUTION_READY:
-            /* Solution ready: alternating cyan/white prompts the operator to press X. */
+        case VISION_COMM_SOLUTION_FAILED:
+            /* Solution failed: alternating yellow/white prompts chassis repositioning. */
             for (uint8_t i = 0U; i < 6U; i++)
             {
                 const uint8_t phase = (uint8_t)((tick_ms / 250U) & 0x01U);
-                colors[i] = (((i & 0x01U) ^ phase) != 0U) ? WS_White : WS_Cyan;
-            }
-            break;
-
-        case VISION_COMM_PREINSERT_REACHED:
-            /* Pre-insertion reached: steady blue prompts the operator to press C. */
-            for (uint8_t i = 0U; i < 6U; i++)
-            {
-                colors[i] = WS_Blue;
+                colors[i] = (((i & 0x01U) ^ phase) != 0U) ? WS_White : WS_Yellow;
             }
             break;
 

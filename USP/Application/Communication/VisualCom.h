@@ -11,21 +11,17 @@
 
 /*
  * comm_flag values shared with the vision computer.
- * 0/1 keep the existing control-mode status semantics; 2-4 are commands sent
- * by the controller, and 5-9 are recognition/motion states returned by vision.
+ * 0/1 keep the existing control-mode status semantics. The controller sends
+ * 2/3 as latched operation commands, and vision returns failure states 5/6.
  */
 enum VisionCommFlag
 {
     VISION_COMM_CONTROL_ACTIVE = 0U,
     VISION_COMM_CONTROL_INACTIVE = 1U,
-    VISION_COMM_START_RECOGNITION = 2U,
-    VISION_COMM_MOVE_TO_PREINSERT = 3U,
-    VISION_COMM_START_INSERTION = 4U,
+    VISION_COMM_RECOGNIZE_AND_PREINSERT = 2U,
+    VISION_COMM_START_INSERTION = 3U,
     VISION_COMM_RECOGNITION_FAILED = 5U,
-    VISION_COMM_RECOGNIZING = 6U,
-    VISION_COMM_RECOGNITION_SUCCEEDED = 7U,
-    VISION_COMM_SOLUTION_READY = 8U,
-    VISION_COMM_PREINSERT_REACHED = 9U
+    VISION_COMM_SOLUTION_FAILED = 6U
 };
 
 /*
