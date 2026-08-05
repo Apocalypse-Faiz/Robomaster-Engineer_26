@@ -63,6 +63,12 @@ private:
     uint8_t get_ore_num[6];
     uint8_t ore_index;
 
+    // Manual one-key store/take-out sequencing state.
+    uint8_t takein_phase;
+    uint32_t manual_gripper_action_tick;
+    bool last_manual_store_pressed;
+    bool last_manual_takeout_pressed;
+
     // Manual belly-slot selection: false = OreBit auto selection, true = VT13 mouse-selected slot.
     bool manual_slot_mode;
     uint8_t manual_slot_index;
