@@ -66,6 +66,7 @@ private:
     // Manual one-key store/take-out sequencing state.
     uint8_t takein_phase;
     uint32_t manual_gripper_action_tick;
+    bool manual_ore_auto_active;
     bool last_manual_store_pressed;
     bool last_manual_takeout_pressed;
 
@@ -137,6 +138,11 @@ public:
 
     /** @brief 一键四矿流程是否正在接管机械臂和夹爪。 */
     bool isAutoFourOreRunning() const { return auto_four_ore_active; }
+
+    /** @brief 自动储矿、取肚矿或一键四矿是否正在独占夹爪。 */
+    bool isGripperAutoControlled() const {
+        return auto_four_ore_active || manual_ore_auto_active;
+    }
 
     /** @brief 已成功储存的矿数，范围 0~4。 */
     uint8_t getAutoFourOreCount() const { return auto_four_ore_count; }

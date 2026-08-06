@@ -64,6 +64,7 @@ void ActionGroupController::initFlags()
     ore_index = 0;
     takein_phase = 0U;
     manual_gripper_action_tick = 0U;
+    manual_ore_auto_active = false;
     last_manual_store_pressed = false;
     last_manual_takeout_pressed = false;
     manual_slot_mode = false;
@@ -159,7 +160,8 @@ bool ActionGroupController::handleAutoFourOre(
         ore_index = auto_four_current_ore;
         auto_four_ore_error = AutoFourOreError::None;
 
-        if (!action_free || take_ore_state != TakeOre_enum::Zero || add_once_flag != 0U)
+        if (!action_free || take_ore_state != TakeOre_enum::Zero ||
+            add_once_flag != 0U || manual_ore_auto_active)
         {
             stopAutoFourOre(AutoFourOreError::Busy);
             return true;
@@ -702,7 +704,10 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
     {
     // 储矿逻辑 — 根据 OreBit 自动选空槽 (优先级: LF>RF>LB>RB)
     //   F 键触发储存, 自动寻找第一个 OreBit[s]==0 的槽位
-    if (action_free == true && manual_store_start && gripper.getState() == GripperState::CLOSING && take_ore_state == TakeOre_enum::Zero)
+    if (action_free == true && manual_store_start &&
+        !manual_ore_auto_active &&
+        gripper.getState() == GripperState::CLOSING &&
+        take_ore_state == TakeOre_enum::Zero)
     {
         static const ActionGroup_enum store_actions[4] = {
             ActionGroup_enum::StoreOre_LF, ActionGroup_enum::StoreOre_RF,
@@ -733,6 +738,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
 
         if (selected_slot >= 0)
         {
+            manual_ore_auto_active = true;
             action_enum = store_actions[selected_slot];
             add_once_flag = 1;
             ore_ing[selected_slot] = 1;
@@ -894,7 +900,9 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
     
     // 取肚矿逻辑 — 根据 OreBit 自动选有矿槽 (优先级: LF>RF>LB>RB)
     //   C 键触发取出, 自动寻找第一个 OreBit[s]==1 的槽位
-    else if (action_free == true && manual_takeout_start && take_ore_state == TakeOre_enum::Zero)
+    else if (action_free == true && manual_takeout_start &&
+             !manual_ore_auto_active &&
+             take_ore_state == TakeOre_enum::Zero)
     {
         static const ActionGroup_enum takein_actions[4] = {
             ActionGroup_enum::TakeInOre_LF, ActionGroup_enum::TakeInOre_RF,
@@ -925,6 +933,7 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
 
         if (selected_slot >= 0)
         {
+            manual_ore_auto_active = true;
             if (gripper.getState() != GripperState::OPENING)
                 gripper.open();
             action_enum = takein_actions[selected_slot];
@@ -997,6 +1006,22 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
             break;
         }
     }
+
+    // 自动储/取的最终退出动作完成后才释放夹爪控制权。
+    // 若此时仍按住 E（或图传夹爪按钮），保持锁定直至松键，避免恢复手动控制时误触发。
+    const bool manual_gripper_input_held =
+        (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED &&
+         DR16.IsKeyPress(DR16_KEY_E)) ||
+        (VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED &&
+         (VT13.IsKeyPress(VT13_KEY_E) ||
+          ((VT13.Datapack_custom.pick & 0x01U) != 0U)));
+    if (manual_ore_auto_active && execution_free &&
+        add_once_flag == 0U && take_ore_state == TakeOre_enum::Zero &&
+        !manual_gripper_input_held)
+    {
+        manual_ore_auto_active = false;
+    }
+
     last_action_done =
         (!entry_action_pending && !auto_four_ore_active && execution_free &&
          add_once_flag == 0U && take_ore_state == TakeOre_enum::Zero) ? 1U : 0U;
