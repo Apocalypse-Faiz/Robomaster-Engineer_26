@@ -13,10 +13,16 @@ enum class ControlMode {
 };
 
 static ControlMode current_mode = ControlMode::ACTION_GROUP;
+static volatile bool vision_recognition_started = false;
 
 bool GetEnergyUnit_isVisionMode()
 {
     return current_mode == ControlMode::VISION_CONTROL;
+}
+
+bool GetEnergyUnit_isVisionCommunicationActive()
+{
+    return GetEnergyUnit_isVisionMode() || vision_recognition_started;
 }
 
 bool GetEnergyUnit_isActionGroupMode()
@@ -38,7 +44,7 @@ static constexpr uint32_t vision_link_timeout_ms = 100U;
 static constexpr uint8_t vision_indicator_success = 0xFEU;
 static constexpr uint8_t vision_indicator_waiting = 0xFFU;
 static uint8_t vision_comm_status = VISION_COMM_CONTROL_ACTIVE;
-static uint8_t vision_next_command = VISION_TX_RECOGNIZE_AND_PREINSERT;
+static uint16_t vision_allowed_commands = (uint16_t)(1UL << VISION_TX_RECOGNIZE_AND_PREINSERT);
 static uint8_t vision_pending_feedback = 0U;
 static volatile uint32_t vision_command_request = 0U;
 static bool last_vision_z_key_state = false;
@@ -69,13 +75,19 @@ static void resetVisionLinkState()
     vision_frame_received = false;
 }
 
-static void resetVisionInteractionState()
+static void cancelVisionCommandPulse()
 {
     const uint32_t next_generation = (vision_command_request >> 8U) + 1U;
     vision_command_request = (next_generation << 8U);
+}
+
+static void resetVisionInteractionState()
+{
+    cancelVisionCommandPulse();
     vision_comm_status = VISION_COMM_CONTROL_ACTIVE;
-    vision_next_command = VISION_TX_RECOGNIZE_AND_PREINSERT;
+    vision_allowed_commands = (uint16_t)(1UL << VISION_TX_RECOGNIZE_AND_PREINSERT);
     vision_pending_feedback = 0U;
+    vision_recognition_started = false;
     last_vision_z_key_state = false;
     last_vision_x_key_state = false;
     last_vision_c_key_state = false;
@@ -93,12 +105,68 @@ static void requestVisionCommand(uint8_t command)
     vision_command_request = (next_generation << 8U) | command;
 }
 
+static uint16_t visionCommandBit(uint8_t command)
+{
+    return (uint16_t)(1UL << command);
+}
+
+static bool isVisionCommandAllowed(uint8_t command)
+{
+    return (vision_allowed_commands & visionCommandBit(command)) != 0U;
+}
+
 static void beginVisionCommand(uint8_t command)
 {
     requestVisionCommand(command);
-    vision_next_command = 0U;
+    if (command == VISION_TX_RECOGNIZE_AND_PREINSERT)
+    {
+        vision_recognition_started = true;
+    }
+    vision_allowed_commands &= (uint16_t)~visionCommandBit(command);
     vision_pending_feedback = command + 8U;
     vision_comm_status = vision_indicator_waiting;
+}
+
+static void unlockVisionCommandsAfterSuccess(uint8_t completed_command)
+{
+    switch (completed_command)
+    {
+        case VISION_TX_RECOGNIZE_AND_PREINSERT:
+            vision_allowed_commands |=
+                visionCommandBit(VISION_TX_START_INSERTION) |
+                visionCommandBit(VISION_TX_CONFIRM);
+            break;
+
+        case VISION_TX_START_INSERTION:
+            break;
+
+        case VISION_TX_CONFIRM:
+            vision_allowed_commands |= visionCommandBit(VISION_TX_PUSH_UP);
+            break;
+
+        case VISION_TX_PUSH_UP:
+            vision_allowed_commands |= visionCommandBit(VISION_TX_FLIP);
+            break;
+
+        case VISION_TX_FLIP:
+            vision_allowed_commands |= visionCommandBit(VISION_TX_ROTATE_LEFT_30);
+            break;
+
+        case VISION_TX_ROTATE_LEFT_30:
+            vision_allowed_commands |= visionCommandBit(VISION_TX_ROTATE_RIGHT_30);
+            break;
+
+        case VISION_TX_ROTATE_RIGHT_30:
+            vision_allowed_commands |= visionCommandBit(VISION_TX_ROTATE_LEFT_5);
+            break;
+
+        case VISION_TX_ROTATE_LEFT_5:
+            vision_allowed_commands |= visionCommandBit(VISION_TX_ROTATE_RIGHT_5);
+            break;
+
+        default:
+            break;
+    }
 }
 
 uint32_t GetEnergyUnit_getVisionCommandRequest()
@@ -112,7 +180,7 @@ static void updateVisionCommStatus(uint8_t comm_flag)
         (comm_flag == VISION_RX_RECOGNITION_FAILED))
     {
         vision_pending_feedback = 0U;
-        vision_next_command = VISION_TX_RECOGNIZE_AND_PREINSERT;
+        vision_allowed_commands = visionCommandBit(VISION_TX_RECOGNIZE_AND_PREINSERT);
         vision_comm_status = comm_flag;
         return;
     }
@@ -129,9 +197,7 @@ static void updateVisionCommStatus(uint8_t comm_flag)
     {
         const uint8_t completed_command = comm_flag - 8U;
         vision_pending_feedback = 0U;
-        vision_next_command = (completed_command < VISION_TX_ROTATE_RIGHT_5)
-                                ? (completed_command + 1U)
-                                : 0U;
+        unlockVisionCommandsAfterSuccess(completed_command);
         vision_comm_status = vision_indicator_success;
     }
 }
@@ -154,50 +220,50 @@ static void handleVisionCommandInput(bool commands_enabled)
     const bool ctrl_a_key_pressed = ctrl_pressed && !shift_pressed && a_key_pressed;
     const bool ctrl_d_key_pressed = ctrl_pressed && !shift_pressed && d_key_pressed;
 
-    if (commands_enabled)
+    if (commands_enabled && (vision_pending_feedback == 0U))
     {
-        if ((vision_next_command == VISION_TX_RECOGNIZE_AND_PREINSERT) &&
+        if (isVisionCommandAllowed(VISION_TX_RECOGNIZE_AND_PREINSERT) &&
             z_key_pressed && !last_vision_z_key_state &&
             vision_controller.isNearStartPose(joint, 7U, 5.0f))
         {
             beginVisionCommand(VISION_TX_RECOGNIZE_AND_PREINSERT);
         }
-        else if ((vision_next_command == VISION_TX_START_INSERTION) &&
+        else if (isVisionCommandAllowed(VISION_TX_START_INSERTION) &&
                  x_key_pressed && !last_vision_x_key_state)
         {
             beginVisionCommand(VISION_TX_START_INSERTION);
         }
-        else if ((vision_next_command == VISION_TX_CONFIRM) &&
+        else if (isVisionCommandAllowed(VISION_TX_CONFIRM) &&
                  c_key_pressed && !last_vision_c_key_state)
         {
             beginVisionCommand(VISION_TX_CONFIRM);
         }
-        else if ((vision_next_command == VISION_TX_PUSH_UP) &&
+        else if (isVisionCommandAllowed(VISION_TX_PUSH_UP) &&
                  v_key_pressed && !last_vision_v_key_state)
         {
             beginVisionCommand(VISION_TX_PUSH_UP);
         }
-        else if ((vision_next_command == VISION_TX_FLIP) &&
+        else if (isVisionCommandAllowed(VISION_TX_FLIP) &&
                  b_key_pressed && !last_vision_b_key_state)
         {
             beginVisionCommand(VISION_TX_FLIP);
         }
-        else if ((vision_next_command == VISION_TX_ROTATE_LEFT_30) &&
+        else if (isVisionCommandAllowed(VISION_TX_ROTATE_LEFT_30) &&
                  shift_a_key_pressed && !last_vision_shift_a_key_state)
         {
             beginVisionCommand(VISION_TX_ROTATE_LEFT_30);
         }
-        else if ((vision_next_command == VISION_TX_ROTATE_RIGHT_30) &&
+        else if (isVisionCommandAllowed(VISION_TX_ROTATE_RIGHT_30) &&
                  shift_d_key_pressed && !last_vision_shift_d_key_state)
         {
             beginVisionCommand(VISION_TX_ROTATE_RIGHT_30);
         }
-        else if ((vision_next_command == VISION_TX_ROTATE_LEFT_5) &&
+        else if (isVisionCommandAllowed(VISION_TX_ROTATE_LEFT_5) &&
                  ctrl_a_key_pressed && !last_vision_ctrl_a_key_state)
         {
             beginVisionCommand(VISION_TX_ROTATE_LEFT_5);
         }
-        else if ((vision_next_command == VISION_TX_ROTATE_RIGHT_5) &&
+        else if (isVisionCommandAllowed(VISION_TX_ROTATE_RIGHT_5) &&
                  ctrl_d_key_pressed && !last_vision_ctrl_d_key_state)
         {
             beginVisionCommand(VISION_TX_ROTATE_RIGHT_5);
@@ -350,7 +416,10 @@ void switchControlMode(ControlMode new_mode)
             vision_control_data.enable = false;
             vision_controller.reset();
             resetVisionLinkState();
-            resetVisionInteractionState();
+            if (!vision_recognition_started)
+            {
+                cancelVisionCommandPulse();
+            }
             break;
     }
     
@@ -371,7 +440,6 @@ void switchControlMode(ControlMode new_mode)
         case ControlMode::VISION_CONTROL:
             vision_control_data.enable = true;
             resetVisionLinkState();
-            resetVisionInteractionState();
             break;
     }
 }
@@ -830,8 +898,8 @@ void GetEnergyUnit_action(Event_t **pEvent)
 
     handleModeSwitchInput(); 
 
-    // 一键四矿运行时夹爪由 ActionGroupController 独占，避免 E 键覆盖自动开合命令。
-    if (!action_group_controller.isAutoFourOreRunning())
+    // 自动储矿、取肚矿及一键四矿运行时，由 ActionGroupController 独占夹爪。
+    if (!action_group_controller.isGripperAutoControlled())
     {
         if (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
         {

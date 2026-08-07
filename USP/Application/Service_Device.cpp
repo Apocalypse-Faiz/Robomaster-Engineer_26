@@ -1108,7 +1108,7 @@ void tskMotor(void *arg)
 	motor[3].setPidParameters({.v_Kp = 2, .v_Min = -20, .v_Max = 20, .a_Kp = 1.4, .a_Ki = 0.03, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
 	motor[4].setPidParameters({.v_Kp = 1.2, .v_Min = -20, .v_Max = 20, .a_Kp = 0.75, .a_Ki = 0.01, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
 	motor[5].setPidParameters({.v_Kp = 1.5, .v_Min = -20, .v_Max = 20, .a_Kp = 0.8, .a_Ki = 0.02, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
-	motor[6].setPidParameters({.v_Kp = 0.5, .v_Min = -20, .v_Max = 20, .a_Kp = 0.95, .a_Ki = 0, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
+	motor[6].setPidParameters({.v_Kp = 0.5, .v_Min = -20, .v_Max = 20, .a_Kp = 0.90, .a_Ki = 0, .a_Kd = 0, .a_Min = -20, .a_Max = 20, .a_IntSep = 0, .a_IntMax = 2});
 
 	vTaskDelay(1000);
 
@@ -1493,20 +1493,20 @@ void tskBoardCom(void *arg)
 					}
 					vision_latest_frame.chassis_height_current = current_chassis_height + 0.000f;
 					vision_latest_frame.seq_num = seq_num++;
-					const bool get_energy_vision_mode_active =
+					const bool get_energy_vision_comm_active =
 						(g_top_state_id == TopStateId::GetEnergyUnit) &&
-						GetEnergyUnit_isVisionMode();
+						GetEnergyUnit_isVisionCommunicationActive();
 					const bool vision_mode_active =
-						get_energy_vision_mode_active ||
+						get_energy_vision_comm_active ||
 						((g_top_state_id == TopStateId::ExchangeEnergyUnit) &&
 						 ExchangeEnergyUnit_isVisionMode());
 					const uint32_t vision_command_request =
-						get_energy_vision_mode_active
+						get_energy_vision_comm_active
 							? GetEnergyUnit_getVisionCommandRequest()
 							: 0U;
 					const TickType_t vision_command_now = xTaskGetTickCount();
 
-					if (!get_energy_vision_mode_active)
+					if (!get_energy_vision_comm_active)
 					{
 						if ((vision_last_command_request != 0U) ||
 							(vision_active_command != 0U))
