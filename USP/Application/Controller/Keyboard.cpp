@@ -1,10 +1,13 @@
 ﻿#include "srml_std_lib.h"
 #include "Keyboard.h"
+#include "ActionGroupController.h"
 
 bool VT13_ButtonStates[3] = {false, false, false}; // 存储每个按钮的触发状态
 static bool lastButtonState[3] = {false, false, false};
 bool GripperStates[3] = {false, false, false}; // 存储每个夹爪的触发状态 （二代车的储矿换成了电磁铁，但本质没变，继续用这个标志位）
-static bool lastGripperState[3] = {false, false, false};
+static bool last_dr16_gripper_key_state = false;
+static bool last_vt13_gripper_key_state = false;
+static uint8_t last_vt13_gripper_button_state = 0U;
 // 单按钮处理函数
 bool handleButtonToggle(ButtonType buttonType, bool isPressed) 
 {
@@ -807,21 +810,33 @@ void VT13_Store(ToBottomDataStructdef &_ToBottomData)
 
 void VT13_KeyBoard_Grip()
 {
+    const bool current_gripper_key_state = VT13.IsKeyPress(VT13_KEY_E);
+    const uint8_t current_gripper_button_state =
+        VT13.Datapack_custom.pick & 0x01U;
+
+    // 自动流程期间只同步输入边沿，不允许手动命令改写夹爪状态。
+    if (action_group_controller.isGripperAutoControlled())
+    {
+        last_vt13_gripper_key_state = current_gripper_key_state;
+        last_vt13_gripper_button_state = current_gripper_button_state;
+        return;
+    }
+
     if(VT13.GetModeSwitch() == MS_Status_Typedef::MS_N)
     {
         bool gripperchanged = false;
-        static uint8_t last_gripper_button_state = 0; // 0: 未按下，1: 按下
-        uint8_t current_gripper_button_state = VT13.Datapack_custom.pick & 0x01; // 取最低位作为夹爪按钮状态
-        uint8_t gripper_button_state_changed = current_gripper_button_state ^ last_gripper_button_state;
+        const uint8_t gripper_button_state_changed =
+            current_gripper_button_state ^ last_vt13_gripper_button_state;
 
-        if ((VT13.IsKeyPress(VT13_KEY_E) && !lastGripperState[0]) || gripper_button_state_changed)
+        if ((current_gripper_key_state && !last_vt13_gripper_key_state) ||
+            gripper_button_state_changed)
         {
             GripperStates[0] = !GripperStates[0];
             gripperchanged = true;
         }
 
-        lastGripperState[0] = VT13.IsKeyPress(VT13_KEY_E);
-        last_gripper_button_state = current_gripper_button_state;
+        last_vt13_gripper_key_state = current_gripper_key_state;
+        last_vt13_gripper_button_state = current_gripper_button_state;
 
         if (gripperchanged)
         {
@@ -1896,16 +1911,25 @@ void DR16_Grip()
 
 void Keyboard_Grippers()
 {
+    const bool current_gripper_key_state = DR16.IsKeyPress(DR16_KEY_E);
+
+    // 自动流程期间只同步输入边沿，不允许手动命令改写夹爪状态。
+    if (action_group_controller.isGripperAutoControlled())
+    {
+        last_dr16_gripper_key_state = current_gripper_key_state;
+        return;
+    }
+
     if(DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED)
     {
         bool gripperchanged = false;
-        if (DR16.IsKeyPress(DR16_KEY_E) && !lastGripperState[0])
+        if (current_gripper_key_state && !last_dr16_gripper_key_state)
         {
             GripperStates[0] = !GripperStates[0];
             gripperchanged = true;
         }
 
-        lastGripperState[0] = DR16.IsKeyPress(DR16_KEY_E);
+        last_dr16_gripper_key_state = current_gripper_key_state;
 
         if (gripperchanged)
         {

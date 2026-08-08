@@ -47,6 +47,7 @@ static uint8_t vision_comm_status = VISION_COMM_CONTROL_ACTIVE;
 static uint16_t vision_allowed_commands = (uint16_t)(1UL << VISION_TX_RECOGNIZE_AND_PREINSERT);
 static uint8_t vision_pending_feedback = 0U;
 static volatile uint32_t vision_command_request = 0U;
+static bool vision_waiting_for_z_start = false;
 static bool last_vision_z_key_state = false;
 static bool last_vision_x_key_state = false;
 static bool last_vision_c_key_state = false;
@@ -84,6 +85,7 @@ static void cancelVisionCommandPulse()
 static void resetVisionInteractionState()
 {
     cancelVisionCommandPulse();
+    vision_waiting_for_z_start = false;
     vision_comm_status = VISION_COMM_CONTROL_ACTIVE;
     vision_allowed_commands = (uint16_t)(1UL << VISION_TX_RECOGNIZE_AND_PREINSERT);
     vision_pending_feedback = 0U;
@@ -227,6 +229,7 @@ static void handleVisionCommandInput(bool commands_enabled)
             vision_controller.isNearStartPose(joint, 7U, 5.0f))
         {
             beginVisionCommand(VISION_TX_RECOGNIZE_AND_PREINSERT);
+            vision_waiting_for_z_start = false;
         }
         else if (isVisionCommandAllowed(VISION_TX_START_INSERTION) &&
                  x_key_pressed && !last_vision_x_key_state)
@@ -576,13 +579,14 @@ void executeVisionControlMode(bool vision_data_ready)
         vision_controller.startSoftStart(joint, joint_trajectory_point_array, 7);
         SetTargetChassisHeight(vision_start_chassis_height_m);
         resetVisionInteractionState();
+        vision_waiting_for_z_start = true;
     }
     last_f_key_state = f_key_pressed;
 
     handleVisionCommandInput(!f_key_pressed);
 
-    // 检查是否收到小电脑数据
-    if (vision_data_ready)
+    // F 触发后丢弃小电脑目标，直到 Z 启动指令通过起始位姿检查。
+    if (vision_data_ready && !vision_waiting_for_z_start)
     {
         for (int i = 0; i < 7; i++)
         {

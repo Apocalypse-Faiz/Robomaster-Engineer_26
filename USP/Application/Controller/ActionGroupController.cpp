@@ -1007,17 +1007,10 @@ void ActionGroupController::update(Joint joints[], TrajectoryPointArray trajecto
         }
     }
 
-    // 自动储/取的最终退出动作完成后才释放夹爪控制权。
-    // 若此时仍按住 E（或图传夹爪按钮），保持锁定直至松键，避免恢复手动控制时误触发。
-    const bool manual_gripper_input_held =
-        (DR16.GetStatus() == LinkageStatus_Typedef::ESTABLISHED &&
-         DR16.IsKeyPress(DR16_KEY_E)) ||
-        (VT13.GetStatus() == LinkageStatus_Typedef::ESTABLISHED &&
-         (VT13.IsKeyPress(VT13_KEY_E) ||
-          ((VT13.Datapack_custom.pick & 0x01U) != 0U)));
+    // 自动储/取的最终退出动作完成后释放夹爪控制权。
+    // 手动输入的边沿状态由 Keyboard.cpp 在锁定期间持续同步，恢复时不会补触发。
     if (manual_ore_auto_active && execution_free &&
-        add_once_flag == 0U && take_ore_state == TakeOre_enum::Zero &&
-        !manual_gripper_input_held)
+        add_once_flag == 0U && take_ore_state == TakeOre_enum::Zero)
     {
         manual_ore_auto_active = false;
     }
