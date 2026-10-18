@@ -211,7 +211,7 @@ e_\theta&=\theta_d-\theta,\\
 \omega_{\mathrm{ref}}&=\mathrm{PID}_{\theta}(e_\theta,\omega_{\mathrm{meas}})
 +k_v\omega_{\mathrm{traj}},\\
 \tau_{\mathrm{fb}}&=K_{p,\omega}(\omega_{\mathrm{ref}}-\omega_{\mathrm{meas}}),\\
-\tau_{\mathrm{cmd}}&=\operatorname{sat}\big(
+\tau_{\mathrm{cmd}}&=\mathrm{sat}\big(
 \tau_{\mathrm{fb}}+\tau_g+\tau_{\mathrm{emf}}+\tau_c+\tau_v
 +\tau_I+\tau_{a,\mathrm{traj}}\big).
 \end{aligned}
@@ -227,7 +227,7 @@ $$
 | 速度 | $k_v\omega_d$，加到速度环目标 | 取能量单元/兑换控制中由轨迹导数计算 |
 | 加速度 | $k_a\dot\omega_d$，力矩级 | `acc_ff_gain[]` 逐关节设置；部分轴增益为零 |
 | 反电动势等效项 | $k_e^{\mathrm{eq}}\omega$，力矩级 | 接口已接入，但 `Compension.cpp` 内系数全为零 |
-| 库仑摩擦 | $\tau_c=F_c\operatorname{sgn}(\omega)$ | 接口已接入，系数全为零；零速时返回零 |
+| 库仑摩擦 | $\tau_c=F_c\mathrm{sgn}(\omega)$ | 接口已接入，系数全为零；零速时返回零 |
 | 黏性摩擦 | $\tau_v=B\omega$ | 接口已接入，系数全为零 |
 | J1 惯量 | $\tau_I=I_{\mathrm{eq}}(q)\alpha_1$ | 模型及调用存在，但 `inertia_J1=0`，默认不产生最终输出 |
 
