@@ -47,3 +47,6 @@ RTE
 
 .vscode/
 *.idea
+
+# Laboratory-private dependency; restore locally only with authorization.
+/SRML/
